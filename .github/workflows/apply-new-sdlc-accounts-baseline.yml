@@ -1,0 +1,640 @@
+name: Apply SDLC Account Baselines
+run-name: Run ${{ inputs.terragrunt_command }} on account baselines
+on:
+  workflow_call:
+    inputs:
+      branch:
+        description: "The branch in infra-live-central in which to run the terragrunt command"
+        required: true
+        type: string
+      management_account:
+        description: "The AWS Account ID of the Control Tower Management Account"
+        required: true
+        type: string
+      terragrunt_command:
+        type: string
+        description: "The terragrunt command to run"
+        required: true
+        default: "plan"
+      team_account_data:
+        type: string
+        description: "JSON string representation of the team account data"
+        required: true
+      working_directory:
+        description: "The folder path in which terragrunt will execute"
+        required: true
+        type: string
+
+env:
+  DEPLOY_BRANCH_NAME: main
+  DEFAULT_AWS_REGION: us-east-1
+
+  INFRA_MODULES_REPO_NAME: infra-modules
+  INFRA_MODULES_RELEASE_VERSION: v0.1.0
+
+  GRUNTWORK_INSTALLER_VERSION: v0.0.38
+  BOILERPLATE_VERSION: v0.5.8
+
+  ARCH_CATALOG_VERSION: v1.3.1
+
+  GITHUB_CI_READONLY_USER: "ci-readonly-user"
+  NETWORK_ACCOUNT_NAME: "network"
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  new_sdlc_account_baselines:
+    name: "New SDLC Account Baselines"
+    runs-on: ubuntu-latest
+    # These permissions are needed by aws-actions/configure-aws-credentials action, used for auth, to interact with
+    # GitHub's OIDC Token endpoint.
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Bootstrap Workflow
+        id: bootstrap
+        uses: ./.github/actions/bootstrap-workflows
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          terragrunt_command: ${{ inputs.terragrunt_command }}
+          branch: ${{ inputs.branch }}
+          pipelines_change_type: 'TeamAccountsAdded'
+
+      - name: Parse account IDs
+        id: parse
+        working-directory: ${{ steps.bootstrap.outputs.infra_live_directory }}
+        run: |
+          security_account_id="$(yq -r ".\"security\".id" "./accounts.yml")"
+          echo "security_account_id=$security_account_id" >> $GITHUB_OUTPUT
+          shared_account_id="$(yq -r ".\"shared\".id" "./accounts.yml")"
+          echo "shared_account_id=$shared_account_id" >> $GITHUB_OUTPUT
+          logs_account_id="$(yq -r ".\"logs\".id" "./accounts.yml")"
+          echo "logs_account_id=$logs_account_id" >> $GITHUB_OUTPUT
+
+      # Run apply in security, logs, and shared to allow for x-account permissions
+      # THIS HAS TO HAPPEN BEFORE THE BASELINE CAN BE APPLIED!
+      - name: Authenticate to Security AWS account
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.DEFAULT_AWS_REGION }}
+          role-to-assume: "arn:aws:iam::${{ steps.parse.outputs.security_account_id }}:role/${{ steps.bootstrap.outputs.role_name }}"
+          role-duration-seconds: 3600
+          role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
+
+      - name: Run terragrunt ${{ inputs.terragrunt_command }} in security account
+        id: terragrunt-apply-security
+        uses: gruntwork-io/pipelines-execute@v2.1.1
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
+          tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
+          pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
+          working_directory: security/_global/account-baseline
+          terragrunt_command: "${{ inputs.terragrunt_command }}"
+          infra_live_repo: '.'
+          infra_live_directory: '.'
+          infra_live_repo_branch: ${{ inputs.branch }}
+          gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
+
+      - name: Authenticate to Logs AWS account
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.DEFAULT_AWS_REGION }}
+          role-to-assume: "arn:aws:iam::${{ steps.parse.outputs.logs_account_id }}:role/${{ steps.bootstrap.outputs.role_name }}"
+          role-duration-seconds: 3600
+          role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
+
+      - name: Run terragrunt ${{ inputs.terragrunt_command }} in logs account
+        id: terragrunt-apply-logs
+        uses: gruntwork-io/pipelines-execute@v2.1.1
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
+          tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
+          pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
+          working_directory: logs/_global/account-baseline
+          terragrunt_command: "${{ inputs.terragrunt_command }}"
+          infra_live_repo: '.'
+          infra_live_directory: '.'
+          infra_live_repo_branch: ${{ inputs.branch }}
+          gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
+
+      - name: Authenticate to Shared Services AWS account
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.DEFAULT_AWS_REGION }}
+          role-to-assume: "arn:aws:iam::${{ steps.parse.outputs.shared_account_id }}:role/${{ steps.bootstrap.outputs.role_name }}"
+          role-duration-seconds: 3600
+          role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
+
+      - name: Run terragrunt ${{ inputs.terragrunt_command }} in shared account
+        id: terragrunt-apply-shared
+        uses: gruntwork-io/pipelines-execute@v2.1.1
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
+          tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
+          pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
+          working_directory: shared/_global/account-baseline
+          terragrunt_command: "${{ inputs.terragrunt_command }}"
+          infra_live_repo: '.'
+          infra_live_directory: '.'
+          infra_live_repo_branch: ${{ inputs.branch }}
+          gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
+
+      - name: Setup Matrix
+        id: setup-matrix
+        env:
+          TEAM_ACCOUNT_DATA: ${{ inputs.team_account_data }}
+          PATH_TO_INFRA_LIVE: ${{ steps.bootstrap.outputs.infra_live_directory }}
+        run: ./.github/scripts/setup-matrix.sh
+
+    outputs:
+      role_name: ${{ steps.bootstrap.outputs.role_name }}
+      role_session_name: ${{ steps.bootstrap.outputs.role_session_name }}
+      infra_live_directory: '.'
+      infra_live_fetch_ref: ${{ steps.bootstrap.outputs.infra_live_fetch_ref }}
+      gruntwork_config: ${{ steps.bootstrap.outputs.gruntwork_config }}
+      terraform_version: ${{ steps.bootstrap.outputs.terraform_version }}
+      terragrunt_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
+      pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
+
+      full_team_name: ${{ steps.setup-matrix.outputs.full_team_name }}
+      new_infra_live_repo_name: ${{ steps.setup-matrix.outputs.new_infra_live_repo_name }}
+      org_name_prefix: ${{ steps.setup-matrix.outputs.org_name_prefix }}
+      aws_region: ${{ steps.setup-matrix.outputs.aws_region }}
+      tags: ${{ steps.setup-matrix.outputs.tags }}
+      env_ids: ${{ steps.setup-matrix.outputs.env_ids }}
+      admins: ${{ steps.setup-matrix.outputs.admins }}
+
+  generate_child_accounts:
+    name: "Generate Child Accounts"
+    needs: [new_sdlc_account_baselines]
+    runs-on: ubuntu-latest
+    # These permissions are needed by aws-actions/configure-aws-credentials action, used for auth, to interact with
+    # GitHub's OIDC Token endpoint.
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        env_id: ${{ fromJson(needs.new_sdlc_account_baselines.outputs.env_ids) }}
+    steps:
+      - name: Check out infra-live-root
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Environment
+        id: setup-env
+        env:
+          ENV_ID: ${{ matrix.env_id }}
+          TEAM_ACCOUNT_DATA: ${{ inputs.team_account_data }}
+        run: |
+          capitalized_env_id="$(awk '{print toupper(substr($0,1,1)) substr($0,2)}' <<<"$ENV_ID")"
+          name_key="${capitalized_env_id}AccountName"
+          id_key="${capitalized_env_id}AccountId"
+
+          # Get name from the team account data by matching the Title-case id with "AccountName"
+          account_name="$(jq -r --arg key "$name_key" '.[$key]' <<< "$TEAM_ACCOUNT_DATA")"
+          account_id="$(jq -r --arg key "$id_key" '.[$key]' <<< "$TEAM_ACCOUNT_DATA")"
+
+          {
+            echo "account_name=$account_name"
+            echo "account_id=$account_id"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Disable TGW inspection route
+        run: |
+          echo "TF_VAR_create_default_tgw_inspection_route=false" >> "$GITHUB_ENV"
+
+      # Auth to the mgmt account so we can assume a role in the child account
+      - name: Authenticate to Management AWS Account
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.DEFAULT_AWS_REGION }}
+          role-to-assume: "arn:aws:iam::${{ inputs.management_account }}:role/${{ needs.new_sdlc_account_baselines.outputs.role_name }}"
+          role-duration-seconds: 3600
+          role-session-name: ${{ needs.new_sdlc_account_baselines.outputs.role_session_name }}
+
+      # Auth to child account
+      # THIS RETRIEVES PERMISSIONS TO BE ABLE TO RUN A PLAN/APPLY IN THE NEWLY CREATED CHILD ACCOUNT
+      # The "AWSControlTowerExecution" role being assumed here is created by Control Tower in each account it provisions
+      # and it can be assumed by a role in the management account.
+      - name: Assume role in new child account ${{ steps.setup-env.outputs.account_name }}
+        env:
+          ACCOUNT_ID: ${{ steps.setup-env.outputs.account_id }}
+          ROLE_SESSION_NAME: ${{ steps.setup-env.outputs.account_name }}
+        run: |
+          RESPONSE="$(aws sts assume-role --role-arn "arn:aws:iam::$ACCOUNT_ID:role/AWSControlTowerExecution" --role-session-name "$ROLE_SESSION_NAME")"
+          ASSUMED_ROLE_CREDS="$(echo $RESPONSE | jq -r '.Credentials')"
+          AWS_ACCESS_KEY_ID="$(echo "$ASSUMED_ROLE_CREDS" | jq -r '.AccessKeyId')"
+          echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> "$GITHUB_ENV"
+          echo "::add-mask::$AWS_ACCESS_KEY_ID"
+          AWS_SECRET_ACCESS_KEY="$(echo "$ASSUMED_ROLE_CREDS" | jq -r '.SecretAccessKey')"
+          echo AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" >> "$GITHUB_ENV"
+          echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
+          AWS_SESSION_TOKEN="$(echo "$ASSUMED_ROLE_CREDS" | jq -r '.SessionToken')"
+          echo AWS_SESSION_TOKEN="$AWS_SESSION_TOKEN" >> "$GITHUB_ENV"
+          echo "::add-mask::$AWS_SESSION_TOKEN"
+
+      - name: Confirm Account Access
+        env:
+          ACCOUNT_ID: ${{ steps.setup-env.outputs.account_id }}
+          ACCOUNT_NAME: ${{ steps.setup-env.outputs.account_name }}
+        run: echo "::notice ::Running in account ${account_id} (${account_name})"
+
+      # This Bootstrap step is a workaround for the error that happens when running plan-all for the first time in a
+      # new account with multiple modules. The error is:
+      #
+      #    OperationAborted: A conflicting conditional operation is currently in progress against this resource. Please try again.
+      #    BucketAlreadyOwnedByYou: Your previous request to create the named bucket succeeded and you already own it.
+      #
+      # This happens because each module is trying to create buckets for state and logs when they do not exist.
+      # Setting Terragrunt Parallelism to 1 does NOT prevent this error from happening. So we'll instead run an init in
+      # a single module first to create the buckets so that subsequent run-all commands do not fail.
+
+      # NOTE: This functionality will not be necessary in a future release of Terragrunt due to a new feature that will
+      # handle this scenario gracefully. Once that feature is released, and this workflow is updated to use that version
+      # of Terragrunt, this step can be removed.
+
+      - name: Bootstrap child account with state & logs S3 buckets
+        if: ${{ contains(inputs.terragrunt_command, 'plan') }}
+        uses: gruntwork-io/pipelines-execute@v2.1.1
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          tf_version: ${{ needs.new_sdlc_account_baselines.outputs.terraform_version }}
+          tg_version: ${{ needs.new_sdlc_account_baselines.outputs.terragrunt_version }}
+          pipelines_cli_version: ${{ needs.new_sdlc_account_baselines.outputs.pipelines_cli_version }}
+          working_directory: "${{ steps.setup-env.outputs.account_name }}/_global/account-baseline"
+          terragrunt_command: "init"
+          infra_live_repo: '.'
+          infra_live_directory: '.'
+          infra_live_repo_branch: ${{ inputs.branch }}
+          gruntwork_config: ${{ needs.new_sdlc_account_baselines.outputs.gruntwork_config }}
+
+      # Plan/Apply all modules in the account
+      - name: Run terragrunt ${{ inputs.terragrunt_command }} in child account ${{ steps.setup-env.outputs.account_name }}
+        uses: gruntwork-io/pipelines-execute@v2.1.1
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          tf_version: ${{ needs.new_sdlc_account_baselines.outputs.terraform_version }}
+          tg_version: ${{ needs.new_sdlc_account_baselines.outputs.terragrunt_version }}
+          pipelines_cli_version: ${{ needs.new_sdlc_account_baselines.outputs.pipelines_cli_version }}
+          working_directory: ${{ steps.setup-env.outputs.account_name }}
+          terragrunt_command: ${{ inputs.terragrunt_command }}
+          infra_live_repo: '.'
+          infra_live_directory: '.'
+          infra_live_repo_branch: ${{ inputs.branch }}
+          gruntwork_config: ${{ needs.new_sdlc_account_baselines.outputs.gruntwork_config }}
+
+      - name: Setup Network Account Access
+        id: setup-network-account-access
+        env:
+          PATH_TO_INFRA_LIVE: '.'
+        run: |
+          accounts_yaml_path="$PATH_TO_INFRA_LIVE/accounts.yml"
+          echo "Contents of $accounts_yaml_path:"
+          cat "$accounts_yaml_path"
+
+          network_account_id=$(yq --no-colors -r ".$NETWORK_ACCOUNT_NAME.id" "$accounts_yaml_path")
+          echo "network_account_id=$network_account_id" >> "$GITHUB_OUTPUT"
+
+      # Auth to the network account so we can accept TGW attachment requests
+      - name: Authenticate to Network AWS Account
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.DEFAULT_AWS_REGION }}
+          role-to-assume: "arn:aws:iam::${{ steps.setup-network-account-access.outputs.network_account_id }}:role/${{ needs.new_sdlc_account_baselines.outputs.role_name }}"
+          role-duration-seconds: 3600
+          role-session-name: ${{ steps.setup-env.outputs.account_name }}
+
+      - name: Confirm Account Access
+        shell: bash
+        env:
+          NETWORK_ACCOUNT_ID: ${{ steps.setup-network-account-access.outputs.network_account_id }}
+        run: echo "::notice ::Running in account ${NETWORK_ACCOUNT_ID} ($NETWORK_ACCOUNT_NAME)"
+
+      # There's no point in running 'plan' in the transit_gateway_attachments module in the PR, as until the PR is merged
+      # and we've run 'apply' on the VPC in the child account, no attachment request has been made, so the 'plan' on the
+      # transit_gateway_attachments won't show anything.
+      - name: Run terragrunt apply in network account ${{ env.NETWORK_ACCOUNT_NAME }}
+        if: ${{ contains(inputs.terragrunt_command, 'apply') }}
+        uses: gruntwork-io/pipelines-execute@v2.1.1
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          tf_version: ${{ needs.new_sdlc_account_baselines.outputs.terraform_version }}
+          tg_version: ${{ needs.new_sdlc_account_baselines.outputs.terragrunt_version }}
+          pipelines_cli_version: ${{ needs.new_sdlc_account_baselines.outputs.pipelines_cli_version }}
+          working_directory: "${{ env.NETWORK_ACCOUNT_NAME }}/_global/transit_gateway_attachments"
+          terragrunt_command: "apply"
+          infra_live_repo: '.'
+          infra_live_directory: '.'
+          infra_live_repo_branch: ${{ inputs.branch }}
+          gruntwork_config: ${{ needs.new_sdlc_account_baselines.outputs.gruntwork_config }}
+
+      # On the second apply, we can enable this route, as the TGW attachment should be accepted by now
+      - name: Enable TGW inspection route
+        shell: bash
+        run: |
+          echo "TF_VAR_create_default_tgw_inspection_route=true" >> "$GITHUB_ENV"
+
+      # Auth to the mgmt account so we can assume a role in the child account
+      - name: Authenticate to Management AWS Account
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.DEFAULT_AWS_REGION }}
+          role-to-assume: "arn:aws:iam::${{ inputs.management_account }}:role/${{ needs.new_sdlc_account_baselines.outputs.role_name }}"
+          role-duration-seconds: 3600
+          role-session-name: ${{ needs.new_sdlc_account_baselines.outputs.role_session_name }}
+
+      # Auth to child account
+      # THIS RETRIEVES PERMISSIONS TO BE ABLE TO RUN A PLAN/APPLY IN THE NEWLY CREATED CHILD ACCOUNT
+      # The "AWSControlTowerExecution" role being assumed here is created by Control Tower in each account it provisions
+      # and it can be assumed by a role in the management account.
+      - name: Assume role in new child account ${{ steps.setup-env.outputs.account_name }}
+        env:
+          ACCOUNT_ID: ${{ steps.setup-env.outputs.account_id }}
+          ROLE_SESSION_NAME: ${{ steps.setup-env.outputs.account_name }}
+        run: |
+          RESPONSE="$(aws sts assume-role --role-arn "arn:aws:iam::$ACCOUNT_ID:role/AWSControlTowerExecution" --role-session-name "$ROLE_SESSION_NAME")"
+          ASSUMED_ROLE_CREDS="$(echo $RESPONSE | jq -r '.Credentials')"
+          AWS_ACCESS_KEY_ID="$(echo "$ASSUMED_ROLE_CREDS" | jq -r '.AccessKeyId')"
+          echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> "$GITHUB_ENV"
+          echo "::add-mask::$AWS_ACCESS_KEY_ID"
+          AWS_SECRET_ACCESS_KEY="$(echo "$ASSUMED_ROLE_CREDS" | jq -r '.SecretAccessKey')"
+          echo AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" >> "$GITHUB_ENV"
+          echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
+          AWS_SESSION_TOKEN="$(echo "$ASSUMED_ROLE_CREDS" | jq -r '.SessionToken')"
+          echo AWS_SESSION_TOKEN="$AWS_SESSION_TOKEN" >> "$GITHUB_ENV"
+          echo "::add-mask::$AWS_SESSION_TOKEN"
+
+      - name: Confirm Account Access
+        env:
+          ACCOUNT_ID: ${{ steps.setup-env.outputs.account_id }}
+          ACCOUNT_NAME: ${{ steps.setup-env.outputs.account_name }}
+        run: echo "::notice ::Running in account ${ACCOUNT_ID} (${ACCOUNT_NAME})"
+
+      # TODO: This should not be necessary, but is. Find out why this is needed, and remove it if possible.
+      - name: Remove existing `.terragrunt-cache` directory
+        continue-on-error: true
+        working-directory: '.'
+        run: |
+          rm -rf "${{ steps.setup-env.outputs.account_name }}/${{ needs.new_sdlc_account_baselines.outputs.aws_region }}/${{ steps.setup-env.outputs.account_name }}/networking/vpc/.terragrunt-cache"
+
+      # Plan/Apply the VPC module a second time now that the TGW attachment has been accepted, so it creates the route
+      # we need to the TGW
+      - name: Run terragrunt ${{ inputs.terragrunt_command }} in child account ${{ steps.setup-env.outputs.account_name }}
+        uses: gruntwork-io/pipelines-execute@v2.1.1
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          tf_version: ${{ needs.new_sdlc_account_baselines.outputs.terraform_version }}
+          tg_version: ${{ needs.new_sdlc_account_baselines.outputs.terragrunt_version }}
+          pipelines_cli_version: ${{ needs.new_sdlc_account_baselines.outputs.pipelines_cli_version }}
+          working_directory: "${{ steps.setup-env.outputs.account_name }}/${{ needs.new_sdlc_account_baselines.outputs.aws_region }}/${{ steps.setup-env.outputs.account_name }}/networking/vpc"
+          terragrunt_command: ${{ inputs.terragrunt_command }}
+          infra_live_repo: '.'
+          infra_live_directory: '.'
+          infra_live_repo_branch: ${{ inputs.branch }}
+          gruntwork_config: ${{ needs.new_sdlc_account_baselines.outputs.gruntwork_config }}
+
+  new_sdlc_account_baselines_finalize:
+    name: "New SDLC Account Baselines Finalize"
+    needs: [new_sdlc_account_baselines, generate_child_accounts]
+    runs-on: ubuntu-latest
+    # These permissions are needed by aws-actions/configure-aws-credentials action, used for auth, to interact with
+    # GitHub's OIDC Token endpoint.
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Check out infra-live-root
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Debug - Check values of previous step
+        env:
+          FULL_TEAM_NAME: ${{ needs.new_sdlc_account_baselines.outputs.full_team_name }}
+          NEW_INFRA_LIVE_REPO_NAME: ${{ needs.new_sdlc_account_baselines.outputs.new_infra_live_repo_name }}
+        run: |
+          echo "full name $FULL_TEAM_NAME"
+          echo "infra live repo name $NEW_INFRA_LIVE_REPO_NAME"
+
+      - name: Create new team repo
+        if: ${{ contains(inputs.terragrunt_command, 'apply') }}
+        id: create_new_team_repo
+        env:
+          GH_TOKEN: ${{ secrets.MANAGE_REPOS_TOKEN }}
+          GH_ORG: ${{ github.repository_owner }}
+          GH_NEW_INFRA_LIVE_REPO_NAME: ${{ needs.new_sdlc_account_baselines.outputs.new_infra_live_repo_name }}
+        run: |
+          # Check if the repo exists before trying to create it
+          GH_REPO_STATUS_CODE="$(curl --silent --write-out '%{http_code}' --output /dev/null \
+            -X GET \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/$GH_ORG/$GH_NEW_INFRA_LIVE_REPO_NAME")"
+
+          # If the repo does not exist (404 status code), then create it
+          if [[ "$GH_REPO_STATUS_CODE" == 404 ]]; then
+            gh api \
+              --method POST \
+              -H "Accept: application/vnd.github.v3+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              /orgs/$GH_ORG/repos \
+              -f "name=$GH_NEW_INFRA_LIVE_REPO_NAME" \
+              -f visibility=private \
+              -f auto_init=true
+
+              echo "::notice title=New team repo created!::See created repository: https://github.com/$GH_ORG/$GH_NEW_INFRA_LIVE_REPO_NAME."
+
+          # If the repo exists (200 status code), print a message and continue
+          elif [[ "$GH_REPO_STATUS_CODE" == 200 ]]; then
+            echo "Repository https://github.com/$GH_ORG/$GH_NEW_INFRA_LIVE_REPO_NAME already exists."
+
+          # If GH returns a non 200 or non 404 status code, print and exit with an error
+          else
+            echo "Status code $GH_REPO_STATUS_CODE returned from GitHub API. Exiting with error."
+            exit 1
+          fi
+
+      - name: Set new repo branch protection
+        if: ${{ contains(inputs.terragrunt_command, 'apply') }}
+        id: set_branch_protection
+        env:
+          GH_TOKEN: ${{ secrets.MANAGE_REPOS_TOKEN }}
+          GH_ORG: ${{ github.repository_owner }}
+          GH_NEW_INFRA_LIVE_REPO_NAME: ${{ needs.new_sdlc_account_baselines.outputs.new_infra_live_repo_name }}
+        run: |
+          echo "Setting branch protection rules for $GH_ORG/$GH_NEW_INFRA_LIVE_REPO_NAME. See https://docs.gruntwork.io/pipelines/security/branch-protection for more information on recommended rules."
+          curl -L \
+            -X PUT \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/$GH_ORG/$GH_NEW_INFRA_LIVE_REPO_NAME/branches/main/protection" \
+            -d '{ "required_status_checks": { "strict": true, "checks": [ ] }, "required_pull_request_reviews": { "require_code_owner_reviews": true, "require_last_push_approval": true, "required_approving_review_count": 1 }, "enforce_admins": false, "restrictions": null }'
+
+      - name: Assign ci-user as repo collaborator
+        if: ${{ contains(inputs.terragrunt_command, 'apply') }}
+        id: assign_ci_ro_user_collaborator
+        env:
+          GH_TOKEN: ${{ secrets.MANAGE_REPOS_TOKEN }}
+          GH_ORG: ${{ github.repository_owner }}
+          GH_NEW_INFRA_LIVE_REPO_NAME: ${{ needs.new_sdlc_account_baselines.outputs.new_infra_live_repo_name }}
+          GH_CI_RO_USER: ${{ env.GITHUB_CI_READONLY_USER }}
+        run: |
+          echo "Add CI Read Only User as Read-Only Collaborator on the new repo."
+          gh api \
+            --method PUT \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "/repos/$GH_ORG/$GH_NEW_INFRA_LIVE_REPO_NAME/collaborators/$GH_CI_RO_USER" \
+            -f permission='read'
+
+      - name: Add new repository to Gruntwork repo-allow-list
+        if: ${{ contains(inputs.terragrunt_command, 'apply') }}
+        id: update_repo_allow_list
+        env:
+          GH_TOKEN: ${{ secrets.MANAGE_REPOS_TOKEN }}
+          GH_ORG: ${{ github.repository_owner }}
+          GH_NEW_INFRA_LIVE_REPO_NAME: ${{ needs.new_sdlc_account_baselines.outputs.new_infra_live_repo_name }}
+        run: |
+          # Check if repo is already in repo-allow-list
+          REPO_IN_ALLOW_LIST="$(yq ".repo-allow-list | any_c(.  == \"$GH_ORG/$GH_NEW_INFRA_LIVE_REPO_NAME\")" .gruntwork/config.yml)"
+          if [[ "$REPO_IN_ALLOW_LIST" == "false" ]]; then
+            echo "Adding $GH_ORG/$GH_NEW_INFRA_LIVE_REPO_NAME to repo-allow-list."
+            yq ".repo-allow-list += \"$GH_ORG/$GH_NEW_INFRA_LIVE_REPO_NAME\"" -i .gruntwork/config.yml
+            echo "create_pr=true" >> $GITHUB_OUTPUT
+          elif [[ "$REPO_IN_ALLOW_LIST" == "true" ]]; then
+            echo "Repo $GH_ORG/$GH_NEW_INFRA_LIVE_REPO_NAME already exists in repo-allow-list. Skipping PR creation."
+            echo "create_pr=false" >> $GITHUB_OUTPUT
+          else
+            echo "Unspecified error. Exiting"
+            echo "create_pr=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: Create Pull Request to add the new repo to the allow list
+        if: ${{ steps.update_repo_allow_list.outputs.create_pr == 'true' }}
+        id: create_pr_allow_list
+        uses: peter-evans/create-pull-request@v6
+        with:
+          base: main
+          token: ${{ secrets.MANAGE_REPOS_TOKEN }}
+          add-paths: .gruntwork/config.yml
+          branch: "enhancement/sdlc-repo-${{ needs.new_sdlc_account_baselines.outputs.new_infra_live_repo_name }}"
+          commit-message: "Add SDLC repo-allow-list permissions for ${{ github.repository_owner }}/${{ needs.new_sdlc_account_baselines.outputs.new_infra_live_repo_name }}"
+          title: "Add SDLC repo-allow-list permissions for ${{ github.repository_owner }}/${{ needs.new_sdlc_account_baselines.outputs.new_infra_live_repo_name }}"
+          body: |
+            This pull request updates the `config.yml` `repo-allow-list` permissions file with the newly created SDLC `infrastructure-live` repository ${{ github.repository_owner }}/${{ needs.new_sdlc_account_baselines.outputs.new_infra_live_repo_name }}.
+
+      - name: Merge PR to add the new reop to the allow list
+        if: ${{ steps.update_repo_allow_list.outputs.create_pr == 'true' }}
+        id: approve_and_merge_repo_allow_list
+        env:
+          GH_TOKEN: ${{ secrets.MANAGE_REPOS_TOKEN }}
+          GH_ORG: ${{ github.repository_owner }}
+          GH_NEW_INFRA_LIVE_REPO_NAME: ${{ needs.new_sdlc_account_baselines.outputs.new_infra_live_repo_name }}
+          PR_NUMBER: ${{ steps.create_pr_allow_list.outputs.pull-request-number }}
+        run: |
+          # Merge the repo allow list PR and delete the branch
+          gh -R "gruntwork-test/infrastructure-pipelines-2023-01-25" pr merge --admin --squash --delete-branch "$PR_NUMBER"
+
+      - name: Checkout new team repo
+        if: ${{ contains(inputs.terragrunt_command, 'apply') }}
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.MANAGE_REPOS_TOKEN }}
+          repository: ${{ github.repository_owner }}/${{ needs.new_sdlc_account_baselines.outputs.new_infra_live_repo_name }}
+          path: ${{ needs.new_sdlc_account_baselines.outputs.new_infra_live_repo_name }}
+          ref: main
+          fetch-depth: 0
+
+      - name: Install boilerplate
+        if: ${{ contains(inputs.terragrunt_command, 'apply') }}
+        shell: bash
+        run: |
+          curl -Ls https://raw.githubusercontent.com/gruntwork-io/gruntwork-installer/main/bootstrap-gruntwork-installer.sh | bash /dev/stdin --version "$GRUNTWORK_INSTALLER_VERSION"
+          gruntwork-install --binary-name boilerplate --repo https://github.com/gruntwork-io/boilerplate --tag "$BOILERPLATE_VERSION"
+
+      - name: Checkout architecture catalog
+        if: ${{ contains(inputs.terragrunt_command, 'apply') }}
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          repository: gruntwork-io/terraform-aws-architecture-catalog
+          path: terraform-aws-architecture-catalog
+          ref: ${{ env.ARCH_CATALOG_VERSION }}
+
+      - name: Run boilerplate to scaffold new team repo
+        if: ${{ contains(inputs.terragrunt_command, 'apply') }}
+        shell: bash
+        working-directory: ${{ needs.new_sdlc_account_baselines.outputs.new_infra_live_repo_name }}
+        env:
+          TAGS: ${{ needs.new_sdlc_account_baselines.outputs.tags }}
+          WORKING_DIRECTORY: ${{ inputs.working_directory }}
+          INFRA_LIVE_DIRECTORY: '.'
+          ORG_NAME_PREFIX: ${{ needs.new_sdlc_account_baselines.outputs.org_name_prefix }}
+          AWS_REGION: ${{ needs.new_sdlc_account_baselines.outputs.aws_region }}
+          REQUESTING_TEAM_NAME: ${{ needs.new_sdlc_account_baselines.outputs.full_team_name }}
+          INFRA_LIVE_REPO_NAME: ${{ needs.new_sdlc_account_baselines.outputs.new_infra_live_repo_name }}
+          TERRAFORM_VERSION: ${{ needs.new_sdlc_account_baselines.outputs.terraform_version }}
+          TERRAGRUNT_VERSION: ${{ needs.new_sdlc_account_baselines.outputs.terragrunt_version }}
+        run: |
+          # Convert list of accounts to Bash array. We use working_directory here because GW Pipelines will configure
+          # its name as a comma-separated list of account names.
+          IFS=',' read -ra account_names <<<"$WORKING_DIRECTORY"
+
+          # Convert Bash array to JSON array: https://stackoverflow.com/a/67489301/483528
+          account_names_as_json_list="$(jq --compact-output --raw-output --monochrome-output --null-input '$ARGS.positional' --args -- "${account_names[@]}")"
+
+          # Use yq to filter accounts.yml to just the accounts we created, producing JSON output
+          AWS_ACCOUNTS="$(yq --no-colors -o=json -I=0 pick\("$account_names_as_json_list"\) "../$INFRA_LIVE_DIRECTORY/accounts.yml")"
+
+          # Run boilerplate to scaffold out the infra-live-team repo contents
+          boilerplate \
+            --template-url ../terraform-aws-architecture-catalog//templates/devops-foundations-infrastructure-live-team \
+            --output-folder . \
+            --var AWSAccounts="$AWS_ACCOUNTS" \
+            --var OrgNamePrefix="$ORG_NAME_PREFIX" \
+            --var DefaultRegion="$AWS_REGION" \
+            --var RequestingTeamName="$REQUESTING_TEAM_NAME" \
+            --var RepoBaseUrl=github.com/gruntwork-test \
+            --var GithubOrg=gruntwork-test \
+            --var InfraLiveRepoName="$INFRA_LIVE_REPO_NAME" \
+            --var InfraModulesRepoName="$INFRA_MODULES_REPO_NAME" \
+            --var InfraModulesReleaseVersion="$INFRA_MODULES_RELEASE_VERSION" \
+            --var TerraformVersion="$TERRAFORM_VERSION" \
+            --var TerragruntVersion="$TERRAGRUNT_VERSION" \
+            --var DefaultTags="$TAGS" \
+            --non-interactive
+
+      - name: Create Pull Request in new team repo with scaffolding
+        if: ${{ contains(inputs.terragrunt_command, 'apply') }}
+        id: create_scaffolding_pr
+        uses: peter-evans/create-pull-request@v6
+        with:
+          base: main
+          path: ${{ needs.new_sdlc_account_baselines.outputs.new_infra_live_repo_name }}
+          token: ${{ secrets.MANAGE_REPOS_TOKEN }}
+          branch: "bootstrap-repository"
+          commit-message: "Bootstrap infrastructure-live repository"
+          title: "Bootstrap infrastructure-live repository"
+          body: |
+            This pull request adds all code required to set up your `infrastructure-live` repository.
+
+      - name: Show Pull Request URL in Summary
+        if: ${{ contains(inputs.terragrunt_command, 'apply') }}
+        env:
+          PR_URL: ${{ steps.create_scaffolding_pr.outputs.pull-request-url }}
+          NEW_INFRA_LIVE_REPO_NAME: ${{ needs.new_sdlc_account_baselines.outputs.new_infra_live_repo_name }}
+        run: |
+          echo "### Successfully bootstrapped $NEW_INFRA_LIVE_REPO_NAME! 🚀" >> "$GITHUB_STEP_SUMMARY"
+          echo "[Link to Pull Request]($PR_URL)" >> "$GITHUB_STEP_SUMMARY"

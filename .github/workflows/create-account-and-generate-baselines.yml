@@ -1,0 +1,195 @@
+name: Create Account and Generate Baseline PR
+run-name: Run ${{ inputs.terragrunt_command }} on ${{ inputs.working_directory }}
+on:
+  workflow_call:
+    inputs:
+      branch:
+        description: "The branch in the infrastructure-live repo in which to run the command"
+        required: true
+        type: string
+      working_directory:
+        description: "The folder path in which terragrunt will execute"
+        required: true
+        type: string
+      management_account:
+        description: "The AWS Account ID of the Control Tower Management Account"
+        required: true
+        type: string
+      new_account_name:
+        description: "The name given to the new AWS account"
+        required: true
+        type: string
+      terragrunt_command:
+        type: string
+        description: "The terragrunt command to run"
+        required: true
+        default: "plan"
+      default_tags:
+        type: string
+        description: "The default tags to apply to all resources, represented as a JSON string"
+        required: false
+        default: "{}"
+
+env:
+  GRUNTWORK_INSTALLER_VERSION: v0.0.38
+  MODULE_SECURITY_VERSION: v0.68.3
+  CONTROL_TOWER_MODULES_VERSION: v0.2.1
+  BOILERPLATE_VERSION: v0.5.8
+  DEPLOY_BRANCH_NAME: main
+  INFRA_LIVE_DIRECTORY: infrastructure-live
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  new_account:
+    name: "Provision Account and Generate Baseline PR"
+    runs-on: ubuntu-latest
+    # These permissions are needed by aws-actions/configure-aws-credentials action, used for auth, to interact with
+    # GitHub's OIDC Token endpoint.
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Bootstrap Workflow
+        id: bootstrap
+        uses: ./.github/actions/bootstrap-workflows
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          terragrunt_command: ${{ inputs.terragrunt_command }}
+          branch: ${{ inputs.branch }}
+          pipelines_change_type: 'AccountRequested'
+
+      - name: Authenticate to AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          role-to-assume: "arn:aws:iam::${{ inputs.management_account }}:role/${{ steps.bootstrap.outputs.role_name }}"
+          role-duration-seconds: 3600
+          role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
+
+      - name: Confirm Account Access
+        env:
+          MANAGEMENT_ACCOUNT: ${{ inputs.management_account }}
+          WORKING_DIRECTORY: ${{ inputs.working_directory }}
+        run: echo "::notice ::Running in account $MANAGEMENT_ACCOUNT and planning in $WORKING_DIRECTORY"
+
+      - name: Run terragrunt ${{ inputs.terragrunt_command }} in ${{ inputs.working_directory }}
+        id: terragrunt
+        uses: gruntwork-io/pipelines-execute@v2.1.1
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
+          tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
+          pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
+          working_directory: ${{ inputs.working_directory }}
+          terragrunt_command: "${{ inputs.terragrunt_command }}"
+          infra_live_repo: '.'
+          infra_live_directory: '.'
+          infra_live_repo_branch: ${{ inputs.branch }}
+          gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
+
+      - name: Parse new account ID
+        id: parse
+        working-directory: ${{ steps.bootstrap.outputs.infra_live_directory }}
+        env:
+          NEW_ACCOUNT_NAME: ${{ inputs.new_account_name }}
+        run: |
+          # The multi-account-factory updates the accounts.yml file with the ID of any created account.
+          account_id="$(yq -r ".\"$NEW_ACCOUNT_NAME\".id" "./accounts.yml")"
+          echo "account_id=$account_id" >> "$GITHUB_OUTPUT"
+
+      - name: Read account request
+        id: account_request
+        # Only try this if we've actually created the account
+        if: ${{ steps.parse.outputs.account_id != 'null' }}
+        working-directory: ${{ steps.bootstrap.outputs.infra_live_directory }}
+        env:
+          NEW_ACCOUNT_NAME: ${{ inputs.new_account_name }}
+        run: |
+          org_name_prefix="$(yq -r ".org_name_prefix" "./_new-account-requests/account-$NEW_ACCOUNT_NAME.yml")"
+          aws_region="$(yq -r ".aws_region" "./_new-account-requests/account-$NEW_ACCOUNT_NAME.yml")"
+          requesting_team_name="$(yq -r ".requesting_team_name" "./_new-account-requests/account-$NEW_ACCOUNT_NAME.yml")"
+          account_baseline_modules_version="$(yq -r ".account_baseline_modules_version" "./_new-account-requests/account-$NEW_ACCOUNT_NAME.yml")"
+          account_baseline_cis_service_catalog_version="$(yq -r ".account_baseline_cis_service_catalog_version" "./_new-account-requests/account-$NEW_ACCOUNT_NAME.yml")"
+
+          echo "org_name_prefix=$org_name_prefix" >> "$GITHUB_OUTPUT"
+          echo "aws_region=$aws_region" >> "$GITHUB_OUTPUT"
+          echo "requesting_team_name=$requesting_team_name" >> "$GITHUB_OUTPUT"
+          echo "account_baseline_modules_version=$account_baseline_modules_version" >> "$GITHUB_OUTPUT"
+          echo "account_baseline_cis_service_catalog_version=$account_baseline_cis_service_catalog_version" >> "$GITHUB_OUTPUT"
+
+      - name: Get requesting PR number
+        id: get_pr_number
+        # Only try this if we've actually created the account
+        if: ${{ steps.parse.outputs.account_id != 'null' }}
+        working-directory: ${{ steps.bootstrap.outputs.infra_live_directory }}
+        env:
+          COMMIT_SHA: ${{ inputs.branch }}
+          GH_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+        run: |
+          PR_NUMBER=$(gh pr list --search "$COMMIT_SHA" --state merged --json number -q '.[0].number')
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+
+      - name: Check out terraform-aws-control-tower repo
+        uses: actions/checkout@v4
+        with:
+          repository: gruntwork-io/terraform-aws-control-tower
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          path: terraform-aws-control-tower
+          ref: ${{ env.CONTROL_TOWER_MODULES_VERSION }}
+
+      - name: Install boilerplate
+        if: ${{ steps.parse.outputs.account_id != 'null' }}
+        shell: bash
+        env:
+          GITHUB_OAUTH_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+        run: |
+          curl -Ls https://raw.githubusercontent.com/gruntwork-io/gruntwork-installer/main/bootstrap-gruntwork-installer.sh | bash /dev/stdin --version "$GRUNTWORK_INSTALLER_VERSION"
+          gruntwork-install --binary-name boilerplate --repo https://github.com/gruntwork-io/boilerplate --tag "$BOILERPLATE_VERSION"
+
+      - name: Run boilerplate to generate code
+        if: ${{ steps.parse.outputs.account_id != 'null' }}
+        shell: bash
+        env:
+          ACCOUNT_NAME: ${{ inputs.new_account_name }}
+          AWS_REGION: ${{ steps.account_request.outputs.aws_region }}
+          ORG_NAME_PREFIX: ${{ steps.account_request.outputs.org_name_prefix }}
+          ACCOUNT_BASELINE_MODULES_VERSION: ${{ steps.account_request.outputs.account_baseline_modules_version }}
+          ACCOUNT_BASELINE_CIS_SERVICE_CATALOG_VERSION: ${{ steps.account_request.outputs.account_baseline_cis_service_catalog_version }}
+          REQUESTING_TEAM_NAME: ${{ steps.account_request.outputs.requesting_team_name }}
+          DEFAULT_TAGS: ${{ inputs.default_tags }}
+        run: |
+          boilerplate \
+            --template-url "./terraform-aws-control-tower//templates/landingzone/boilerplate-single-account-baseline" \
+            --output-folder infrastructure-live \
+            --var AccountName="$ACCOUNT_NAME" \
+            --var AwsRegion="$AWS_REGION" \
+            --var OrgNamePrefix="$ORG_NAME_PREFIX" \
+            --var AccountBaselineModulesVersion="$ACCOUNT_BASELINE_MODULES_VERSION" \
+            --var AccountBaselineCISServiceCatalogVersion="$ACCOUNT_BASELINE_CIS_SERVICE_CATALOG_VERSION" \
+            --var RequestingTeamName="$REQUESTING_TEAM_NAME" \
+            --var DefaultTags="$DEFAULT_TAGS" \
+            --non-interactive
+
+      - name: Create Pull Request
+        if: ${{ steps.parse.outputs.account_id != 'null' }}
+        id: create_pr
+        uses: peter-evans/create-pull-request@v6
+        with:
+          base: main
+          token: ${{ secrets.INFRA_LIVE_ACCESS_TOKEN }}
+          path: infrastructure-live
+          branch: "enhancement/baseline-account-${{ inputs.new_account_name }}"
+          commit-message: "Generate account baseline for: ${{ inputs.new_account_name }}"
+          title: "Generate account baseline for: ${{ inputs.new_account_name }}"
+          body: |
+            This pull request applies an account baseline to the **${{ inputs.new_account_name }}** AWS account, which was created in https://github.com/${{ github.repository }}/pull/${{ steps.get_pr_number.outputs.pr_number }} using Gruntwork Landing Zone. To **apply** this baseline, do the following:
+
+              1. Inspect the details in this pull request and confirm correctness.
+              2. Merge this pull request.
+
+            Once merged, Gruntwork Pipelines will `terragrunt apply` the baseline in the newly created AWS account.
+    outputs:
+      plan: ${{ steps.terragrunt.outputs.stdout }}

@@ -1,0 +1,261 @@
+name: Apply New Account Baseline
+run-name: Run ${{ inputs.terragrunt_command }} on ${{ inputs.working_directory }}
+on:
+  workflow_call:
+    inputs:
+      branch:
+        description: "The branch in infrastructure-live-2023-01-25 in which to run the terragrunt command"
+        required: true
+        type: string
+      working_directory:
+        description: "The folder path in which terragrunt should be run"
+        required: true
+        type: string
+      management_account:
+        description: "The AWS Account ID of the Control Tower Management Account"
+        required: true
+        type: string
+      child_account:
+        description: "The AWS Account ID of the account we're operating in"
+        required: true
+        type: string
+      terragrunt_command:
+        type: string
+        description: "The terragrunt command to run"
+        required: true
+        default: "plan"
+
+env:
+  DEPLOY_BRANCH_NAME: main
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  new_account_base:
+    name: "Account Baseline"
+    runs-on: ubuntu-latest
+    # These permissions are needed by aws-actions/configure-aws-credentials action, used for auth, to interact with
+    # GitHub's OIDC Token endpoint.
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Bootstrap Workflow
+        id: bootstrap
+        uses: ./.github/actions/bootstrap-workflows
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          terragrunt_command: ${{ inputs.terragrunt_command }}
+          branch: ${{ inputs.branch }}
+          pipelines_change_type: 'AccountAdded'
+
+      - name: Parse account IDs
+        id: parse
+        working-directory: ${{ steps.bootstrap.outputs.infra_live_directory }}
+        run: |
+          security_account_id="$(yq -r ".\"security\".id" "./accounts.yml")"
+          echo "security_account_id=$security_account_id" >> $GITHUB_OUTPUT
+          shared_account_id="$(yq -r ".\"shared\".id" "./accounts.yml")"
+          echo "shared_account_id=$shared_account_id" >> $GITHUB_OUTPUT
+          logs_account_id="$(yq -r ".\"logs\".id" "./accounts.yml")"
+          echo "logs_account_id=$logs_account_id" >> $GITHUB_OUTPUT
+
+      # Run apply in security, logs, and shared to allow for x-account permissions
+      # THIS HAS TO HAPPEN BEFORE THE BASELINE CAN BE APPLIED!
+      - name: Authenticate to Security AWS account
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          role-to-assume: "arn:aws:iam::${{ steps.parse.outputs.security_account_id }}:role/${{ steps.bootstrap.outputs.role_name }}"
+          role-duration-seconds: 3600
+          role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
+
+      - name: Run terragrunt ${{ inputs.terragrunt_command }} in security account
+        id: terragrunt-apply-security
+        uses: gruntwork-io/pipelines-execute@v2.1.1
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
+          tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
+          pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
+          working_directory: security/_global/account-baseline
+          terragrunt_command: "${{ inputs.terragrunt_command }}"
+          infra_live_repo: '.'
+          infra_live_directory: '.'
+          infra_live_repo_branch: ${{ inputs.branch }}
+          gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
+
+      - name: Authenticate to Logs AWS account
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          role-to-assume: "arn:aws:iam::${{ steps.parse.outputs.logs_account_id }}:role/${{ steps.bootstrap.outputs.role_name }}"
+          role-duration-seconds: 3600
+          role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
+
+      - name: Run terragrunt ${{ inputs.terragrunt_command }} in logs account
+        id: terragrunt-apply-logs
+        uses: gruntwork-io/pipelines-execute@v2.1.1
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
+          tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
+          pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
+          working_directory: logs/_global/account-baseline
+          terragrunt_command: "${{ inputs.terragrunt_command }}"
+          infra_live_repo: '.'
+          infra_live_directory: '.'
+          infra_live_repo_branch: ${{ inputs.branch }}
+          gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
+
+      - name: Authenticate to Shared Services AWS account
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          role-to-assume: "arn:aws:iam::${{ steps.parse.outputs.shared_account_id }}:role/${{ steps.bootstrap.outputs.role_name }}"
+          role-duration-seconds: 3600
+          role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
+
+      - name: Run terragrunt ${{ inputs.terragrunt_command }} in shared account
+        id: terragrunt-apply-shared
+        uses: gruntwork-io/pipelines-execute@v2.1.1
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
+          tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
+          pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
+          working_directory: shared/_global/account-baseline
+          terragrunt_command: "${{ inputs.terragrunt_command }}"
+          infra_live_repo: '.'
+          infra_live_directory: '.'
+          infra_live_repo_branch: ${{ inputs.branch }}
+          gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
+
+      # Finally, auth to the mgmt account so we can assume a role in the child account
+      - name: Authenticate to AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          role-to-assume: "arn:aws:iam::${{ inputs.management_account }}:role/${{ steps.bootstrap.outputs.role_name }}"
+          role-duration-seconds: 3600
+          role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
+
+      # Auth to child account
+      # THIS RETRIEVES PERMISSIONS TO BE ABLE TO RUN A PLAN/APPLY IN THE NEWLY CREATED CHILD ACCOUNT
+      # The "AWSControlTowerExecution" role being assumed here is created by Control Tower in each account it provisions
+      # and it can be assumed by a role in the management account.
+      - name: Assume role new child account
+        env:
+          SESSION_NAME: ${{ steps.bootstrap.outputs.role_session_name }}
+          CHILD_ACCOUNT: ${{ inputs.child_account }}
+        run: |
+          RESPONSE="$(aws sts assume-role --role-arn "arn:aws:iam::$CHILD_ACCOUNT:role/AWSControlTowerExecution" --role-session-name "$SESSION_NAME")"
+          ASSUMED_ROLE_CREDS="$(echo "$RESPONSE" | jq -r '.Credentials')"
+          AWS_ACCESS_KEY_ID="$(echo "$ASSUMED_ROLE_CREDS" | jq -r '.AccessKeyId')"
+          echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> "$GITHUB_ENV"
+          echo "::add-mask::$AWS_ACCESS_KEY_ID"
+          AWS_SECRET_ACCESS_KEY="$(echo "$ASSUMED_ROLE_CREDS" | jq -r '.SecretAccessKey')"
+          echo AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" >> "$GITHUB_ENV"
+          echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
+          AWS_SESSION_TOKEN="$(echo "$ASSUMED_ROLE_CREDS" | jq -r '.SessionToken')"
+          echo AWS_SESSION_TOKEN="$AWS_SESSION_TOKEN" >> "$GITHUB_ENV"
+          echo "::add-mask::$AWS_SESSION_TOKEN"
+
+      - name: Confirm Account Access
+        env:
+          CHILD_ACCOUNT: ${{ inputs.child_account }}
+          WORKING_DIRECTORY: ${{ inputs.working_directory }}
+        run: echo "::notice ::Running in account $CHILD_ACCOUNT and planning in $WORKING_DIRECTORY"
+
+      # This Bootstrap step is a workaround for the error that happens when running plan-all for the first time in a
+      # new account with multiple modules. The error is:
+      #
+      #    OperationAborted: A conflicting conditional operation is currently in progress against this resource. Please try again.
+      #    BucketAlreadyOwnedByYou: Your previous request to create the named bucket succeeded and you already own it.
+      #
+      # This happens because each module is trying to create buckets for state and logs when they do not exist.
+      # Setting Terragrunt Parallelism to 1 does NOT prevent this error from happening. So we'll instead run an init in
+      # a single module first to create the buckets so that subsequent run-all commands do not fail.
+      - name: Bootstrap child account with state & logs S3 buckets
+        if: ${{ contains(inputs.terragrunt_command, 'plan') }}
+        uses: gruntwork-io/pipelines-execute@v2.1.1
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
+          tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
+          pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
+          working_directory: "${{ inputs.working_directory }}/_global/account-baseline"
+          terragrunt_command: "init"
+          infra_live_repo: '.'
+          infra_live_directory: '.'
+          infra_live_repo_branch: ${{ inputs.branch }}
+          gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
+
+      # This Bootstrap step is a workaround for the error that happens when running plan-all for the first time in a
+      # new account with multiple modules. The error is:
+      #
+      #    OperationAborted: A conflicting conditional operation is currently in progress against this resource. Please try again.
+      #    BucketAlreadyOwnedByYou: Your previous request to create the named bucket succeeded and you already own it.
+      #
+      # This happens because each module is trying to create buckets for state and logs when they do not exist.
+      # Setting Terragrunt Parallelism to 1 does NOT prevent this error from happening. So we'll instead run an init in
+      # a single module first to create the buckets so that subsequent run-all commands do not fail.
+      - name: Bootstrap child account with state & logs S3 buckets
+        if: ${{ contains(inputs.terragrunt_command, 'plan') }}
+        uses: gruntwork-io/pipelines-execute@v2.1.1
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
+          tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
+          pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
+          working_directory: "${{ inputs.working_directory }}/_global/account-baseline"
+          terragrunt_command: "init"
+          infra_live_repo: '.'
+          infra_live_directory: '.'
+          infra_live_repo_branch: ${{ inputs.branch }}
+          gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
+
+      # This Bootstrap step is a workaround for the error that happens when running plan-all for the first time in a
+      # new account with multiple modules. The error is:
+      #
+      #    OperationAborted: A conflicting conditional operation is currently in progress against this resource. Please try again.
+      #    BucketAlreadyOwnedByYou: Your previous request to create the named bucket succeeded and you already own it.
+      #
+      # This happens because each module is trying to create buckets for state and logs when they do not exist.
+      # Setting Terragrunt Parallelism to 1 does NOT prevent this error from happening. So we'll instead run an init in
+      # a single module first to create the buckets so that subsequent run-all commands do not fail.
+      - name: Bootstrap child account with state & logs S3 buckets
+        if: ${{ contains(inputs.terragrunt_command, 'plan') }}
+        uses: gruntwork-io/pipelines-execute@v2.1.1
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
+          tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
+          pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
+          working_directory: "${{ inputs.working_directory }}/_global/account-baseline"
+          terragrunt_command: "init"
+          infra_live_repo: '.'
+          infra_live_directory: '.'
+          infra_live_repo_branch: ${{ inputs.branch }}
+          gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
+
+      # APPLIES THE BASELINE
+      - name: Run terragrunt ${{ inputs.terragrunt_command }} in ${{ inputs.working_directory }}
+        id: terragrunt
+        uses: gruntwork-io/pipelines-execute@v2.1.1
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
+          tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
+          pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
+          working_directory: ${{ inputs.working_directory }}
+          terragrunt_command: ${{ inputs.terragrunt_command }}
+          infra_live_repo: '.'
+          infra_live_directory: '.'
+          infra_live_repo_branch: ${{ inputs.branch }}
+          gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
+
+    outputs:
+      plan: ${{ steps.terragrunt.outputs.stdout }}

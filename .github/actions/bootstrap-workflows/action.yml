@@ -1,0 +1,148 @@
+name: Bootstrap Workflow
+description: "Bootstrap workflows with common requirements"
+inputs:
+  token:
+    description: "The GitHub token to use for checking out the infrastructure-live repo"
+    required: true
+  terragrunt_command:
+    description: "The terragrunt command to run"
+    required: true
+  branch:
+    description: "The branch in infrastructure-live repo in which to run the command"
+    required: true
+  distinct_id:
+    description: "Used to identify this workflow so that we can wait on it"
+    required: true
+  deploy_branch_name:
+    description: "The name of the configured deploy branch"
+    required: false
+    default: main
+  role_prefix:
+    description: "The prefix to use for the role name"
+    required: true
+    # e.g. team, central, access-control
+    # central will be root.
+
+outputs:
+  gruntwork_config:
+    description: "YAML string contents of .gruntwork/config.yml in infrastructure-pipelines repo"
+    value: ${{ steps.read_gruntwork_config.outputs.config }}
+  role_name:
+    description: "The AWS role to assume"
+    value: ${{ steps.get_role_name.outputs.role_name }}
+  role_session_name:
+    description: "The AWS Session name"
+    value: ${{ steps.generate_role_session_name.outputs.role_session_name }}
+  child_acct_role_name:
+    description: "The AWS role to assume"
+    value: ${{ steps.get_role_name.outputs.child_acct_role_name }}
+  pipelines_cli_version:
+    description: "The version of the pipelines CLI to use"
+    value: ${{ steps.infraLive.outputs.pipelines_cli_version }}
+  terraform_version:
+    description: "The version of Terraform that Gruntwork Pipelines will use"
+    value: ${{ steps.infraLive.outputs.terraform_version }}
+  terragrunt_version:
+    description: "The version of Terragrunt that Gruntwork Pipelines will use"
+    value: ${{ steps.infraLive.outputs.terragrunt_version }}
+  admins:
+    description: "The list of GitHub users that are allowed to use admin functionality in workflows"
+    value: ${{ steps.get_pipelines_admins.outputs.admins }}
+
+runs:
+  using: composite
+  steps:
+    - name: Read infra-pipelines' Gruntwork config file
+      id: read_gruntwork_config
+      shell: bash
+      # Multi-line strings syntax https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#multiline-strings
+      run: |
+        echo "Reading infrastructure-pipelines' Gruntwork config file"
+        {
+          echo 'config<<EOF'
+          cat .gruntwork/config.yml
+          echo EOF
+        } >> "$GITHUB_OUTPUT"
+
+        config=$(cat .gruntwork/config.yml)
+
+    - name: Generate role session name
+      id: generate_role_session_name
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        COMMIT_SHA: ${{ inputs.branch }}
+        TG_CMD: ${{ inputs.terragrunt_command }}
+      run: |
+        if [[ $TG_CMD =~ ^(plan|run-all plan) ]]; then
+          PR_SEARCH=$(gh pr list --search $COMMIT_SHA --json author --json mergedBy --json number --json baseRefName --json commits)
+
+          if [[ $(echo $PR_SEARCH | jq '. == []') == 'true' ]]; then
+            SESSION_REQUESTER="PullRequest"
+            SESSION_GIT_REF=PR-$(git rev-parse --short ${COMMIT_SHA})
+          else
+            SESSION_REQUESTER=$(echo $PR_SEARCH | jq -r ".[0].commits[] | select(.oid == \"$COMMIT_SHA\") | .authors[0].login")
+            SESSION_GIT_REF=PR-$(echo $PR_SEARCH | jq -r '.[0].number')
+          fi
+        else
+          PR_SEARCH=$(gh pr list --search $COMMIT_SHA --json author --json mergedBy --json number --json baseRefName --json commits --state merged)
+          SESSION_REQUESTER=$(echo $PR_SEARCH | jq -r '.[0].mergedBy.login')
+          SESSION_GIT_REF=$(echo $PR_SEARCH | jq -r '.[0].baseRefName')
+        fi
+
+        echo "role_session_name=$SESSION_REQUESTER-via-GWPipelines@$SESSION_GIT_REF" >> $GITHUB_OUTPUT
+
+    - name: Read infra-live's Gruntwork config file
+      id: infraLive
+      shell: bash
+      run: |
+        config=$(cat .gruntwork/config.yml)
+
+        # Initialize an array to store missing keys
+        missing_keys=()
+
+        get_pipelines_config() {
+          local key=$1
+          local yaml_key
+          local value
+
+          yaml_key=".pipelines.$key"
+          value=$(echo "$config" | yq "$yaml_key")
+
+          if [[ "$value" == "null" ]]; then
+            missing_keys+=("$yaml_key")
+          else
+            echo "$value"
+          fi
+        }
+
+        pipelines_cli_version=$(get_pipelines_config "cli-version")
+        terraform_version=$(get_pipelines_config "terraform-version")
+        terragrunt_version=$(get_pipelines_config "terragrunt-version")
+
+        # Check if there are missing keys and error out if there are
+        if [ ${#missing_keys[@]} -gt 0 ]; then
+          missing_keys_str=$(IFS=,; printf "%s" "${missing_keys[*]}")
+          echo "Error: The following keys do not exist in the YAML content: $missing_keys_str"
+          exit 1
+        fi
+
+        echo "pipelines_cli_version=$pipelines_cli_version" >> "$GITHUB_OUTPUT"
+        echo "terraform_version=$terraform_version" >> "$GITHUB_OUTPUT"
+        echo "terragrunt_version=$terragrunt_version" >> "$GITHUB_OUTPUT"
+
+    - name: Get AWS role names for Pipelines
+      id: get_role_name
+      shell: bash
+      env:
+        TG_CMD: ${{ inputs.terragrunt_command }}
+        ROLE_PREFIX: ${{ inputs.role_prefix }}
+      run: |
+        role_suffix="pipelines-plan"
+        if ! [[ ${TG_CMD} =~ ^(plan|run-all plan) ]]; then
+          role_suffix="pipelines-apply"
+        fi
+
+        role_name="$ROLE_PREFIX-$role_suffix"
+
+        echo "role_name=$role_name" >>$GITHUB_OUTPUT

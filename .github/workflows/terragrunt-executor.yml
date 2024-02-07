@@ -1,0 +1,93 @@
+name: Pipelines Execute
+run-name: Run ${{ inputs.terragrunt_command }} on ${{ inputs.working_directory }}
+on:
+  workflow_call:
+    inputs:
+      branch:
+        description: "The branch in the infrastructure-live repo in which to run the command"
+        required: true
+        type: string
+      working_directory:
+        description: "The folder path in which the command will run"
+        required: true
+        type: string
+      account:
+        description: "The AWS Account ID of the ultimate account we will take action on"
+        required: true
+        type: string
+      terragrunt_command:
+        type: string
+        description: "The terragrunt command to run"
+        required: true
+        default: "plan"
+      child_account_id:
+        description: "The AWS Account ID of the child account"
+        required: false
+        type: string
+      role_prefix:
+        description: "The role prefix to use when assuming roles in the account"
+        required: true
+        type: string
+    secrets:
+      GRUNTWORK_CODE_ACCESS_TOKEN:
+        required: true
+
+env:
+  DEPLOY_BRANCH_NAME: main
+
+jobs:
+  pipelines-execute:
+    name: "Run Pipelines Execute"
+    runs-on: ubuntu-latest
+    # These permissions are needed by aws-actions/configure-aws-credentials action, used for auth, to interact with
+    # GitHub's OIDC Token endpoint.
+    permissions:
+      contents: read
+      id-token: write
+    if: ${{ inputs.account }} != 'null' && ${{ inputs.working_directory }} != '""'
+    steps:
+      - name: Check out infrastructure-live-root
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Bootstrap Workflow
+        id: bootstrap
+        uses: ./.github/actions/bootstrap-workflows
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          terragrunt_command: ${{ inputs.terragrunt_command }}
+          branch: ${{ inputs.branch }}
+          role_prefix: ${{ inputs.role_prefix }}
+
+      - name: Authenticate to AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          role-to-assume: "arn:aws:iam::${{ inputs.account }}:role/${{ steps.bootstrap.outputs.role_name }}"
+          role-duration-seconds: 3600
+          role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
+
+      - name: Confirm Account Access
+        env:
+          ACCOUNT: ${{ inputs.account }}
+          WORKING_DIRECTORY: ${{ inputs.working_directory }}
+        run: echo "::notice ::Running in account $ACCOUNT and planning in $WORKING_DIRECTORY"
+
+      - name: Run terragrunt ${{ inputs.terragrunt_command }}
+        id: terragrunt
+        uses: gruntwork-io/pipelines-execute@v2.1.1
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
+          tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
+          pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
+          working_directory: ${{ inputs.working_directory }}
+          terragrunt_command: "${{ inputs.terragrunt_command }}"
+          infra_live_repo: '.'
+          infra_live_directory: '.'
+          infra_live_repo_branch: ${{ inputs.branch }}
+          gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
+
+    outputs:
+      plan: ${{ steps.terragrunt.outputs.stdout }}

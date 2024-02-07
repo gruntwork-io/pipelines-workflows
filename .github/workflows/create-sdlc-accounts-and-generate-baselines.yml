@@ -1,0 +1,195 @@
+name: Create SDLC Accounts and Generate Baseline PR
+run-name: Run ${{ inputs.terragrunt_command }} on ${{ inputs.working_directory }}
+on:
+  workflow_call:
+    inputs:
+      branch:
+        description: "The branch in the infrastructure-live repo in which to run the command"
+        required: true
+        type: string
+      working_directory:
+        description: "The folder path in which terragrunt will execute"
+        required: true
+        type: string
+      management_account:
+        description: "The AWS Account ID of the Control Tower Management Account"
+        required: true
+        type: string
+      terragrunt_command:
+        type: string
+        description: "The terragrunt command to run"
+        required: true
+        default: "plan"
+      team_account_names:
+        type: string
+        description: "The names of the team accounts to create"
+        required: true
+
+env:
+  GRUNTWORK_INSTALLER_VERSION: v0.0.38
+  MODULE_SECURITY_VERSION: v0.68.3
+  CONTROL_TOWER_MODULES_VERSION: v0.4.0
+  BOILERPLATE_VERSION: v0.5.8
+  DEPLOY_BRANCH_NAME: main
+  INFRA_LIVE_DIRECTORY: infrastructure-live
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  new_account:
+    name: "Provision Account and Generate Baseline PR"
+    runs-on: ubuntu-latest
+    # These permissions are needed by aws-actions/configure-aws-credentials action, used for auth, to interact with
+    # GitHub's OIDC Token endpoint.
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Check out infra pipelines
+        uses: actions/checkout@v4
+
+      - name: Bootstrap Workflow
+        id: bootstrap
+        uses: ./.github/actions/bootstrap-workflows
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          terragrunt_command: ${{ inputs.terragrunt_command }}
+          branch: ${{ inputs.branch }}
+          pipelines_change_type: 'AccountRequested'
+
+      - name: Authenticate to AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          role-to-assume: "arn:aws:iam::${{ inputs.management_account }}:role/${{ steps.bootstrap.outputs.role_name }}"
+          role-duration-seconds: 3600
+          role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
+
+      - name: Confirm Account Access
+        run: echo "::notice ::Running in account ${{ inputs.management_account }} and planning in ${{ inputs.working_directory }}"
+
+      - name: Run terragrunt ${{ inputs.terragrunt_command }} in ${{ inputs.working_directory }}
+        id: terragrunt
+        uses: gruntwork-io/pipelines-execute@v2.1.1
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
+          tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
+          pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
+          working_directory: ${{ inputs.working_directory }}
+          terragrunt_command: "${{ inputs.terragrunt_command }}"
+          infra_live_repo: '.'
+          infra_live_directory: '.'
+          infra_live_repo_branch: ${{ inputs.branch }}
+          gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
+
+      - name: Get requesting PR number
+        id: get_pr_number
+        # Update check to include accountIds for the created accounts
+        if: ${{ contains(inputs.terragrunt_command, 'apply') }}
+        working-directory: ${{ steps.bootstrap.outputs.infra_live_directory }}
+        env:
+          COMMIT_SHA: ${{ inputs.branch }}
+          GH_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+        run: |
+          PR_NUMBER=$(gh pr list --search "$COMMIT_SHA" --state merged --json number -q '.[0].number')
+          echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+
+      - name: Check out terraform-aws-control-tower repo
+        if: ${{ contains(inputs.terragrunt_command, 'apply') }}
+        uses: actions/checkout@v4
+        with:
+          repository: gruntwork-io/terraform-aws-control-tower
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          path: terraform-aws-control-tower
+          ref: ${{ env.CONTROL_TOWER_MODULES_VERSION }}
+
+      - name: Install boilerplate
+        if: ${{ contains(inputs.terragrunt_command, 'apply') }}
+        shell: bash
+        env:
+          GITHUB_OAUTH_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+        run: |
+          curl -Ls https://raw.githubusercontent.com/gruntwork-io/gruntwork-installer/main/bootstrap-gruntwork-installer.sh | bash /dev/stdin --version "$GRUNTWORK_INSTALLER_VERSION"
+          gruntwork-install --binary-name boilerplate --repo https://github.com/gruntwork-io/boilerplate --tag "$BOILERPLATE_VERSION"
+
+      - name: Generate Baselines
+        id: generate_baselines
+        if: ${{ contains(inputs.terragrunt_command, 'apply') }}
+        working-directory: ${{ steps.bootstrap.outputs.infra_live_directory }}
+        env:
+          ACCOUNT_NAMES: ${{ inputs.team_account_names }}
+        run: |
+          IFS=',' read -ra account_names <<<"$ACCOUNT_NAMES"
+
+          # Pick the first account name from the list, we'll only take common values across all accounts
+          account_name="${account_names[0]}"
+          request_file_path="./_new-account-requests/account-$account_name.yml"
+          requesting_team_name="$(yq -r '.requesting_team_name' "$request_file_path")"
+          requesting_team_id="$(yq -r '.requesting_team_id' "$request_file_path")"
+          org_name_prefix="$(yq -r '.org_name_prefix' "$request_file_path")"
+
+          new_infra_live_repo_name="infra-live-${requesting_team_name}-${requesting_team_id}"
+
+          echo "requesting_team_name=$requesting_team_name" >>$GITHUB_OUTPUT
+          echo "new_infra_live_repo_name=$new_infra_live_repo_name" >>$GITHUB_OUTPUT
+
+          for account_name in "${account_names[@]}"; do
+            echo "Updating accounts.yml for account $account_name to auto accept this account's TGW attachment requests"
+            yq ".$account_name.auto-accept-tgw-attachments = true" -i --prettyPrint accounts.yml
+
+            request_file_path="./_new-account-requests/account-$account_name.yml"
+            ipam_env_name="$(yq -r '.ipam_env_name' "$request_file_path")"
+
+            echo "Updating accounts.yml for account $account_name to set its IPAM env name to $ipam_env_name"
+            yq ".$account_name.ipam-env-name = \"$ipam_env_name\"" -i --prettyPrint accounts.yml
+
+            echo "Generating baseline for account $account_name"
+            aws_region="$(yq -r '.aws_region' "$request_file_path")"
+            account_baseline_modules_version="$(yq -r '.account_baseline_modules_version' "$request_file_path")"
+            account_baseline_cis_service_catalog_version="$(yq -r '.account_baseline_cis_service_catalog_version' "$request_file_path")"
+
+            echo "Grabbing tags"
+            tags="$(yq -o=json -I=0 '.tags' "$request_file_path")"
+
+            set -x
+
+            boilerplate \
+              --template-url "../terraform-aws-control-tower//templates/landingzone/boilerplate-single-account-baseline" \
+              --output-folder "." \
+              --var AccountName="$account_name" \
+              --var AwsRegion="$aws_region" \
+              --var OrgNamePrefix="$org_name_prefix" \
+              --var AccountBaselineModulesVersion="$account_baseline_modules_version" \
+              --var AccountBaselineCISServiceCatalogVersion="$account_baseline_cis_service_catalog_version" \
+              --var RequestingTeamName="${requesting_team_name}-${requesting_team_id}" \
+              --var DisableVpcInputs=true \
+              --var VpcModuleVersion="$account_baseline_cis_service_catalog_version" \
+              --var IsTeamAccount=true \
+              --var DefaultTags="$tags" \
+              --non-interactive
+
+          done
+
+      - name: Create Pull Request in infra-live central
+        id: create_pr
+        if: ${{ contains(inputs.terragrunt_command, 'apply') }}
+        uses: peter-evans/create-pull-request@v6
+        with:
+          base: ${{ env.DEPLOY_BRANCH_NAME }}
+          token: ${{ secrets.INFRA_LIVE_ACCESS_TOKEN }}
+          path: ${{ steps.bootstrap.outputs.infra_live_directory }}
+          branch: "enhancement/sdlc-account-team-${{ steps.generate_baselines.outputs.new_infra_live_repo_name }}"
+          commit-message: "Generate account baselines for ${{ steps.generate_baselines.outputs.new_infra_live_repo_name }}"
+          title: "Generate account baselines for ${{ steps.generate_baselines.outputs.new_infra_live_repo_name }}"
+          body: |
+            This pull request applies an account baseline to the SDLC AWS accounts, which were created in https://github.com/${{ github.repository }}/pull/${{ steps.get_pr_number.outputs.pr_number }}.
+              1. Inspect the details in this pull request and confirm correctness.
+              2. Merge this pull request.
+
+            Once merged, Gruntwork Pipelines will `terragrunt apply` the baseline in the newly created AWS accounts.
+
+    outputs:
+      plan: ${{ steps.terragrunt.outputs.stdout }}
