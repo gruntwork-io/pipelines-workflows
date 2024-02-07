@@ -59,6 +59,9 @@ jobs:
       contents: read
       id-token: write
     steps:
+      - name: Check out infrastructure-live-root
+        uses: actions/checkout@v4
+
       - name: Bootstrap Workflow
         id: bootstrap
         uses: ./.github/actions/bootstrap-workflows
