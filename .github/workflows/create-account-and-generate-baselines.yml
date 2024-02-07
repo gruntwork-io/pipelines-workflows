@@ -32,7 +32,7 @@ on:
     secrets:
       GRUNTWORK_CODE_ACCESS_TOKEN:
         required: true
-      GITHUB_TOKEN:
+      LOCAL_GITHUB_TOKEN:
         required: true
 
 env:
@@ -184,7 +184,7 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           base: main
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.LOCAL_GITHUB_TOKEN }}
           path: infrastructure-live
           branch: "enhancement/baseline-account-${{ inputs.new_account_name }}"
           commit-message: "Generate account baseline for: ${{ inputs.new_account_name }}"

@@ -27,7 +27,7 @@ on:
     secrets:
       GRUNTWORK_CODE_ACCESS_TOKEN:
         required: true
-      GITHUB_TOKEN:
+      LOCAL_GITHUB_TOKEN:
         required: true
 
 env:
@@ -184,7 +184,7 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           base: ${{ env.DEPLOY_BRANCH_NAME }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.LOCAL_GITHUB_TOKEN }}
           path: ${{ steps.bootstrap.outputs.infra_live_directory }}
           branch: "enhancement/sdlc-account-team-${{ steps.generate_baselines.outputs.new_infra_live_repo_name }}"
           commit-message: "Generate account baselines for ${{ steps.generate_baselines.outputs.new_infra_live_repo_name }}"
