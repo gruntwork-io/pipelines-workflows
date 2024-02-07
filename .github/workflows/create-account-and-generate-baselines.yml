@@ -63,6 +63,8 @@ jobs:
     steps:
       - name: Check out infrastructure-live-root
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Bootstrap Workflow
         id: bootstrap
