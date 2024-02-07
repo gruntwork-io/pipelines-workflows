@@ -94,7 +94,7 @@ jobs:
         id: terragrunt
         uses: gruntwork-io/pipelines-execute@v2.1.1
         with:
-          token: ${{ secrets.LOCAL_GITHUB_TOKEN }}
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
           tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
           pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
