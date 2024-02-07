@@ -24,6 +24,11 @@ on:
         description: "The folder path in which terragrunt will execute"
         required: true
         type: string
+    secrets:
+      GRUNTWORK_CODE_ACCESS_TOKEN:
+        required: true
+      MANAGE_REPOS_TOKEN:
+        required: true
 
 env:
   DEPLOY_BRANCH_NAME: main

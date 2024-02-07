@@ -29,6 +29,11 @@ on:
         description: "The default tags to apply to all resources, represented as a JSON string"
         required: false
         default: "{}"
+    secrets:
+      GRUNTWORK_CODE_ACCESS_TOKEN:
+        required: true
+      GITHUB_TOKEN:
+        required: true
 
 env:
   GRUNTWORK_INSTALLER_VERSION: v0.0.38
@@ -179,7 +184,7 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           base: main
-          token: ${{ secrets.INFRA_LIVE_ACCESS_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           path: infrastructure-live
           branch: "enhancement/baseline-account-${{ inputs.new_account_name }}"
           commit-message: "Generate account baseline for: ${{ inputs.new_account_name }}"

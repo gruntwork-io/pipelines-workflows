@@ -24,6 +24,9 @@ on:
         description: "The terragrunt command to run"
         required: true
         default: "plan"
+    secrets:
+      GRUNTWORK_CODE_ACCESS_TOKEN:
+        required: true
 
 env:
   DEPLOY_BRANCH_NAME: main
