@@ -29,6 +29,10 @@ on:
         description: "The default tags to apply to all resources, represented as a JSON string"
         required: false
         default: "{}"
+      role_prefix:
+        description: "The role prefix to use when assuming roles in the account"
+        required: true
+        type: string
     secrets:
       GRUNTWORK_CODE_ACCESS_TOKEN:
         required: true
@@ -68,6 +72,7 @@ jobs:
           terragrunt_command: ${{ inputs.terragrunt_command }}
           branch: ${{ inputs.branch }}
           pipelines_change_type: 'AccountRequested'
+          role_prefix: ${{ inputs.role_prefix }}
 
       - name: Authenticate to AWS
         uses: aws-actions/configure-aws-credentials@v4

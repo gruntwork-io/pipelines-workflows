@@ -24,6 +24,10 @@ on:
         description: "The terragrunt command to run"
         required: true
         default: "plan"
+      role_prefix:
+        description: "The role prefix to use when assuming roles in the account"
+        required: true
+        type: string
     secrets:
       GRUNTWORK_CODE_ACCESS_TOKEN:
         required: true
@@ -56,6 +60,7 @@ jobs:
           terragrunt_command: ${{ inputs.terragrunt_command }}
           branch: ${{ inputs.branch }}
           pipelines_change_type: 'AccountAdded'
+          role_prefix: ${{ inputs.role_prefix }}
 
       - name: Parse account IDs
         id: parse
