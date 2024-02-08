@@ -110,7 +110,8 @@ jobs:
           NEW_ACCOUNT_NAME: ${{ inputs.new_account_name }}
         run: |
           # The multi-account-factory updates the accounts.yml file with the ID of any created account.
-          account_id="$(yq -r ".\"$NEW_ACCOUNT_NAME\".id" "./accounts.yml")"
+          account_id="$(yq -r ".$NEW_ACCOUNT_NAME.id" ./accounts.yml)"
+          echo "Account ID of $NEW_ACCOUNT_NAME is: $account_id"
           echo "account_id=$account_id" >> "$GITHUB_OUTPUT"
 
       - name: Read account request
