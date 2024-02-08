@@ -193,7 +193,6 @@ jobs:
         with:
           base: main
           token: ${{ secrets.LOCAL_GITHUB_TOKEN }}
-          path: infrastructure-live
           branch: "enhancement/baseline-account-${{ inputs.new_account_name }}"
           commit-message: "Generate account baseline for: ${{ inputs.new_account_name }}"
           title: "Generate account baseline for: ${{ inputs.new_account_name }}"
