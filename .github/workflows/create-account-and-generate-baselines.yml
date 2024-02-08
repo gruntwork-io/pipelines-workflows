@@ -140,8 +140,9 @@ jobs:
         env:
           COMMIT_SHA: ${{ inputs.branch }}
           GH_TOKEN: ${{ secrets.LOCAL_GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
         run: |
-          PR_NUMBER=$(gh pr list --search "$COMMIT_SHA" --state merged --json number -q '.[0].number')
+          PR_NUMBER=$(gh -R "$REPO" pr list --search "$COMMIT_SHA" --state merged --json number -q '.[0].number')
           echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
 
       - name: Check out terraform-aws-control-tower repo
