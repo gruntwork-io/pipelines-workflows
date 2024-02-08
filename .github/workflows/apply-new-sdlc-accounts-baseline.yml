@@ -164,7 +164,7 @@ jobs:
         id: setup-matrix
         env:
           TEAM_ACCOUNT_DATA: ${{ inputs.team_account_data }}
-          PATH_TO_INFRA_LIVE: ${{ steps.bootstrap.outputs.infra_live_directory }}
+          PATH_TO_INFRA_LIVE: '.'
         run: ./.github/scripts/setup-matrix.sh
 
     outputs:

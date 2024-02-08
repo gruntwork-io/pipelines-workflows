@@ -40,7 +40,6 @@ env:
   CONTROL_TOWER_MODULES_VERSION: v0.4.0
   BOILERPLATE_VERSION: v0.5.8
   DEPLOY_BRANCH_NAME: main
-  INFRA_LIVE_DIRECTORY: infrastructure-live
 
 defaults:
   run:
@@ -100,7 +99,6 @@ jobs:
         id: get_pr_number
         # Update check to include accountIds for the created accounts
         if: ${{ contains(inputs.terragrunt_command, 'apply') }}
-        working-directory: ${{ steps.bootstrap.outputs.infra_live_directory }}
         env:
           COMMIT_SHA: ${{ inputs.branch }}
           GH_TOKEN: ${{ secrets.LOCAL_GITHUB_TOKEN }}
@@ -129,7 +127,6 @@ jobs:
       - name: Generate Baselines
         id: generate_baselines
         if: ${{ contains(inputs.terragrunt_command, 'apply') }}
-        working-directory: ${{ steps.bootstrap.outputs.infra_live_directory }}
         env:
           ACCOUNT_NAMES: ${{ inputs.team_account_names }}
         run: |
@@ -191,7 +188,6 @@ jobs:
         with:
           base: ${{ env.DEPLOY_BRANCH_NAME }}
           token: ${{ secrets.LOCAL_GITHUB_TOKEN }}
-          path: ${{ steps.bootstrap.outputs.infra_live_directory }}
           branch: "enhancement/sdlc-account-team-${{ steps.generate_baselines.outputs.new_infra_live_repo_name }}"
           commit-message: "Generate account baselines for ${{ steps.generate_baselines.outputs.new_infra_live_repo_name }}"
           title: "Generate account baselines for ${{ steps.generate_baselines.outputs.new_infra_live_repo_name }}"

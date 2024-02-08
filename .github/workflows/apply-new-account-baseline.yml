@@ -66,7 +66,6 @@ jobs:
 
       - name: Parse account IDs
         id: parse
-        working-directory: ${{ steps.bootstrap.outputs.infra_live_directory }}
         run: |
           security_account_id="$(yq -r ".\"security\".id" "./accounts.yml")"
           echo "security_account_id=$security_account_id" >> $GITHUB_OUTPUT

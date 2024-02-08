@@ -45,7 +45,6 @@ env:
   CONTROL_TOWER_MODULES_VERSION: v0.2.1
   BOILERPLATE_VERSION: v0.5.8
   DEPLOY_BRANCH_NAME: main
-  INFRA_LIVE_DIRECTORY: infrastructure-live
 
 defaults:
   run:
@@ -107,7 +106,6 @@ jobs:
 
       - name: Parse new account ID
         id: parse
-        working-directory: ${{ steps.bootstrap.outputs.infra_live_directory }}
         env:
           NEW_ACCOUNT_NAME: ${{ inputs.new_account_name }}
         run: |
@@ -119,7 +117,6 @@ jobs:
         id: account_request
         # Only try this if we've actually created the account
         if: ${{ steps.parse.outputs.account_id != 'null' }}
-        working-directory: ${{ steps.bootstrap.outputs.infra_live_directory }}
         env:
           NEW_ACCOUNT_NAME: ${{ inputs.new_account_name }}
         run: |
@@ -139,7 +136,6 @@ jobs:
         id: get_pr_number
         # Only try this if we've actually created the account
         if: ${{ steps.parse.outputs.account_id != 'null' }}
-        working-directory: ${{ steps.bootstrap.outputs.infra_live_directory }}
         env:
           COMMIT_SHA: ${{ inputs.branch }}
           GH_TOKEN: ${{ secrets.LOCAL_GITHUB_TOKEN }}
