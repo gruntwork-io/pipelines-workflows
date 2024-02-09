@@ -143,6 +143,7 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           PR_NUMBER=$(gh -R "$REPO" pr list --search "$COMMIT_SHA" --state merged --json number -q '.[0].number')
+          echo "The PR number is: $PR_NUMBER"
           echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
 
       - name: Check out terraform-aws-control-tower repo
