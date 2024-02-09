@@ -165,7 +165,7 @@ jobs:
             set -x
 
             boilerplate \
-              --template-url "../terraform-aws-control-tower//templates/landingzone/boilerplate-single-account-baseline" \
+              --template-url "./terraform-aws-control-tower//templates/landingzone/boilerplate-single-account-baseline" \
               --output-folder "." \
               --var AccountName="$account_name" \
               --var AwsRegion="$aws_region" \
@@ -180,6 +180,10 @@ jobs:
               --non-interactive
 
           done
+
+      - name: Remove Control Tower Repo
+        if: ${{ contains(inputs.terragrunt_command, 'apply') }}
+        run: rm -rf terraform-aws-control-tower
 
       - name: Create Pull Request in infra-live central
         id: create_pr

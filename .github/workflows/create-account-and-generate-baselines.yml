@@ -186,6 +186,10 @@ jobs:
             --var DefaultTags="$DEFAULT_TAGS" \
             --non-interactive
 
+      - name: Remove Control Tower Repo
+        if: ${{ steps.parse.outputs.account_id != 'null' }}
+        run: rm -rf terraform-aws-control-tower
+
       - name: Create Pull Request
         if: ${{ steps.parse.outputs.account_id != 'null' }}
         id: create_pr
