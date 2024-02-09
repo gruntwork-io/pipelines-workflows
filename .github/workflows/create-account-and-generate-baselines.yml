@@ -196,7 +196,7 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           base: main
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.LOCAL_GITHUB_TOKEN }}
           branch: "enhancement/baseline-account-${{ inputs.new_account_name }}"
           commit-message: "Generate account baseline for: ${{ inputs.new_account_name }}"
           title: "Generate account baseline for: ${{ inputs.new_account_name }}"
