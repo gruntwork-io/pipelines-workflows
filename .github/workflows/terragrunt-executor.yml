@@ -39,11 +39,6 @@ jobs:
   pipelines-execute:
     name: "Run Pipelines Execute"
     runs-on: ubuntu-latest
-    # These permissions are needed by aws-actions/configure-aws-credentials action, used for auth, to interact with
-    # GitHub's OIDC Token endpoint.
-    permissions:
-      contents: read
-      id-token: write
     if: ${{ inputs.account }} != 'null' && ${{ inputs.working_directory }} != '""'
     steps:
       - name: Check out infrastructure-live-root

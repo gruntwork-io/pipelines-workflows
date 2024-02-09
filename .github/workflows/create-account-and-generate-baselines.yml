@@ -54,28 +54,11 @@ jobs:
   new_account:
     name: "Provision Account and Generate Baseline PR"
     runs-on: ubuntu-latest
-    # These permissions are needed by aws-actions/configure-aws-credentials action, used for auth, to interact with
-    # GitHub's OIDC Token endpoint.
     steps:
       - name: Check out infrastructure-live-root
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Confirm Caller
-        run: echo 'test' > test.txt
-
-      - name: Create Pull Request
-        id: create_test_pr
-        uses: peter-evans/create-pull-request@v6
-        with:
-          base: main
-          token: ${{ secrets.LOCAL_GITHUB_TOKEN }}
-          branch: "test"
-          commit-message: "test"
-          title: "test"
-          body: |
-            test
 
       - name: Bootstrap Workflow
         id: bootstrap

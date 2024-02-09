@@ -43,11 +43,6 @@ jobs:
   new_account_base:
     name: "Account Baseline"
     runs-on: ubuntu-latest
-    # These permissions are needed by aws-actions/configure-aws-credentials action, used for auth, to interact with
-    # GitHub's OIDC Token endpoint.
-    permissions:
-      contents: read
-      id-token: write
     steps:
       - name: Check out infrastructure-live-root
         uses: actions/checkout@v4

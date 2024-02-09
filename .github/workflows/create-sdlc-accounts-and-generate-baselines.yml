@@ -49,11 +49,6 @@ jobs:
   new_account:
     name: "Provision Account and Generate Baseline PR"
     runs-on: ubuntu-latest
-    # These permissions are needed by aws-actions/configure-aws-credentials action, used for auth, to interact with
-    # GitHub's OIDC Token endpoint.
-    permissions:
-      contents: read
-      id-token: write
     steps:
       - name: Check out infra pipelines
         uses: actions/checkout@v4
