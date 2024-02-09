@@ -65,6 +65,21 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Confirm Caller
+        run: echo 'test' > test.txt
+
+      - name: Create Pull Request
+        id: create_test_pr
+        uses: peter-evans/create-pull-request@v6
+        with:
+          base: main
+          token: ${{ secrets.LOCAL_GITHUB_TOKEN }}
+          branch: "test"
+          commit-message: "test"
+          title: "test"
+          body: |
+            test
+
       - name: Bootstrap Workflow
         id: bootstrap
         uses: ./.github/actions/bootstrap-workflows
