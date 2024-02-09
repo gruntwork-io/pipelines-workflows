@@ -36,7 +36,7 @@ on:
     secrets:
       GRUNTWORK_CODE_ACCESS_TOKEN:
         required: true
-      LOCAL_GITHUB_TOKEN:
+      INFRA_LIVE_ACCESS_TOKEN:
         required: true
 
 env:
@@ -64,7 +64,7 @@ jobs:
         id: bootstrap
         uses: ./.github/actions/bootstrap-workflows
         with:
-          token: ${{ secrets.LOCAL_GITHUB_TOKEN }}
+          token: ${{ secrets.INFRA_LIVE_ACCESS_TOKEN }}
           terragrunt_command: ${{ inputs.terragrunt_command }}
           branch: ${{ inputs.branch }}
           pipelines_change_type: 'AccountRequested'
@@ -134,7 +134,7 @@ jobs:
         if: ${{ steps.parse.outputs.account_id != 'null' }}
         env:
           COMMIT_SHA: ${{ inputs.branch }}
-          GH_TOKEN: ${{ secrets.LOCAL_GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.INFRA_LIVE_ACCESS_TOKEN }}
           REPO: ${{ github.repository }}
         run: |
           PR_NUMBER=$(gh -R "$REPO" pr list --search "$COMMIT_SHA" --state merged --json number -q '.[0].number')
@@ -192,7 +192,7 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           base: main
-          token: ${{ secrets.LOCAL_GITHUB_TOKEN }}
+          token: ${{ secrets.INFRA_LIVE_ACCESS_TOKEN }}
           branch: "enhancement/baseline-account-${{ inputs.new_account_name }}"
           commit-message: "Generate account baseline for: ${{ inputs.new_account_name }}"
           title: "Generate account baseline for: ${{ inputs.new_account_name }}"
