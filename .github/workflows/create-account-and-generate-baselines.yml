@@ -176,7 +176,7 @@ jobs:
         run: |
           boilerplate \
             --template-url "./terraform-aws-control-tower//templates/landingzone/boilerplate-single-account-baseline" \
-            --output-folder infrastructure-live \
+            --output-folder . \
             --var AccountName="$ACCOUNT_NAME" \
             --var AwsRegion="$AWS_REGION" \
             --var OrgNamePrefix="$ORG_NAME_PREFIX" \
