@@ -154,6 +154,14 @@ jobs:
             account_baseline_modules_version="$(yq -r '.account_baseline_modules_version' "$request_file_path")"
             account_baseline_cis_service_catalog_version="$(yq -r '.account_baseline_cis_service_catalog_version' "$request_file_path")"
 
+            create_vpc="$(yq -r '.create_vpc' "$request_file_path")"
+
+            # Handling edge case where account request file might not have a create_vpc field
+            # We create one by default
+            if [[ "$create_vpc" == "null" ]]; then
+              create_vpc='true'
+            fi
+
             echo "Grabbing tags"
             tags="$(yq -o=json -I=0 '.tags' "$request_file_path")"
 
@@ -168,10 +176,10 @@ jobs:
               --var AccountBaselineModulesVersion="$account_baseline_modules_version" \
               --var AccountBaselineCISServiceCatalogVersion="$account_baseline_cis_service_catalog_version" \
               --var RequestingTeamName="${requesting_team_name}-${requesting_team_id}" \
-              --var DisableVpcInputs=true \
               --var VpcModuleVersion="$account_baseline_cis_service_catalog_version" \
               --var IsTeamAccount=true \
               --var DefaultTags="$tags" \
+              --var InfraLiveTeamRepoName="gruntwork-test/$new_infra_live_repo_name" \
               --non-interactive
 
           done

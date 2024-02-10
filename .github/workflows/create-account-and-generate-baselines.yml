@@ -122,11 +122,20 @@ jobs:
           account_baseline_modules_version="$(yq -r ".account_baseline_modules_version" "./_new-account-requests/account-$NEW_ACCOUNT_NAME.yml")"
           account_baseline_cis_service_catalog_version="$(yq -r ".account_baseline_cis_service_catalog_version" "./_new-account-requests/account-$NEW_ACCOUNT_NAME.yml")"
 
+          create_vpc="$(yq -r '.create_vpc' "$request_file_path")"
+
+          # Handling edge case where account request file might not have a create_vpc field
+          # We create one by default
+          if [[ "$create_vpc" == "null" ]]; then
+            create_vpc='true'
+          fi
+
           echo "org_name_prefix=$org_name_prefix" >> "$GITHUB_OUTPUT"
           echo "aws_region=$aws_region" >> "$GITHUB_OUTPUT"
           echo "requesting_team_name=$requesting_team_name" >> "$GITHUB_OUTPUT"
           echo "account_baseline_modules_version=$account_baseline_modules_version" >> "$GITHUB_OUTPUT"
           echo "account_baseline_cis_service_catalog_version=$account_baseline_cis_service_catalog_version" >> "$GITHUB_OUTPUT"
+          echo "create_vpc=$create_vpc" >> "$GITHUB_OUTPUT"
 
       - name: Get requesting PR number
         id: get_pr_number
@@ -169,6 +178,7 @@ jobs:
           ACCOUNT_BASELINE_CIS_SERVICE_CATALOG_VERSION: ${{ steps.account_request.outputs.account_baseline_cis_service_catalog_version }}
           REQUESTING_TEAM_NAME: ${{ steps.account_request.outputs.requesting_team_name }}
           DEFAULT_TAGS: ${{ inputs.default_tags }}
+          CREATE_VPC: ${{ steps.account_request.outputs.create_vpc  }}
         run: |
           boilerplate \
             --template-url "./terraform-aws-control-tower//templates/landingzone/boilerplate-single-account-baseline" \
@@ -180,6 +190,8 @@ jobs:
             --var AccountBaselineCISServiceCatalogVersion="$ACCOUNT_BASELINE_CIS_SERVICE_CATALOG_VERSION" \
             --var RequestingTeamName="$REQUESTING_TEAM_NAME" \
             --var DefaultTags="$DEFAULT_TAGS" \
+            --var CreateVPC="$CREATE_VPC" \
+            --var VpcModuleVersion="$ACCOUNT_BASELINE_CIS_SERVICE_CATALOG_VERSION" \
             --non-interactive
 
       - name: Remove Control Tower Repo
