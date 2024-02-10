@@ -116,11 +116,13 @@ jobs:
         env:
           NEW_ACCOUNT_NAME: ${{ inputs.new_account_name }}
         run: |
-          org_name_prefix="$(yq -r ".org_name_prefix" "./_new-account-requests/account-$NEW_ACCOUNT_NAME.yml")"
-          aws_region="$(yq -r ".aws_region" "./_new-account-requests/account-$NEW_ACCOUNT_NAME.yml")"
-          requesting_team_name="$(yq -r ".requesting_team_name" "./_new-account-requests/account-$NEW_ACCOUNT_NAME.yml")"
-          account_baseline_modules_version="$(yq -r ".account_baseline_modules_version" "./_new-account-requests/account-$NEW_ACCOUNT_NAME.yml")"
-          account_baseline_cis_service_catalog_version="$(yq -r ".account_baseline_cis_service_catalog_version" "./_new-account-requests/account-$NEW_ACCOUNT_NAME.yml")"
+          request_file_path="./_new-account-requests/account-$NEW_ACCOUNT_NAME.yml"
+
+          org_name_prefix="$(yq -r ".org_name_prefix" "$request_file_path")"
+          aws_region="$(yq -r ".aws_region" "$request_file_path")"
+          requesting_team_name="$(yq -r ".requesting_team_name" "$request_file_path")"
+          account_baseline_modules_version="$(yq -r ".account_baseline_modules_version" "$request_file_path")"
+          account_baseline_cis_service_catalog_version="$(yq -r ".account_baseline_cis_service_catalog_version" "$request_file_path")"
 
           create_vpc="$(yq -r '.create_vpc' "$request_file_path")"
 
