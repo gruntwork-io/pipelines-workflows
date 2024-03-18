@@ -20,13 +20,7 @@ jobs:
         shell: bash
         run: |
           if [[ -z "$GRUNTWORK_CODE_ACCESS_TOKEN" ]]; then echo "Missing GRUNTWORK_CODE_ACCESS_TOKEN"; exit 1; fi
-
-  # See https://stackoverflow.com/a/76151412
-  check_if_branch_is_ahead_of_main:
-    name: Check if branch is ahead of main
-    needs: [preflight_checks]
-    runs-on: ubuntu-latest
-    steps:
+      # See https://stackoverflow.com/a/76151412
       - uses: actions/checkout@v4
         # Only run if this is a pull request and the target branch is main
         if: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main' }}
@@ -45,7 +39,7 @@ jobs:
   detect_changes:
     name: Detect Infrastructure Changes
     runs-on: ubuntu-latest
-    needs: [check_if_branch_is_ahead_of_main]
+    needs: [preflight_checks]
     steps:
       - uses: actions/checkout@v4
         with:
