@@ -43,7 +43,7 @@ jobs:
             exit 1
           fi
       - name: Update comment
-        uses: ./.github/actions/bootstrap-workflows
+        uses: ./.github/actions/update-pr
 
   detect_changes:
     name: Detect Infrastructure Changes
