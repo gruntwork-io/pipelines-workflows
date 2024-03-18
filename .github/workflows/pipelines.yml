@@ -2,15 +2,6 @@ name: Pipelines Execute
 run-name: Run Gruntwork Pipelines
 on:
   workflow_call:
-    inputs:
-      branch:
-        description: "The branch in the infrastructure-live repo in which to run the command"
-        required: true
-        type: string
-      working_directory:
-        description: "The folder path in which the command will run"
-        required: true
-        type: string
     secrets:
       GRUNTWORK_CODE_ACCESS_TOKEN:
         required: true
