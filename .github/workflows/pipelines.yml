@@ -10,9 +10,11 @@ env:
   DEPLOY_BRANCH_NAME: main
 
 jobs:
-  setup_pr_status:
-    name: Update calling PR with Gruntwork Pipelines Status
+  preflight_checks:
+    name: Run config preflight checks for gruntwork pipelines
     runs-on: ubuntu-latest
+    env:
+      GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
     steps:
       - name: Create comment
         uses: marocchino/sticky-pull-request-comment@v2
@@ -20,13 +22,6 @@ jobs:
           message: |
             Gruntwork Pipelines started...
             [ ] Preflight Checks
-
-  preflight_checks:
-    name: Run config preflight checks for gruntwork pipelines
-    runs-on: ubuntu-latest
-    env:
-      GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
-    steps:
       - name: Ensure CI User Variables are populated
         shell: bash
         run: |
@@ -114,15 +109,13 @@ jobs:
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           append: true
-          message: |
-            [✅] Calculate Changes..
+          message: [✅] Calculate Changes..
       - name: Update comment with calculate changes success
         if: failure()
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           append: true
-          message: |
-            [❌] Calculate Changes..
+          message: [❌] Calculate Changes..
     outputs:
       pipelines_jobs: ${{ steps.orchestrate.outputs.jobs }}
       pipelines_cli_version: ${{ steps.gruntwork.outputs.pipelines_cli_version }}
