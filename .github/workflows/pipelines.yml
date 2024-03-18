@@ -9,7 +9,22 @@ on:
 env:
   DEPLOY_BRANCH_NAME: main
 
+permissions:
+  pull-requests: write
+
 jobs:
+  setup_pr_status:
+    name: Update calling PR with Gruntwork Pipelines Status
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create comment
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          message: |
+            Gruntwork Pipelines started...
+            [ ] Preflight Checks
+            [ ] Calculate Changes..
+
   preflight_checks:
     name: Run config preflight checks for gruntwork pipelines
     runs-on: ubuntu-latest
@@ -36,6 +51,13 @@ jobs:
             echo "::error::Branch is not up to date with main"
             exit 1
           fi
+      - name: Update comment
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          message: |
+            Gruntwork Pipelines started...
+            [:check:] Preflight Checks
+            [ ] Calculate Changes..
   detect_changes:
     name: Detect Infrastructure Changes
     runs-on: ubuntu-latest
