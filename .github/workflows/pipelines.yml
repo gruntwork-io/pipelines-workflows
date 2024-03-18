@@ -43,7 +43,7 @@ jobs:
             exit 1
           fi
       - name: Update comment
-        uses: gruntwork-test/gruntwork-pipelines-status-update@v0.0.1
+        uses: gruntwork-test/gruntwork-pipelines-status-update@v0.0.2
 
   detect_changes:
     name: Detect Infrastructure Changes
