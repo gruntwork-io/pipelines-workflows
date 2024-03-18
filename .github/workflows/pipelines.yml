@@ -53,7 +53,7 @@ jobs:
         with:
           message: |
             Gruntwork Pipelines started...
-            [:check:] Preflight Checks
+            [✅] Preflight Checks
             [ ] Calculate Changes..
   detect_changes:
     name: Detect Infrastructure Changes
@@ -110,6 +110,23 @@ jobs:
           gruntwork-config: ${{ steps.gruntwork.outputs.config }}
           # We do this because the `GRUNTWORK_CODE_ACCESS_TOKEN` might not be present when vending a delegated account, even though it's always present in the main `infrastructure-live` account.
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Update comment with calculate changes success
+        if: success()
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          message: |
+            Gruntwork Pipelines started...
+            [✅] Preflight Checks
+            [✅] Calculate Changes..
+      - name: Update comment with calculate changes success
+        if: failure()
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          message: |
+            Gruntwork Pipelines started...
+            [✅] Preflight Checks
+            [❌] Calculate Changes..
     outputs:
       pipelines_jobs: ${{ steps.orchestrate.outputs.jobs }}
       pipelines_cli_version: ${{ steps.gruntwork.outputs.pipelines_cli_version }}
@@ -181,16 +198,35 @@ jobs:
     # This cannot be dynamically determined in the `uses`.
     if: needs.pipelines_determine.outputs.workflow == 'terragrunt-executor.yml'
     needs: [pipelines_determine]
-    uses: gruntwork-test/gruntcon-pipelines-workflows/.github/workflows/terragrunt-executor.yml@v0
-    with:
-      branch: ${{ needs.pipelines_determine.outputs.branch }}
-      working_directory: ${{ needs.pipelines_determine.outputs.working_directory }}
-      account: ${{ needs.pipelines_determine.outputs.account_id }}
-      terragrunt_command: ${{ needs.pipelines_determine.outputs.terragrunt_command }}
-      role_prefix: central
-    secrets:
-      GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
-
+    steps:
+      - uses: gruntwork-test/gruntcon-pipelines-workflows/.github/workflows/terragrunt-executor.yml@v0
+        name: Terragrunt Executor
+        with:
+          branch: ${{ needs.pipelines_determine.outputs.branch }}
+          working_directory: ${{ needs.pipelines_determine.outputs.working_directory }}
+          account: ${{ needs.pipelines_determine.outputs.account_id }}
+          terragrunt_command: ${{ needs.pipelines_determine.outputs.terragrunt_command }}
+          role_prefix: central
+        secrets:
+          GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+      - name: Update comment with calculate changes success
+        if: success()
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          message: |
+            Gruntwork Pipelines started...
+            [✅] Preflight Checks
+            [✅] Calculate Changes
+            [✅] Terragrunt Execute
+      - name: Update comment with calculate changes success
+        if: failure()
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          message: |
+            Gruntwork Pipelines started...
+            [✅] Preflight Checks
+            [✅] Calculate Changes..
+            [❌] Terragrunt Execute
   apply_new_account_baseline:
     # This cannot be dynamically determined in the `uses`.
     if: needs.pipelines_determine.outputs.workflow == 'apply-new-account-baseline.yml'
