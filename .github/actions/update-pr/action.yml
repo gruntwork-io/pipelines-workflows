@@ -1,0 +1,17 @@
+name: Update Gruntwork Pipelines PR Status
+description: "Update Gruntwork Pipelines PR Status"
+
+runs:
+  using: composite
+  steps:
+    - name: Calculate Table
+      run: |
+        for step in $(echo "${{ steps.*.id }}"); do
+          echo "Step $step outcome: ${{ steps.$step.outcome }}"
+        done
+    - name: Create comment
+      uses: marocchino/sticky-pull-request-comment@v2
+      with:
+        message: |
+          Gruntwork Pipelines started...
+          [ ] Preflight Checks
