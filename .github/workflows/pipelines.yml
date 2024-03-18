@@ -43,7 +43,7 @@ jobs:
             exit 1
           fi
       - name: Update comment
-        uses: gruntwork-test/gruntcon-pipelines-workflows/.github/actions/update-pr
+        uses: ./.github/actions/update-pr
 
   detect_changes:
     name: Detect Infrastructure Changes
