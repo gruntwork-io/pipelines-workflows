@@ -24,7 +24,7 @@ jobs:
   # See https://stackoverflow.com/a/76151412
   check_if_branch_is_ahead_of_main:
     name: Check if branch is ahead of main
-    needs: [preflight-checks]
+    needs: [preflight_checks]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
