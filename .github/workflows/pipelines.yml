@@ -1,0 +1,235 @@
+name: Pipelines Execute
+run-name: Run ${{ inputs.terragrunt_command }} on ${{ inputs.working_directory }}
+on:
+  workflow_call:
+    inputs:
+      branch:
+        description: "The branch in the infrastructure-live repo in which to run the command"
+        required: true
+        type: string
+      working_directory:
+        description: "The folder path in which the command will run"
+        required: true
+        type: string
+      account:
+        description: "The AWS Account ID of the ultimate account we will take action on"
+        required: true
+        type: string
+      terragrunt_command:
+        type: string
+        description: "The terragrunt command to run"
+        required: true
+        default: "plan"
+      child_account_id:
+        description: "The AWS Account ID of the child account"
+        required: false
+        type: string
+      role_prefix:
+        description: "The role prefix to use when assuming roles in the account"
+        required: true
+        type: string
+    secrets:
+      GRUNTWORK_CODE_ACCESS_TOKEN:
+        required: true
+
+env:
+  DEPLOY_BRANCH_NAME: main
+
+jobs:
+  detect_changes:
+    name: Detect Infrastructure Changes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Fetch all history
+          fetch-depth: 0
+
+      - name: Read Gruntwork config file
+        id: gruntwork
+        shell: bash
+        run: |
+          config="$(cat .gruntwork/config.yml | base64 -w 0)"
+          echo "config=$config" >> $GITHUB_OUTPUT
+          pipelines_cli_version="$(yq -r .pipelines.cli-version .gruntwork/config.yml)"
+          echo "pipelines_cli_version=$pipelines_cli_version" >> $GITHUB_OUTPUT
+
+      - name: Set custom ref variables
+        id: ref
+        # If this run was triggered manually, we'll use the source and target ref from the user input. Otherwise, we'll
+        # use our default approach.
+        # pull requests need to use pull_request.head.sha, rather than HEAD, because by default HEAD for PRs is a merge commit that isn't in the actual history
+        run: |
+          echo "source_ref=${{ inputs.source_ref || '$(./.github/scripts/source-ref.sh)'}}" >> $GITHUB_OUTPUT
+
+          if [[ '${{  github.event_name }}' = 'pull_request' ]]; then
+            echo "branch_ref=${{ inputs.target_ref || github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
+          else
+            echo "branch_ref=${{ inputs.target_ref || '$(git rev-parse HEAD)'}}" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
+
+      - name: Get event-type
+        id: event_type
+        run: |
+          if [[ "${GITHUB_REF##*/}" == "main" ]]; then
+              echo "event_type=push" >> $GITHUB_OUTPUT
+          else
+              echo "event_type=pr-synched-created" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Pipelines Orchestrate
+        id: orchestrate
+        uses: gruntwork-io/pipelines-orchestrate@v1.1.0
+        with:
+          repository-path: "."
+          repository-url: ${{ github.server_url }}/${{ github.repository }}
+          source-ref: ${{ steps.ref.outputs.source_ref }}
+          target-ref: ${{ steps.ref.outputs.branch_ref }}
+          event-type: ${{ steps.event_type.outputs.event_type }}
+          gruntwork-config: ${{ steps.gruntwork.outputs.config }}
+          # We do this because the `GRUNTWORK_CODE_ACCESS_TOKEN` might not be present when vending a delegated account, even though it's always present in the main `infrastructure-live` account.
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
+    outputs:
+      pipelines_jobs: ${{ steps.orchestrate.outputs.jobs }}
+      pipelines_cli_version: ${{ steps.gruntwork.outputs.pipelines_cli_version }}
+
+  pipelines_determine:
+    name: ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
+    needs: [detect_changes]
+    runs-on: ubuntu-latest
+    # GHA can't check for length, so we just check if there is an item in the 0 index
+    if: fromJson(needs.detect_changes.outputs.pipelines_jobs)[0] != null
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        jobs: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Action
+        id: setup-action
+        env:
+          CHANGE_TYPE: ${{ matrix.jobs.ChangeType }}
+          BRANCH: ${{ matrix.jobs.Ref }}
+          WORKING_DIRECTORY: ${{ matrix.jobs.WorkingDirectory }}
+          ACCOUNT_ID: ${{ matrix.jobs.AccountId }}
+          TERRAGRUNT_COMMAND: ${{ matrix.jobs.Action.Command }} ${{ matrix.jobs.Action.Args }}
+          ADDITIONAL_DATA: ${{ toJson(matrix.jobs.AdditionalData) }}
+          CHILD_ACCOUNT_ID: ${{ matrix.jobs.AdditionalData.ChildAccountId }}
+          NEW_ACCOUNT_NAME: ${{ matrix.jobs.AdditionalData.AccountName }}
+          TEAM_ACCOUNT_NAMES: ${{ matrix.jobs.AdditionalData.TeamAccountNames }}
+        run: |
+          case $CHANGE_TYPE in
+            "AccountRequested")
+              echo "workflow=create-account-and-generate-baselines.yml" >> "$GITHUB_OUTPUT"
+              echo "new_account_name=$NEW_ACCOUNT_NAME" >> "$GITHUB_OUTPUT"
+              ;;
+            "AccountAdded")
+              echo "workflow=apply-new-account-baseline.yml" >> "$GITHUB_OUTPUT"
+              echo "child_account_id=$CHILD_ACCOUNT_ID" >> "$GITHUB_OUTPUT"
+              ;;
+            "TeamAccountsRequested")
+              echo "workflow=create-sdlc-accounts-and-generate-baselines.yml" >> "$GITHUB_OUTPUT"
+              echo "team_account_names=$TEAM_ACCOUNT_NAMES" >> "$GITHUB_OUTPUT"
+              ;;
+            "TeamAccountsAdded")
+              echo "workflow=apply-new-sdlc-accounts-baseline.yml" >> "$GITHUB_OUTPUT"
+              echo "additional_data=$ADDITIONAL_DATA" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "workflow=terragrunt-executor.yml" >> "$GITHUB_OUTPUT"
+              ;;
+              esac
+            echo "account_id=$ACCOUNT_ID" >> "$GITHUB_OUTPUT"
+            echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+            echo "working_directory=$WORKING_DIRECTORY" >> "$GITHUB_OUTPUT"
+            echo "terragrunt_command=$TERRAGRUNT_COMMAND" >> "$GITHUB_OUTPUT"
+    outputs:
+      account_id: ${{ matrix.jobs.AccountId }}
+      branch: ${{ steps.setup-action.outputs.branch }}
+      workflow: ${{ steps.setup-action.outputs.workflow }}
+      working_directory: ${{ steps.setup-action.outputs.working_directory }}
+      terragrunt_command: ${{ steps.setup-action.outputs.terragrunt_command }}
+      additional_data: ${{ steps.setup-action.outputs.additional_data }}
+      child_account_id: ${{ steps.setup-action.outputs.child_account_id }}
+      new_account_name: ${{ steps.setup-action.outputs.new_account_name }}
+      team_account_names: ${{ steps.setup-action.outputs.team_account_names }}
+
+  terragrunt_executor:
+    # This cannot be dynamically determined in the `uses`.
+    if: needs.pipelines_determine.outputs.workflow == 'terragrunt-executor.yml'
+    needs: [pipelines_determine]
+    uses: gruntwork-test/gruntcon-pipelines-workflows/.github/workflows/terragrunt-executor.yml@v0
+    with:
+      branch: ${{ needs.pipelines_determine.outputs.branch }}
+      working_directory: ${{ needs.pipelines_determine.outputs.working_directory }}
+      account: ${{ needs.pipelines_determine.outputs.account_id }}
+      terragrunt_command: ${{ needs.pipelines_determine.outputs.terragrunt_command }}
+      role_prefix: central
+    secrets:
+      GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+
+  apply_new_account_baseline:
+    # This cannot be dynamically determined in the `uses`.
+    if: needs.pipelines_determine.outputs.workflow == 'apply-new-account-baseline.yml'
+    needs: [pipelines_determine]
+    uses: gruntwork-test/gruntcon-pipelines-workflows/.github/workflows/apply-new-account-baseline.yml@v0
+    with:
+      branch: ${{ needs.pipelines_determine.outputs.branch }}
+      working_directory: ${{ needs.pipelines_determine.outputs.working_directory }}
+      terragrunt_command: ${{ needs.pipelines_determine.outputs.terragrunt_command }}
+      management_account: ${{ needs.pipelines_determine.outputs.account_id }}
+      child_account: ${{ needs.pipelines_determine.outputs.child_account_id }}
+      role_prefix: central
+    secrets:
+      GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+
+  apply_new_sdlc_accounts_baseline:
+    # This cannot be dynamically determined in the `uses`.
+    if: needs.pipelines_determine.outputs.workflow == 'apply-new-sdlc-accounts-baseline.yml'
+    needs: [pipelines_determine]
+    uses: gruntwork-test/gruntcon-pipelines-workflows/.github/workflows/apply-new-sdlc-accounts-baseline.yml@v0
+    with:
+      branch: ${{ needs.pipelines_determine.outputs.branch }}
+      working_directory: ${{ needs.pipelines_determine.outputs.working_directory }}
+      terragrunt_command: ${{ needs.pipelines_determine.outputs.terragrunt_command }}
+      management_account: ${{ needs.pipelines_determine.outputs.account_id }}
+      team_account_data: ${{ needs.pipelines_determine.outputs.additional_data }}
+      role_prefix: central
+    secrets:
+      GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+      MANAGE_REPOS_TOKEN: ${{ secrets.MANAGE_REPOS_TOKEN }}
+
+  create_account_and_generate_baselines:
+    # This cannot be dynamically determined in the `uses`.
+    if: needs.pipelines_determine.outputs.workflow == 'create-account-and-generate-baselines.yml'
+    needs: [pipelines_determine]
+    uses: gruntwork-test/gruntcon-pipelines-workflows/.github/workflows/create-account-and-generate-baselines.yml@v0
+    with:
+      branch: ${{ needs.pipelines_determine.outputs.branch }}
+      working_directory: ${{ needs.pipelines_determine.outputs.working_directory }}
+      terragrunt_command: ${{ needs.pipelines_determine.outputs.terragrunt_command }}
+      management_account: ${{ needs.pipelines_determine.outputs.account_id }}
+      new_account_name: ${{ needs.pipelines_determine.outputs.new_account_name }}
+      role_prefix: central
+    secrets:
+      GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+      INFRA_LIVE_ACCESS_TOKEN: ${{ secrets.INFRA_LIVE_ACCESS_TOKEN }}
+
+  create_sdlc_accounts_and_generate_baselines:
+    # This cannot be dynamically determined in the `uses`.
+    if: needs.pipelines_determine.outputs.workflow == 'create-sdlc-accounts-and-generate-baselines.yml'
+    needs: [pipelines_determine]
+    uses: gruntwork-test/gruntcon-pipelines-workflows/.github/workflows/create-sdlc-accounts-and-generate-baselines.yml@v0
+    with:
+      branch: ${{ needs.pipelines_determine.outputs.branch }}
+      working_directory: ${{ needs.pipelines_determine.outputs.working_directory }}
+      terragrunt_command: ${{ needs.pipelines_determine.outputs.terragrunt_command }}
+      management_account: ${{ needs.pipelines_determine.outputs.account_id }}
+      team_account_names: ${{ needs.pipelines_determine.outputs.team_account_names }}
+      role_prefix: central
+    secrets:
+      GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+      INFRA_LIVE_ACCESS_TOKEN: ${{ secrets.INFRA_LIVE_ACCESS_TOKEN }}
