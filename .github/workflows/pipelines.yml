@@ -9,9 +9,6 @@ on:
 env:
   DEPLOY_BRANCH_NAME: main
 
-permissions:
-  pull-requests: write
-
 jobs:
   setup_pr_status:
     name: Update calling PR with Gruntwork Pipelines Status
