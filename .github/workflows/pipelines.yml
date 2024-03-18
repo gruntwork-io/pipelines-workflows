@@ -10,9 +10,23 @@ env:
   DEPLOY_BRANCH_NAME: main
 
 jobs:
+  preflight_checks:
+    name: Run config preflight checks for gruntwork pipelines
+    runs-on: ubuntu-latest
+    env:
+      INFRA_LIVE_ACCESS_TOKEN: ${{ secrets.INFRA_LIVE_ACCESS_TOKEN }}
+      GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+    steps:
+      - name: Ensure CI User Variables are populated
+        shell: bash
+        run: |
+          if [[ -z "$INFRA_LIVE_ACCESS_TOKEN" ]]; then echo "Missing INFRA_LIVE_ACCESS_TOKEN"; exit 1; fi
+          if [[ -z "$GRUNTWORK_CODE_ACCESS_TOKEN" ]]; then echo "Missing GRUNTWORK_CODE_ACCESS_TOKEN"; exit 1; fi
+
   # See https://stackoverflow.com/a/76151412
   check_if_branch_is_ahead_of_main:
     name: Check if branch is ahead of main
+    needs: [preflight-checks]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
