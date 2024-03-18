@@ -42,12 +42,8 @@ jobs:
             echo "::error::Branch is not up to date with main"
             exit 1
           fi
-      - name: Check out
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - name: Update comment
-        uses: ./.github/actions/update-pr
+        uses: gruntwork-test/gruntwork-pipelines-status-update@main
 
   detect_changes:
     name: Detect Infrastructure Changes
