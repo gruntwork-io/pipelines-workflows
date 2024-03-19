@@ -15,7 +15,7 @@ on:
         description: "The AWS Account ID of the Control Tower Management Account"
         required: true
         type: string
-      child_account:
+      child_account_id:
         description: "The AWS Account ID of the account we're operating in"
         required: true
         type: string
@@ -156,7 +156,7 @@ jobs:
       - name: Assume role new child account
         env:
           SESSION_NAME: ${{ steps.bootstrap.outputs.role_session_name }}
-          CHILD_ACCOUNT: ${{ inputs.child_account }}
+          CHILD_ACCOUNT: ${{ inputs.child_account_id }}
         run: |
           RESPONSE="$(aws sts assume-role --role-arn "arn:aws:iam::$CHILD_ACCOUNT:role/AWSControlTowerExecution" --role-session-name "$SESSION_NAME")"
           ASSUMED_ROLE_CREDS="$(echo "$RESPONSE" | jq -r '.Credentials')"
@@ -172,7 +172,7 @@ jobs:
 
       - name: Confirm Account Access
         env:
-          CHILD_ACCOUNT: ${{ inputs.child_account }}
+          CHILD_ACCOUNT: ${{ inputs.child_account_id }}
           WORKING_DIRECTORY: ${{ inputs.working_directory }}
         run: echo "::notice ::Running in account $CHILD_ACCOUNT and planning in $WORKING_DIRECTORY"
 

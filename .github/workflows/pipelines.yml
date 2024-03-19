@@ -188,6 +188,7 @@ jobs:
       working_directory: ${{ needs.pipelines_determine.outputs.working_directory }}
       account: ${{ needs.pipelines_determine.outputs.account_id }}
       terragrunt_command: ${{ needs.pipelines_determine.outputs.terragrunt_command }}
+      child_account_id: ${{ steps.setup-action.outputs.child_account_id }}
       role_prefix: central
     secrets:
       GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
@@ -203,7 +204,7 @@ jobs:
       working_directory: ${{ needs.pipelines_determine.outputs.working_directory }}
       terragrunt_command: ${{ needs.pipelines_determine.outputs.terragrunt_command }}
       management_account: ${{ needs.pipelines_determine.outputs.account_id }}
-      child_account: ${{ needs.pipelines_determine.outputs.child_account_id }}
+      child_account_id: ${{ needs.pipelines_determine.outputs.child_account_id }}
       role_prefix: central
     secrets:
       GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
