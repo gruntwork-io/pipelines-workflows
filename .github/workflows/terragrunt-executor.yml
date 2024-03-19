@@ -82,7 +82,7 @@ jobs:
 
       - name: Run terragrunt ${{ inputs.terragrunt_command }}
         id: terragrunt
-        uses: gruntwork-io/pipelines-execute@v2.1.1
+        uses: gruntwork-io/pipelines-execute@v3.0.0-beta1
         with:
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
