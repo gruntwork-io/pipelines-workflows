@@ -16,12 +16,9 @@ jobs:
     env:
       GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
     steps:
-      - name: Create comment
-        uses: marocchino/sticky-pull-request-comment@v2
-        with:
-          message: |
-            Gruntwork Pipelines started...
-            [ ] Preflight Checks
+      - name: Update comment
+        uses: gruntwork-test/gruntwork-pipelines-status-update@v0.0.4
+
       - name: Ensure CI User Variables are populated
         shell: bash
         run: |
@@ -43,7 +40,7 @@ jobs:
             exit 1
           fi
       - name: Update comment
-        uses: gruntwork-test/gruntwork-pipelines-status-update@v0.0.4
+        uses: gruntwork-test/gruntwork-pipelines-status-update@v0.0.5
 
   detect_changes:
     name: Detect Infrastructure Changes
@@ -185,18 +182,6 @@ jobs:
       GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
 
 
-  post_terragrunt_executor:
-    name: Run config preflight checks for gruntwork pipelines
-    if: always()
-    needs: [terragrunt_executor]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Update comment
-        uses: marocchino/sticky-pull-request-comment@v2
-        with:
-          append: true
-          message: |
-            [ ] Terragrunt Executor
   apply_new_account_baseline:
     # This cannot be dynamically determined in the `uses`.
     if: needs.pipelines_determine.outputs.workflow == 'apply-new-account-baseline.yml'
