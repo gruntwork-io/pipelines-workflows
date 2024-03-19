@@ -80,6 +80,11 @@ jobs:
           WORKING_DIRECTORY: ${{ inputs.working_directory }}
         run: echo "::notice ::Running in account $ACCOUNT and planning in $WORKING_DIRECTORY"
 
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        with:
+          detached: true
+
       - name: Run terragrunt ${{ inputs.terragrunt_command }}
         id: terragrunt
         uses: gruntwork-io/pipelines-execute@v3.0.0
