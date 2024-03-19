@@ -198,7 +198,7 @@ jobs:
     # This cannot be dynamically determined in the `uses`.
     if: needs.pipelines_determine.outputs.workflow == 'apply-new-account-baseline.yml'
     needs: [pipelines_determine]
-    uses: gruntwork-test/gruntcon-pipelines-workflows/.github/workflows/apply-new-account-baseline.yml@v0
+    uses: gruntwork-test/gruntcon-pipelines-workflows/.github/workflows/apply-new-account-baseline.yml@main
     with:
       branch: ${{ needs.pipelines_determine.outputs.branch }}
       working_directory: ${{ needs.pipelines_determine.outputs.working_directory }}
@@ -213,7 +213,7 @@ jobs:
     # This cannot be dynamically determined in the `uses`.
     if: needs.pipelines_determine.outputs.workflow == 'apply-new-sdlc-accounts-baseline.yml'
     needs: [pipelines_determine]
-    uses: gruntwork-test/gruntcon-pipelines-workflows/.github/workflows/apply-new-sdlc-accounts-baseline.yml@v0
+    uses: gruntwork-test/gruntcon-pipelines-workflows/.github/workflows/apply-new-sdlc-accounts-baseline.yml@main
     with:
       branch: ${{ needs.pipelines_determine.outputs.branch }}
       working_directory: ${{ needs.pipelines_determine.outputs.working_directory }}
@@ -229,7 +229,7 @@ jobs:
     # This cannot be dynamically determined in the `uses`.
     if: needs.pipelines_determine.outputs.workflow == 'create-account-and-generate-baselines.yml'
     needs: [pipelines_determine]
-    uses: gruntwork-test/gruntcon-pipelines-workflows/.github/workflows/create-account-and-generate-baselines.yml@v0
+    uses: gruntwork-test/gruntcon-pipelines-workflows/.github/workflows/create-account-and-generate-baselines.yml@main
     with:
       branch: ${{ needs.pipelines_determine.outputs.branch }}
       working_directory: ${{ needs.pipelines_determine.outputs.working_directory }}
@@ -245,7 +245,7 @@ jobs:
     # This cannot be dynamically determined in the `uses`.
     if: needs.pipelines_determine.outputs.workflow == 'create-sdlc-accounts-and-generate-baselines.yml'
     needs: [pipelines_determine]
-    uses: gruntwork-test/gruntcon-pipelines-workflows/.github/workflows/create-sdlc-accounts-and-generate-baselines.yml@v0
+    uses: gruntwork-test/gruntcon-pipelines-workflows/.github/workflows/create-sdlc-accounts-and-generate-baselines.yml@main
     with:
       branch: ${{ needs.pipelines_determine.outputs.branch }}
       working_directory: ${{ needs.pipelines_determine.outputs.working_directory }}
