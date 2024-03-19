@@ -63,6 +63,17 @@ jobs:
           role-duration-seconds: 3600
           role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
 
+      # If we're doing a pipelines policy update, assume the role in the child account from the mgmt account
+      - name: Authenticate to child AWS account
+        if: ${{ inputs.child_account_id != '' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          role-to-assume: "arn:aws:iam::${{ "{{" }} inputs.child_account_id {{ "}}" }}:role/${{ "{{" }} steps.bootstrap.outputs.child_acct_role_name {{ "}}" }}"
+          role-duration-seconds: 3600
+          role-session-name: ${{ "{{" }} steps.bootstrap.outputs.role_session_name {{ "}}" }}
+          role-chaining: true
+
       - name: Confirm Account Access
         env:
           ACCOUNT: ${{ inputs.account }}
