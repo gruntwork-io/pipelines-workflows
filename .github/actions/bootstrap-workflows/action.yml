@@ -139,10 +139,16 @@ runs:
         ROLE_PREFIX: ${{ inputs.role_prefix }}
       run: |
         role_suffix="pipelines-plan"
+        child_acct_role_name="pipelines-policy-plan-update"
         if ! [[ ${TG_CMD} =~ ^(plan|run-all plan) ]]; then
           role_suffix="pipelines-apply"
+          child_acct_role_name="pipelines-policy-apply-update"
         fi
 
         role_name="$ROLE_PREFIX-$role_suffix"
+        if [[ $INFRA_LIVE_REPO == $CENTRAL_INFRA_LIVE_REPO ]]; then
+          role_name="central-$role_suffix"
+        fi
 
         echo "role_name=$role_name" >>$GITHUB_OUTPUT
+        echo "child_acct_role_name=$child_acct_role_name" >>$GITHUB_OUTPUT
