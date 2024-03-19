@@ -71,7 +71,7 @@ jobs:
           aws-region: us-east-1
           role-to-assume: "arn:aws:iam::${{ inputs.child_account_id }}:role/${{ steps.bootstrap.outputs.child_acct_role_name }}"
           role-duration-seconds: 3600
-          role-session-name: ${{ "{{" }} steps.bootstrap.outputs.role_session_name {{ "}}" }}
+          role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
           role-chaining: true
 
       - name: Confirm Account Access
