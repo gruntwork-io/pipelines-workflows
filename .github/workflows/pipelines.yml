@@ -47,7 +47,6 @@ jobs:
 
   detect_changes:
     name: Detect Infrastructure Changes
-    id: detect_changes
     runs-on: ubuntu-latest
     needs: [preflight_checks]
     steps:
