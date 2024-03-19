@@ -149,7 +149,6 @@ jobs:
               ;;
             "AccountAdded")
               echo "workflow=apply-new-account-baseline.yml" >> "$GITHUB_OUTPUT"
-              echo "child_account_id=$CHILD_ACCOUNT_ID" >> "$GITHUB_OUTPUT"
               ;;
             "TeamAccountsRequested")
               echo "workflow=create-sdlc-accounts-and-generate-baselines.yml" >> "$GITHUB_OUTPUT"
@@ -189,7 +188,7 @@ jobs:
       working_directory: ${{ needs.pipelines_determine.outputs.working_directory }}
       account: ${{ needs.pipelines_determine.outputs.account_id }}
       terragrunt_command: ${{ needs.pipelines_determine.outputs.terragrunt_command }}
-      child_account_id: ${{ needs.pipeline_determine.outputs.child_account_id }}
+      child_account_id: ${{ needs.pipelines_determine.outputs.child_account_id }}
       role_prefix: central
     secrets:
       GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
