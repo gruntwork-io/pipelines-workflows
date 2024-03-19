@@ -81,7 +81,7 @@ jobs:
 
       - name: Run terragrunt ${{ inputs.terragrunt_command }} in security account
         id: terragrunt-apply-security
-        uses: gruntwork-io/pipelines-execute@v2.1.1
+        uses: gruntwork-io/pipelines-execute@v3.0.0-beta1
         with:
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
@@ -104,7 +104,7 @@ jobs:
 
       - name: Run terragrunt ${{ inputs.terragrunt_command }} in logs account
         id: terragrunt-apply-logs
-        uses: gruntwork-io/pipelines-execute@v2.1.1
+        uses: gruntwork-io/pipelines-execute@v3.0.0-beta1
         with:
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
@@ -127,7 +127,7 @@ jobs:
 
       - name: Run terragrunt ${{ inputs.terragrunt_command }} in shared account
         id: terragrunt-apply-shared
-        uses: gruntwork-io/pipelines-execute@v2.1.1
+        uses: gruntwork-io/pipelines-execute@v3.0.0-beta1
         with:
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
@@ -187,7 +187,7 @@ jobs:
       # a single module first to create the buckets so that subsequent run-all commands do not fail.
       - name: Bootstrap child account with state & logs S3 buckets
         if: ${{ contains(inputs.terragrunt_command, 'plan') }}
-        uses: gruntwork-io/pipelines-execute@v2.1.1
+        uses: gruntwork-io/pipelines-execute@v3.0.0-beta1
         with:
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
@@ -211,7 +211,7 @@ jobs:
       # a single module first to create the buckets so that subsequent run-all commands do not fail.
       - name: Bootstrap child account with state & logs S3 buckets
         if: ${{ contains(inputs.terragrunt_command, 'plan') }}
-        uses: gruntwork-io/pipelines-execute@v2.1.1
+        uses: gruntwork-io/pipelines-execute@v3.0.0-beta1
         with:
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
@@ -235,7 +235,7 @@ jobs:
       # a single module first to create the buckets so that subsequent run-all commands do not fail.
       - name: Bootstrap child account with state & logs S3 buckets
         if: ${{ contains(inputs.terragrunt_command, 'plan') }}
-        uses: gruntwork-io/pipelines-execute@v2.1.1
+        uses: gruntwork-io/pipelines-execute@v3.0.0-beta1
         with:
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
@@ -251,7 +251,7 @@ jobs:
       # APPLIES THE BASELINE
       - name: Run terragrunt ${{ inputs.terragrunt_command }} in ${{ inputs.working_directory }}
         id: terragrunt
-        uses: gruntwork-io/pipelines-execute@v2.1.1
+        uses: gruntwork-io/pipelines-execute@v3.0.0-beta1
         with:
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
