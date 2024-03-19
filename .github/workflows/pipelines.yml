@@ -182,7 +182,7 @@ jobs:
     # This cannot be dynamically determined in the `uses`.
     if: needs.pipelines_determine.outputs.workflow == 'terragrunt-executor.yml'
     needs: [pipelines_determine]
-    uses: gruntwork-test/gruntcon-pipelines-workflows/.github/workflows/terragrunt-executor.yml@v0
+    uses: gruntwork-test/gruntcon-pipelines-workflows/.github/workflows/terragrunt-executor.yml@main
     with:
       branch: ${{ needs.pipelines_determine.outputs.branch }}
       working_directory: ${{ needs.pipelines_determine.outputs.working_directory }}
