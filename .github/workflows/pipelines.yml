@@ -100,6 +100,8 @@ jobs:
           gruntwork-config: ${{ steps.gruntwork.outputs.config }}
           # We do this because the `GRUNTWORK_CODE_ACCESS_TOKEN` might not be present when vending a delegated account, even though it's always present in the main `infrastructure-live` account.
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
+      - name: Update comment
+        uses: gruntwork-test/gruntwork-pipelines-status-update@v0.0.3
 
     outputs:
       pipelines_jobs: ${{ steps.orchestrate.outputs.jobs }}
