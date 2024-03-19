@@ -163,6 +163,7 @@ jobs:
               echo "workflow=terragrunt-executor.yml" >> "$GITHUB_OUTPUT"
               ;;
               esac
+            echo "child_account_id=$CHILD_ACCOUNT_ID" >> "$GITHUB_OUTPUT"
             echo "account_id=$ACCOUNT_ID" >> "$GITHUB_OUTPUT"
             echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
             echo "working_directory=$WORKING_DIRECTORY" >> "$GITHUB_OUTPUT"
