@@ -96,7 +96,7 @@ jobs:
 
       - name: Run terragrunt ${{ inputs.terragrunt_command }} in security account
         id: terragrunt-apply-security
-        uses: gruntwork-io/pipelines-execute@v3.0.0-beta1
+        uses: gruntwork-io/pipelines-execute@v3.0.0
         with:
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
@@ -119,7 +119,7 @@ jobs:
 
       - name: Run terragrunt ${{ inputs.terragrunt_command }} in logs account
         id: terragrunt-apply-logs
-        uses: gruntwork-io/pipelines-execute@v3.0.0-beta1
+        uses: gruntwork-io/pipelines-execute@v3.0.0
         with:
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
@@ -142,7 +142,7 @@ jobs:
 
       - name: Run terragrunt ${{ inputs.terragrunt_command }} in shared account
         id: terragrunt-apply-shared
-        uses: gruntwork-io/pipelines-execute@v3.0.0-beta1
+        uses: gruntwork-io/pipelines-execute@v3.0.0
         with:
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
@@ -274,7 +274,7 @@ jobs:
 
       - name: Bootstrap child account with state & logs S3 buckets
         if: ${{ contains(inputs.terragrunt_command, 'plan') }}
-        uses: gruntwork-io/pipelines-execute@v3.0.0-beta1
+        uses: gruntwork-io/pipelines-execute@v3.0.0
         with:
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           tf_version: ${{ needs.new_sdlc_account_baselines.outputs.terraform_version }}
@@ -289,7 +289,7 @@ jobs:
 
       # Plan/Apply all modules in the account
       - name: Run terragrunt ${{ inputs.terragrunt_command }} in child account ${{ steps.setup-env.outputs.account_name }}
-        uses: gruntwork-io/pipelines-execute@v3.0.0-beta1
+        uses: gruntwork-io/pipelines-execute@v3.0.0
         with:
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           tf_version: ${{ needs.new_sdlc_account_baselines.outputs.terraform_version }}
@@ -334,7 +334,7 @@ jobs:
       # transit_gateway_attachments won't show anything.
       - name: Run terragrunt apply in network account ${{ env.NETWORK_ACCOUNT_NAME }}
         if: ${{ contains(inputs.terragrunt_command, 'apply') }}
-        uses: gruntwork-io/pipelines-execute@v3.0.0-beta1
+        uses: gruntwork-io/pipelines-execute@v3.0.0
         with:
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           tf_version: ${{ needs.new_sdlc_account_baselines.outputs.terraform_version }}
@@ -399,7 +399,7 @@ jobs:
       # Plan/Apply the VPC module a second time now that the TGW attachment has been accepted, so it creates the route
       # we need to the TGW
       - name: Run terragrunt ${{ inputs.terragrunt_command }} in child account ${{ steps.setup-env.outputs.account_name }}
-        uses: gruntwork-io/pipelines-execute@v3.0.0-beta1
+        uses: gruntwork-io/pipelines-execute@v3.0.0
         with:
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           tf_version: ${{ needs.new_sdlc_account_baselines.outputs.terraform_version }}
