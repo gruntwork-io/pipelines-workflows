@@ -325,7 +325,7 @@ jobs:
       # Setting Terragrunt Parallelism to 1 does NOT prevent this error from happening. So we'll instead run an init in
       # a single module first to create the buckets so that subsequent run-all commands do not fail.
       - name: "[Baseline]: Bootstrap child account with state & logs S3 buckets"
-        if: ${{ contains(steps.setup-action.outputs.terragrunt_command, 'plan') }} && steps.setup-action.outputs.workflow == 'apply-new-account-baseline.yml'
+        if: ${{ contains(steps.setup-action.outputs.terragrunt_command, 'plan') && steps.setup-action.outputs.workflow == 'apply-new-account-baseline.yml' }}
         uses: gruntwork-io/pipelines-execute@v3.0.0
         with:
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
@@ -350,7 +350,7 @@ jobs:
 
       # If we're doing a pipelines policy update, assume the role in the child account from the mgmt account
       - name: Authenticate to child AWS account
-        if: steps.setup-action.outputs.workflow == 'terragrunt-executor.yml' && ${{ steps.setup-action.outputs.child_account_id != '' }}
+        if: ${{ steps.setup-action.outputs.workflow == 'terragrunt-executor.yml' && steps.setup-action.outputs.child_account_id != '' }}
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: us-east-1
