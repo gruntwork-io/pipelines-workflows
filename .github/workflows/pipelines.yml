@@ -419,7 +419,7 @@ jobs:
         if:  ${{ steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' && steps.parse.outputs.account_id != 'null' }}
         env:
           COMMIT_SHA: ${{ steps.setup-action.outputs.branch }}
-          GH_TOKEN: ${{ secrets.INFRA_LIVE_ACCESS_TOKEN }}
+          GH_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           REPO: ${{ github.repository }}
         run: |
           PR_NUMBER=$(gh -R "$REPO" pr list --search "$COMMIT_SHA" --state merged --json number -q '.[0].number')
@@ -481,7 +481,7 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           base: main
-          token: ${{ secrets.INFRA_LIVE_ACCESS_TOKEN }}
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           branch: "enhancement/baseline-account-${{ steps.setup-action.outputs.new_account_name }}"
           commit-message: "Generate account baseline for: ${{ steps.setup-action.outputs.new_account_name }}"
           title: "Generate account baseline for: ${{ steps.setup-action.outputs.new_account_name }}"
