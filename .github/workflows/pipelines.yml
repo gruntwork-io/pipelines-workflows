@@ -21,9 +21,10 @@ jobs:
       GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
     steps:
       - name: Update comment
-        uses: gruntwork-test/gruntwork-pipelines-status-update@v0.0.6
+        uses: gruntwork-test/gruntwork-pipelines-status-update@v0.1.0
         with:
-          preflight_checks: in_progress
+          step_name: "Preflight Checks"
+          step_status: "in_progress"
 
       - name: Ensure CI User Variables are populated
         shell: bash
@@ -46,9 +47,10 @@ jobs:
             exit 1
           fi
       - name: Update comment
-        uses: gruntwork-test/gruntwork-pipelines-status-update@v0.0.6
+        uses: gruntwork-test/gruntwork-pipelines-status-update@v0.1.0
         with:
-          preflight_checks: success
+          step_name: "Preflight Checks"
+          step_status: "success"
 
   detect_changes:
     name: Detect Infrastructure Changes
@@ -56,10 +58,10 @@ jobs:
     needs: [preflight_checks]
     steps:
       - name: Update comment
-        uses: gruntwork-test/gruntwork-pipelines-status-update@v0.0.6
+        uses: gruntwork-test/gruntwork-pipelines-status-update@v0.1.0
         with:
-          preflight_checks: success
-          detect_changes: in_progress
+          step_name: "Calculate Infrastructure Changes"
+          step_status: "in_progress"
       - uses: actions/checkout@v4
         with:
           # Fetch all history
@@ -111,10 +113,10 @@ jobs:
           # We do this because the `GRUNTWORK_CODE_ACCESS_TOKEN` might not be present when vending a delegated account, even though it's always present in the main `infrastructure-live` account.
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
       - name: Update comment
-        uses: gruntwork-test/gruntwork-pipelines-status-update@v0.0.6
+        uses: gruntwork-test/gruntwork-pipelines-status-update@v0.1.0
         with:
-          preflight_checks: success
-          detect_changes: success
+          step_name: "Calculate Infrastructure Changes"
+          step_status: "success"
     outputs:
       pipelines_jobs: ${{ steps.orchestrate.outputs.jobs }}
       pipelines_cli_version: ${{ steps.gruntwork.outputs.pipelines_cli_version }}
