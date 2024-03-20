@@ -167,6 +167,29 @@ jobs:
             echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
             echo "working_directory=$WORKING_DIRECTORY" >> "$GITHUB_OUTPUT"
             echo "terragrunt_command=$TERRAGRUNT_COMMAND" >> "$GITHUB_OUTPUT"
+
+      - name: Terragrunt Executor
+        if: steps.setup-action.outputs.workflow == 'terragrunt-executor.yml'
+        run: |
+          echo "Running Terragrunt Executor!"
+      - name: Apply new account baseline
+        if: steps.setup-action.outputs.workflow == 'apply-new-account-baseline.yml'
+        run: |
+          echo "Run new account baseline"
+
+
+        # TODO -- Add the other action types
+        # uses: gruntwork-test/gruntcon-pipelines-workflows/.github/workflows/terragrunt-executor.yml@main
+        # with:
+        #   branch: ${{ needs.pipelines_determine.outputs.branch }}
+        #   working_directory: ${{ needs.pipelines_determine.outputs.working_directory }}
+        #   account: ${{ needs.pipelines_determine.outputs.account_id }}
+        #   terragrunt_command: ${{ needs.pipelines_determine.outputs.terragrunt_command }}
+        #   child_account_id: ${{ needs.pipelines_determine.outputs.child_account_id }}
+        #   role_prefix: central
+        # secrets:
+        #   GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+
     outputs:
       account_id: ${{ matrix.jobs.AccountId }}
       branch: ${{ steps.setup-action.outputs.branch }}
@@ -178,84 +201,68 @@ jobs:
       new_account_name: ${{ steps.setup-action.outputs.new_account_name }}
       team_account_names: ${{ steps.setup-action.outputs.team_account_names }}
 
-  terragrunt_executor:
-    # This cannot be dynamically determined in the `uses`.
-    needs: [pipelines_determine]
-    strategy:
-      matrix:
-        jobs: ${{ needs.pipelines_determine }}
-    if: needs.pipelines_determine.outputs.workflow == 'terragrunt-executor.yml'
-    uses: gruntwork-test/gruntcon-pipelines-workflows/.github/workflows/terragrunt-executor.yml@main
-    with:
-      branch: ${{ needs.pipelines_determine.outputs.branch }}
-      working_directory: ${{ needs.pipelines_determine.outputs.working_directory }}
-      account: ${{ needs.pipelines_determine.outputs.account_id }}
-      terragrunt_command: ${{ needs.pipelines_determine.outputs.terragrunt_command }}
-      child_account_id: ${{ needs.pipelines_determine.outputs.child_account_id }}
-      role_prefix: central
-    secrets:
-      GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
 
 
-  apply_new_account_baseline:
-    # This cannot be dynamically determined in the `uses`.
-    if: needs.pipelines_determine.outputs.workflow == 'apply-new-account-baseline.yml'
-    needs: [pipelines_determine]
-    uses: gruntwork-test/gruntcon-pipelines-workflows/.github/workflows/apply-new-account-baseline.yml@main
-    with:
-      branch: ${{ needs.pipelines_determine.outputs.branch }}
-      working_directory: ${{ needs.pipelines_determine.outputs.working_directory }}
-      terragrunt_command: ${{ needs.pipelines_determine.outputs.terragrunt_command }}
-      management_account: ${{ needs.pipelines_determine.outputs.account_id }}
-      child_account_id: ${{ needs.pipelines_determine.outputs.child_account_id }}
-      role_prefix: central
-    secrets:
-      GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
 
-  apply_new_sdlc_accounts_baseline:
-    # This cannot be dynamically determined in the `uses`.
-    if: needs.pipelines_determine.outputs.workflow == 'apply-new-sdlc-accounts-baseline.yml'
-    needs: [pipelines_determine]
-    uses: gruntwork-test/gruntcon-pipelines-workflows/.github/workflows/apply-new-sdlc-accounts-baseline.yml@main
-    with:
-      branch: ${{ needs.pipelines_determine.outputs.branch }}
-      working_directory: ${{ needs.pipelines_determine.outputs.working_directory }}
-      terragrunt_command: ${{ needs.pipelines_determine.outputs.terragrunt_command }}
-      management_account: ${{ needs.pipelines_determine.outputs.account_id }}
-      team_account_data: ${{ needs.pipelines_determine.outputs.additional_data }}
-      role_prefix: central
-    secrets:
-      GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
-      MANAGE_REPOS_TOKEN: ${{ secrets.MANAGE_REPOS_TOKEN }}
+  # apply_new_account_baseline:
+  #   # This cannot be dynamically determined in the `uses`.
+  #   if: needs.pipelines_determine.outputs.workflow == 'apply-new-account-baseline.yml'
+  #   needs: [pipelines_determine]
+  #   uses: gruntwork-test/gruntcon-pipelines-workflows/.github/workflows/apply-new-account-baseline.yml@main
+  #   with:
+  #     branch: ${{ needs.pipelines_determine.outputs.branch }}
+  #     working_directory: ${{ needs.pipelines_determine.outputs.working_directory }}
+  #     terragrunt_command: ${{ needs.pipelines_determine.outputs.terragrunt_command }}
+  #     management_account: ${{ needs.pipelines_determine.outputs.account_id }}
+  #     child_account_id: ${{ needs.pipelines_determine.outputs.child_account_id }}
+  #     role_prefix: central
+  #   secrets:
+  #     GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
 
-  create_account_and_generate_baselines:
-    # This cannot be dynamically determined in the `uses`.
-    if: needs.pipelines_determine.outputs.workflow == 'create-account-and-generate-baselines.yml'
-    needs: [pipelines_determine]
-    uses: gruntwork-test/gruntcon-pipelines-workflows/.github/workflows/create-account-and-generate-baselines.yml@main
-    with:
-      branch: ${{ needs.pipelines_determine.outputs.branch }}
-      working_directory: ${{ needs.pipelines_determine.outputs.working_directory }}
-      terragrunt_command: ${{ needs.pipelines_determine.outputs.terragrunt_command }}
-      management_account: ${{ needs.pipelines_determine.outputs.account_id }}
-      new_account_name: ${{ needs.pipelines_determine.outputs.new_account_name }}
-      role_prefix: central
-    secrets:
-      GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
-      INFRA_LIVE_ACCESS_TOKEN: ${{ secrets.INFRA_LIVE_ACCESS_TOKEN }}
+  # apply_new_sdlc_accounts_baseline:
+  #   # This cannot be dynamically determined in the `uses`.
+  #   if: needs.pipelines_determine.outputs.workflow == 'apply-new-sdlc-accounts-baseline.yml'
+  #   needs: [pipelines_determine]
+  #   uses: gruntwork-test/gruntcon-pipelines-workflows/.github/workflows/apply-new-sdlc-accounts-baseline.yml@main
+  #   with:
+  #     branch: ${{ needs.pipelines_determine.outputs.branch }}
+  #     working_directory: ${{ needs.pipelines_determine.outputs.working_directory }}
+  #     terragrunt_command: ${{ needs.pipelines_determine.outputs.terragrunt_command }}
+  #     management_account: ${{ needs.pipelines_determine.outputs.account_id }}
+  #     team_account_data: ${{ needs.pipelines_determine.outputs.additional_data }}
+  #     role_prefix: central
+  #   secrets:
+  #     GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+  #     MANAGE_REPOS_TOKEN: ${{ secrets.MANAGE_REPOS_TOKEN }}
 
-  create_sdlc_accounts_and_generate_baselines:
-    # This cannot be dynamically determined in the `uses`.
-    if: needs.pipelines_determine.outputs.workflow == 'create-sdlc-accounts-and-generate-baselines.yml'
-    needs: [pipelines_determine]
-    uses: gruntwork-test/gruntcon-pipelines-workflows/.github/workflows/create-sdlc-accounts-and-generate-baselines.yml@main
-    with:
-      branch: ${{ needs.pipelines_determine.outputs.branch }}
-      working_directory: ${{ needs.pipelines_determine.outputs.working_directory }}
-      terragrunt_command: ${{ needs.pipelines_determine.outputs.terragrunt_command }}
-      management_account: ${{ needs.pipelines_determine.outputs.account_id }}
-      team_account_names: ${{ needs.pipelines_determine.outputs.team_account_names }}
-      role_prefix: central
-    secrets:
-      GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
-      INFRA_LIVE_ACCESS_TOKEN: ${{ secrets.INFRA_LIVE_ACCESS_TOKEN }}
+  # create_account_and_generate_baselines:
+  #   # This cannot be dynamically determined in the `uses`.
+  #   if: needs.pipelines_determine.outputs.workflow == 'create-account-and-generate-baselines.yml'
+  #   needs: [pipelines_determine]
+  #   uses: gruntwork-test/gruntcon-pipelines-workflows/.github/workflows/create-account-and-generate-baselines.yml@main
+  #   with:
+  #     branch: ${{ needs.pipelines_determine.outputs.branch }}
+  #     working_directory: ${{ needs.pipelines_determine.outputs.working_directory }}
+  #     terragrunt_command: ${{ needs.pipelines_determine.outputs.terragrunt_command }}
+  #     management_account: ${{ needs.pipelines_determine.outputs.account_id }}
+  #     new_account_name: ${{ needs.pipelines_determine.outputs.new_account_name }}
+  #     role_prefix: central
+  #   secrets:
+  #     GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+  #     INFRA_LIVE_ACCESS_TOKEN: ${{ secrets.INFRA_LIVE_ACCESS_TOKEN }}
+
+  # create_sdlc_accounts_and_generate_baselines:
+  #   # This cannot be dynamically determined in the `uses`.
+  #   if: needs.pipelines_determine.outputs.workflow == 'create-sdlc-accounts-and-generate-baselines.yml'
+  #   needs: [pipelines_determine]
+  #   uses: gruntwork-test/gruntcon-pipelines-workflows/.github/workflows/create-sdlc-accounts-and-generate-baselines.yml@main
+  #   with:
+  #     branch: ${{ needs.pipelines_determine.outputs.branch }}
+  #     working_directory: ${{ needs.pipelines_determine.outputs.working_directory }}
+  #     terragrunt_command: ${{ needs.pipelines_determine.outputs.terragrunt_command }}
+  #     management_account: ${{ needs.pipelines_determine.outputs.account_id }}
+  #     team_account_names: ${{ needs.pipelines_determine.outputs.team_account_names }}
+  #     role_prefix: central
+  #   secrets:
+  #     GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+  #     INFRA_LIVE_ACCESS_TOKEN: ${{ secrets.INFRA_LIVE_ACCESS_TOKEN }}
