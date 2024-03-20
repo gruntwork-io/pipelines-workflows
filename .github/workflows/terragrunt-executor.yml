@@ -85,7 +85,9 @@ jobs:
         uses: gruntwork-io/pipelines-execute@v3.0.0
         with:
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
-          tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
+          tf_version: 1.5.7
+          #${{ steps.bootstrap.outputs.terraform_version }}
+          tf_binary: terraform
           tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
           pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
           working_directory: ${{ inputs.working_directory }}
