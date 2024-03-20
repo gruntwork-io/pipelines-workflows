@@ -201,33 +201,6 @@ jobs:
           echo "Account ID of $NEW_ACCOUNT_NAME is: $account_id"
           echo "account_id=$account_id" >> "$GITHUB_OUTPUT"
 
-      - name: Authenticate to AWS
-        if: steps.setup-action.outputs.workflow == 'terragrunt-executor.yml'
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-region: us-east-1
-          role-to-assume: "arn:aws:iam::${{ steps.setup-action.outputs.account_id }}:role/${{ steps.bootstrap.outputs.role_name }}"
-          role-duration-seconds: 3600
-          role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
-
-      # If we're doing a pipelines policy update, assume the role in the child account from the mgmt account
-      - name: Authenticate to child AWS account
-        if: ${{ steps.setup-action.outputs.child_account_id != '' }}
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-region: us-east-1
-          role-to-assume: "arn:aws:iam::${{ steps.setup-action.outputs.child_account_id }}:role/${{ steps.bootstrap.outputs.child_acct_role_name }}"
-          role-duration-seconds: 3600
-          role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
-          role-chaining: true
-
-      - name: Confirm Account Access
-        if: steps.setup-action.outputs.workflow == 'terragrunt-executor.yml'
-        env:
-          ACCOUNT: ${{ steps.setup-action.outputs.account_id }}
-          WORKING_DIRECTORY: ${{ steps.setup-action.outputs.working_directory }}
-        run: echo "::notice ::Running in account $ACCOUNT and planning in $WORKING_DIRECTORY"
-
       - name: "[Baseline]: Authenticate to Security AWS account"
         if: steps.setup-action.outputs.workflow == 'apply-new-account-baseline.yml'
         uses: aws-actions/configure-aws-credentials@v4
@@ -366,53 +339,32 @@ jobs:
           infra_live_repo_branch: ${{ steps.setup-action.outputs.branch }}
           gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
 
-      # This Bootstrap step is a workaround for the error that happens when running plan-all for the first time in a
-      # new account with multiple modules. The error is:
-      #
-      #    OperationAborted: A conflicting conditional operation is currently in progress against this resource. Please try again.
-      #    BucketAlreadyOwnedByYou: Your previous request to create the named bucket succeeded and you already own it.
-      #
-      # This happens because each module is trying to create buckets for state and logs when they do not exist.
-      # Setting Terragrunt Parallelism to 1 does NOT prevent this error from happening. So we'll instead run an init in
-      # a single module first to create the buckets so that subsequent run-all commands do not fail.
-      - name: "[Baseline]: Bootstrap child account with state & logs S3 buckets"
-        if: ${{ contains(steps.setup-action.outputs.terragrunt_command, 'plan') }} && steps.setup-action.outputs.workflow == 'apply-new-account-baseline.yml'
-        uses: gruntwork-io/pipelines-execute@v3.0.0
+      - name: Authenticate to AWS
+        if: steps.setup-action.outputs.workflow == 'terragrunt-executor.yml'
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
-          tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
-          tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
-          pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
-          working_directory: "${{ steps.setup-action.outputs.working_directory }}/_global/account-baseline"
-          terragrunt_command: "init"
-          infra_live_repo: '.'
-          infra_live_directory: '.'
-          infra_live_repo_branch: ${{ steps.setup-action.outputs.branch }}
-          gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
+          aws-region: us-east-1
+          role-to-assume: "arn:aws:iam::${{ steps.setup-action.outputs.account_id }}:role/${{ steps.bootstrap.outputs.role_name }}"
+          role-duration-seconds: 3600
+          role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
 
-      # This Bootstrap step is a workaround for the error that happens when running plan-all for the first time in a
-      # new account with multiple modules. The error is:
-      #
-      #    OperationAborted: A conflicting conditional operation is currently in progress against this resource. Please try again.
-      #    BucketAlreadyOwnedByYou: Your previous request to create the named bucket succeeded and you already own it.
-      #
-      # This happens because each module is trying to create buckets for state and logs when they do not exist.
-      # Setting Terragrunt Parallelism to 1 does NOT prevent this error from happening. So we'll instead run an init in
-      # a single module first to create the buckets so that subsequent run-all commands do not fail.
-      - name: "[Baseline]: Bootstrap child account with state & logs S3 buckets"
-        if: ${{ contains(steps.setup-action.outputs.terragrunt_command, 'plan') }} && steps.setup-action.outputs.workflow == 'apply-new-account-baseline.yml'
-        uses: gruntwork-io/pipelines-execute@v3.0.0
+      # If we're doing a pipelines policy update, assume the role in the child account from the mgmt account
+      - name: Authenticate to child AWS account
+        if: steps.setup-action.outputs.workflow == 'terragrunt-executor.yml' && ${{ steps.setup-action.outputs.child_account_id != '' }}
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
-          tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
-          tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
-          pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
-          working_directory: "${{ steps.setup-action.outputs.working_directory }}/_global/account-baseline"
-          terragrunt_command: "init"
-          infra_live_repo: '.'
-          infra_live_directory: '.'
-          infra_live_repo_branch: ${{ steps.setup-action.outputs.branch }}
-          gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
+          aws-region: us-east-1
+          role-to-assume: "arn:aws:iam::${{ steps.setup-action.outputs.child_account_id }}:role/${{ steps.bootstrap.outputs.child_acct_role_name }}"
+          role-duration-seconds: 3600
+          role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
+          role-chaining: true
+
+      - name: Confirm Account Access
+        if: steps.setup-action.outputs.workflow == 'terragrunt-executor.yml'
+        env:
+          ACCOUNT: ${{ steps.setup-action.outputs.account_id }}
+          WORKING_DIRECTORY: ${{ steps.setup-action.outputs.working_directory }}
+        run: echo "::notice ::Running in account $ACCOUNT and planning in $WORKING_DIRECTORY"
 
       - name: Run terragrunt ${{ steps.setup-action.outputs.terragrunt_command }} in ${{ steps.setup-action.outputs.working_directory }}
         id: terragrunt
