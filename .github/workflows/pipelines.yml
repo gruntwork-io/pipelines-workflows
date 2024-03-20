@@ -186,6 +186,7 @@ jobs:
 
       - name: Parse account IDs
         id: parse
+        if: steps.setup-action.outputs.workflow != 'terragrunt-executor.yml'
         env:
           NEW_ACCOUNT_NAME: ${{ steps.setup-action.outputs.new_account_name }}
         run: |
