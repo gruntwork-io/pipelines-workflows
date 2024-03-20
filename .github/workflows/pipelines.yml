@@ -8,6 +8,10 @@ on:
 
 env:
   DEPLOY_BRANCH_NAME: main
+  GRUNTWORK_INSTALLER_VERSION: v0.0.39
+  MODULE_SECURITY_VERSION: v0.68.3
+  CONTROL_TOWER_MODULES_VERSION: v0.4.2
+  BOILERPLATE_VERSION: v0.5.8
 
 jobs:
   preflight_checks:
@@ -171,7 +175,6 @@ jobs:
             echo "working_directory=$WORKING_DIRECTORY" >> "$GITHUB_OUTPUT"
             echo "terragrunt_command=$TERRAGRUNT_COMMAND" >> "$GITHUB_OUTPUT"
 
-
       - name: Bootstrap Workflow
         id: bootstrap
         uses: ./.github/actions/bootstrap-workflows
@@ -181,7 +184,25 @@ jobs:
           branch: ${{ steps.setup-action.outputs.branch }}
           role_prefix: ${{ steps.setup-action.outputs.role_prefix }}
 
+      - name: Parse account IDs
+        id: parse
+        env:
+          NEW_ACCOUNT_NAME: ${{ steps.setup-action.outputs.new_account_name }}
+        run: |
+          security_account_id="$(yq -r ".\"security\".id" "./accounts.yml")"
+          echo "security_account_id=$security_account_id" >> $GITHUB_OUTPUT
+          shared_account_id="$(yq -r ".\"shared\".id" "./accounts.yml")"
+          echo "shared_account_id=$shared_account_id" >> $GITHUB_OUTPUT
+          logs_account_id="$(yq -r ".\"logs\".id" "./accounts.yml")"
+          echo "logs_account_id=$logs_account_id" >> $GITHUB_OUTPUT
+
+          # The multi-account-factory updates the accounts.yml file with the ID of any created account.
+          account_id="$(yq -r ".$NEW_ACCOUNT_NAME.id" ./accounts.yml)"
+          echo "Account ID of $NEW_ACCOUNT_NAME is: $account_id"
+          echo "account_id=$account_id" >> "$GITHUB_OUTPUT"
+
       - name: Authenticate to AWS
+        if: steps.setup-action.outputs.workflow == 'terragrunt-executor.yml'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: us-east-1
@@ -201,37 +222,323 @@ jobs:
           role-chaining: true
 
       - name: Confirm Account Access
+        if: steps.setup-action.outputs.workflow == 'terragrunt-executor.yml'
         env:
           ACCOUNT: ${{ steps.setup-action.outputs.account_id }}
           WORKING_DIRECTORY: ${{ steps.setup-action.outputs.working_directory }}
         run: echo "::notice ::Running in account $ACCOUNT and planning in $WORKING_DIRECTORY"
 
-      - name: Run terragrunt ${{ steps.setup-action.outputs.terragrunt_command }}
-        id: terragrunt
+      - name: "[Baseline]: Authenticate to Security AWS account"
+        if: steps.setup-action.outputs.workflow == 'apply-new-account-baseline.yml'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          role-to-assume: "arn:aws:iam::${{ steps.parse.outputs.security_account_id }}:role/${{ steps.bootstrap.outputs.role_name }}"
+          role-duration-seconds: 3600
+          role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
+
+      - name: "[Baseline]: Run terragrunt ${{ steps.setup-action.outputs.terragrunt_command }} in security account"
+        id: terragrunt-apply-security
+        if: steps.setup-action.outputs.workflow == 'apply-new-account-baseline.yml'
         uses: gruntwork-io/pipelines-execute@v3.0.0
-        if: steps.setup-action.outputs.workflow == 'terragrunt-executor.yml'
         with:
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
-          tf_binary: opentofu
           tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
           pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
-          working_directory: ${{ steps.setup-action.outputs.working_directory }}
+          working_directory: security/_global/account-baseline
           terragrunt_command: "${{ steps.setup-action.outputs.terragrunt_command }}"
           infra_live_repo: '.'
           infra_live_directory: '.'
           infra_live_repo_branch: ${{ steps.setup-action.outputs.branch }}
           gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
 
-      - name: Apply new account baseline
+      - name: "[Baseline]: Authenticate to Logs AWS account"
         if: steps.setup-action.outputs.workflow == 'apply-new-account-baseline.yml'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          role-to-assume: "arn:aws:iam::${{ steps.parse.outputs.logs_account_id }}:role/${{ steps.bootstrap.outputs.role_name }}"
+          role-duration-seconds: 3600
+          role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
+
+      - name: "[Baseline]: Run terragrunt ${{ steps.setup-action.outputs.terragrunt_command }} in logs account"
+        id: terragrunt-apply-logs
+        if: steps.setup-action.outputs.workflow == 'apply-new-account-baseline.yml'
+        uses: gruntwork-io/pipelines-execute@v3.0.0
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
+          tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
+          pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
+          working_directory: logs/_global/account-baseline
+          terragrunt_command: "${{ steps.setup-action.outputs.terragrunt_command }}"
+          infra_live_repo: '.'
+          infra_live_directory: '.'
+          infra_live_repo_branch: ${{ steps.setup-action.outputs.branch }}
+          gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
+
+      - name: "[Baseline]: Authenticate to Shared Services AWS account"
+        if: steps.setup-action.outputs.workflow == 'apply-new-account-baseline.yml'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          role-to-assume: "arn:aws:iam::${{ steps.parse.outputs.shared_account_id }}:role/${{ steps.bootstrap.outputs.role_name }}"
+          role-duration-seconds: 3600
+          role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
+
+      - name: "[Baseline]: Run terragrunt ${{ steps.setup-action.outputs.terragrunt_command }} in shared account"
+        id: terragrunt-apply-shared
+        if: steps.setup-action.outputs.workflow == 'apply-new-account-baseline.yml'
+        uses: gruntwork-io/pipelines-execute@v3.0.0
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
+          tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
+          pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
+          working_directory: shared/_global/account-baseline
+          terragrunt_command: "${{ steps.setup-action.outputs.terragrunt_command }}"
+          infra_live_repo: '.'
+          infra_live_directory: '.'
+          infra_live_repo_branch: ${{ steps.setup-action.outputs.branch }}
+          gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
+
+      # Finally, auth to the mgmt account so we can assume a role in the child account
+      - name: "[Baseline]: Authenticate to AWS"
+        if: steps.setup-action.outputs.workflow == 'apply-new-account-baseline.yml'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          role-to-assume: "arn:aws:iam::${{ steps.setup-action.outputs.management_account }}:role/${{ steps.bootstrap.outputs.role_name }}"
+          role-duration-seconds: 3600
+          role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
+
+      # Auth to child account
+      # THIS RETRIEVES PERMISSIONS TO BE ABLE TO RUN A PLAN/APPLY IN THE NEWLY CREATED CHILD ACCOUNT
+      # The "AWSControlTowerExecution" role being assumed here is created by Control Tower in each account it provisions
+      # and it can be assumed by a role in the management account.
+      - name: "[Baseline]: Assume role new child account"
+        if: steps.setup-action.outputs.workflow == 'apply-new-account-baseline.yml'
+        env:
+          SESSION_NAME: ${{ steps.bootstrap.outputs.role_session_name }}
+          CHILD_ACCOUNT: ${{ steps.setup-action.outputs.child_account_id }}
         run: |
-          echo "Run new account baseline"
+          RESPONSE="$(aws sts assume-role --role-arn "arn:aws:iam::$CHILD_ACCOUNT:role/AWSControlTowerExecution" --role-session-name "$SESSION_NAME")"
+          ASSUMED_ROLE_CREDS="$(echo "$RESPONSE" | jq -r '.Credentials')"
+          AWS_ACCESS_KEY_ID="$(echo "$ASSUMED_ROLE_CREDS" | jq -r '.AccessKeyId')"
+          echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> "$GITHUB_ENV"
+          echo "::add-mask::$AWS_ACCESS_KEY_ID"
+          AWS_SECRET_ACCESS_KEY="$(echo "$ASSUMED_ROLE_CREDS" | jq -r '.SecretAccessKey')"
+          echo AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" >> "$GITHUB_ENV"
+          echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
+          AWS_SESSION_TOKEN="$(echo "$ASSUMED_ROLE_CREDS" | jq -r '.SessionToken')"
+          echo AWS_SESSION_TOKEN="$AWS_SESSION_TOKEN" >> "$GITHUB_ENV"
+          echo "::add-mask::$AWS_SESSION_TOKEN"
 
+      - name: "[Baseline]: Confirm Account Access"
+        if: steps.setup-action.outputs.workflow == 'apply-new-account-baseline.yml'
+        env:
+          CHILD_ACCOUNT: ${{ steps.setup-action.outputs.child_account_id }}
+          WORKING_DIRECTORY: ${{ steps.setup-action.outputs.working_directory }}
+        run: echo "::notice ::Running in account $CHILD_ACCOUNT and planning in $WORKING_DIRECTORY"
 
-        # TODO -- Add the other action types
-        # uses: gruntwork-test/gruntcon-pipelines-workflows/.github/workflows/terragrunt-executor.yml@main
+      # This Bootstrap step is a workaround for the error that happens when running plan-all for the first time in a
+      # new account with multiple modules. The error is:
+      #
+      #    OperationAborted: A conflicting conditional operation is currently in progress against this resource. Please try again.
+      #    BucketAlreadyOwnedByYou: Your previous request to create the named bucket succeeded and you already own it.
+      #
+      # This happens because each module is trying to create buckets for state and logs when they do not exist.
+      # Setting Terragrunt Parallelism to 1 does NOT prevent this error from happening. So we'll instead run an init in
+      # a single module first to create the buckets so that subsequent run-all commands do not fail.
+      - name: "[Baseline]: Bootstrap child account with state & logs S3 buckets"
+        if: ${{ contains(steps.setup-action.outputs.terragrunt_command, 'plan') }} && steps.setup-action.outputs.workflow == 'apply-new-account-baseline.yml'
+        uses: gruntwork-io/pipelines-execute@v3.0.0
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
+          tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
+          pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
+          working_directory: "${{ steps.setup-action.outputs.working_directory }}/_global/account-baseline"
+          terragrunt_command: "init"
+          infra_live_repo: '.'
+          infra_live_directory: '.'
+          infra_live_repo_branch: ${{ steps.setup-action.outputs.branch }}
+          gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
 
+      # This Bootstrap step is a workaround for the error that happens when running plan-all for the first time in a
+      # new account with multiple modules. The error is:
+      #
+      #    OperationAborted: A conflicting conditional operation is currently in progress against this resource. Please try again.
+      #    BucketAlreadyOwnedByYou: Your previous request to create the named bucket succeeded and you already own it.
+      #
+      # This happens because each module is trying to create buckets for state and logs when they do not exist.
+      # Setting Terragrunt Parallelism to 1 does NOT prevent this error from happening. So we'll instead run an init in
+      # a single module first to create the buckets so that subsequent run-all commands do not fail.
+      - name: "[Baseline]: Bootstrap child account with state & logs S3 buckets"
+        if: ${{ contains(steps.setup-action.outputs.terragrunt_command, 'plan') }} && steps.setup-action.outputs.workflow == 'apply-new-account-baseline.yml'
+        uses: gruntwork-io/pipelines-execute@v3.0.0
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
+          tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
+          pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
+          working_directory: "${{ steps.setup-action.outputs.working_directory }}/_global/account-baseline"
+          terragrunt_command: "init"
+          infra_live_repo: '.'
+          infra_live_directory: '.'
+          infra_live_repo_branch: ${{ steps.setup-action.outputs.branch }}
+          gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
+
+      # This Bootstrap step is a workaround for the error that happens when running plan-all for the first time in a
+      # new account with multiple modules. The error is:
+      #
+      #    OperationAborted: A conflicting conditional operation is currently in progress against this resource. Please try again.
+      #    BucketAlreadyOwnedByYou: Your previous request to create the named bucket succeeded and you already own it.
+      #
+      # This happens because each module is trying to create buckets for state and logs when they do not exist.
+      # Setting Terragrunt Parallelism to 1 does NOT prevent this error from happening. So we'll instead run an init in
+      # a single module first to create the buckets so that subsequent run-all commands do not fail.
+      - name: "[Baseline]: Bootstrap child account with state & logs S3 buckets"
+        if: ${{ contains(steps.setup-action.outputs.terragrunt_command, 'plan') }} && steps.setup-action.outputs.workflow == 'apply-new-account-baseline.yml'
+        uses: gruntwork-io/pipelines-execute@v3.0.0
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
+          tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
+          pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
+          working_directory: "${{ steps.setup-action.outputs.working_directory }}/_global/account-baseline"
+          terragrunt_command: "init"
+          infra_live_repo: '.'
+          infra_live_directory: '.'
+          infra_live_repo_branch: ${{ steps.setup-action.outputs.branch }}
+          gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
+
+      - name: Run terragrunt ${{ steps.setup-action.outputs.terragrunt_command }} in ${{ steps.setup-action.outputs.working_directory }}
+        id: terragrunt
+        if: steps.setup-action.outputs.workflow != 'create-account-and-generate-baselines.yml'
+        uses: gruntwork-io/pipelines-execute@v3.0.0
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
+          tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
+          pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
+          working_directory: ${{ steps.setup-action.outputs.working_directory }}
+          terragrunt_command: ${{ steps.setup-action.outputs.terragrunt_command }}
+          infra_live_repo: '.'
+          infra_live_directory: '.'
+          infra_live_repo_branch: ${{ steps.setup-action.outputs.branch }}
+          gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
+
+      - name: "[CreateAccount]: Read account request"
+        id: account_request
+        if: steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' && ${{ steps.parse.outputs.account_id != 'null' }}
+        # Only try this if we've actually created the account
+        env:
+          NEW_ACCOUNT_NAME: ${{ steps.setup-action.outputs.new_account_name }}
+        run: |
+          request_file_path="./_new-account-requests/account-$NEW_ACCOUNT_NAME.yml"
+
+          org_name_prefix="$(yq -r ".org_name_prefix" "$request_file_path")"
+          aws_region="$(yq -r ".aws_region" "$request_file_path")"
+          requesting_team_name="$(yq -r ".requesting_team_name" "$request_file_path")"
+          account_baseline_modules_version="$(yq -r ".account_baseline_modules_version" "$request_file_path")"
+          account_baseline_cis_service_catalog_version="$(yq -r ".account_baseline_cis_service_catalog_version" "$request_file_path")"
+
+          create_vpc="$(yq -r '.create_vpc' "$request_file_path")"
+
+          # Handling edge case where account request file might not have a create_vpc field
+          # We create one by default
+          if [[ "$create_vpc" == "null" ]]; then
+            create_vpc='true'
+          fi
+
+          echo "org_name_prefix=$org_name_prefix" >> "$GITHUB_OUTPUT"
+          echo "aws_region=$aws_region" >> "$GITHUB_OUTPUT"
+          echo "requesting_team_name=$requesting_team_name" >> "$GITHUB_OUTPUT"
+          echo "account_baseline_modules_version=$account_baseline_modules_version" >> "$GITHUB_OUTPUT"
+          echo "account_baseline_cis_service_catalog_version=$account_baseline_cis_service_catalog_version" >> "$GITHUB_OUTPUT"
+          echo "create_vpc=$create_vpc" >> "$GITHUB_OUTPUT"
+
+      - name: "[CreateAccount]: Get requesting PR number"
+        id: get_pr_number
+        # Only try this if we've actually created the account
+        if: steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' && ${{ steps.parse.outputs.account_id != 'null' }}
+        env:
+          COMMIT_SHA: ${{ steps.setup-action.outputs.branch }}
+          GH_TOKEN: ${{ secrets.INFRA_LIVE_ACCESS_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          PR_NUMBER=$(gh -R "$REPO" pr list --search "$COMMIT_SHA" --state merged --json number -q '.[0].number')
+          echo "The PR number is: $PR_NUMBER"
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+
+      - name: "[CreateAccount]: Check out terraform-aws-control-tower repo"
+        if: steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml'
+        uses: actions/checkout@v4
+        with:
+          repository: gruntwork-io/terraform-aws-control-tower
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          path: terraform-aws-control-tower
+          ref: ${{ env.CONTROL_TOWER_MODULES_VERSION }}
+
+      - name: "[CreateAccount]: Install boilerplate"
+        if: steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' && ${{ steps.parse.outputs.account_id != 'null' }}
+        shell: bash
+        env:
+          GITHUB_OAUTH_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+        run: |
+          curl -Ls https://raw.githubusercontent.com/gruntwork-io/gruntwork-installer/main/bootstrap-gruntwork-installer.sh | bash /dev/stdin --version "$GRUNTWORK_INSTALLER_VERSION"
+          gruntwork-install --binary-name boilerplate --repo https://github.com/gruntwork-io/boilerplate --tag "$BOILERPLATE_VERSION"
+
+      - name: "[CreateAccount]: Run boilerplate to generate code"
+        if: steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' && ${{ steps.parse.outputs.account_id != 'null' }}
+        shell: bash
+        env:
+          ACCOUNT_NAME: ${{ steps.setup-action.outputs.new_account_name }}
+          AWS_REGION: ${{ steps.account_request.outputs.aws_region }}
+          ORG_NAME_PREFIX: ${{ steps.account_request.outputs.org_name_prefix }}
+          ACCOUNT_BASELINE_MODULES_VERSION: ${{ steps.account_request.outputs.account_baseline_modules_version }}
+          ACCOUNT_BASELINE_CIS_SERVICE_CATALOG_VERSION: ${{ steps.account_request.outputs.account_baseline_cis_service_catalog_version }}
+          REQUESTING_TEAM_NAME: ${{ steps.account_request.outputs.requesting_team_name }}
+          DEFAULT_TAGS: ${{ steps.setup-action.outputs.default_tags }}
+          CREATE_VPC: ${{ steps.account_request.outputs.create_vpc  }}
+        run: |
+          boilerplate \
+            --template-url "./terraform-aws-control-tower//templates/landingzone/boilerplate-single-account-baseline" \
+            --output-folder . \
+            --var AccountName="$ACCOUNT_NAME" \
+            --var AwsRegion="$AWS_REGION" \
+            --var OrgNamePrefix="$ORG_NAME_PREFIX" \
+            --var AccountBaselineModulesVersion="$ACCOUNT_BASELINE_MODULES_VERSION" \
+            --var AccountBaselineCISServiceCatalogVersion="$ACCOUNT_BASELINE_CIS_SERVICE_CATALOG_VERSION" \
+            --var RequestingTeamName="$REQUESTING_TEAM_NAME" \
+            --var DefaultTags="$DEFAULT_TAGS" \
+            --var CreateVPC="$CREATE_VPC" \
+            --var VpcModuleVersion="$ACCOUNT_BASELINE_CIS_SERVICE_CATALOG_VERSION" \
+            --non-interactive
+
+      - name: "[CreateAccount]: Remove Control Tower Repo"
+        if: steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' && ${{ steps.parse.outputs.account_id != 'null' }}
+        run: rm -rf terraform-aws-control-tower
+
+      - name: "[CreateAccount]: Create Pull Request"
+        if: steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' && ${{ steps.parse.outputs.account_id != 'null' }}
+        id: create_pr
+        uses: peter-evans/create-pull-request@v6
+        with:
+          base: main
+          token: ${{ secrets.INFRA_LIVE_ACCESS_TOKEN }}
+          branch: "enhancement/baseline-account-${{ steps.setup-action.outputs.new_account_name }}"
+          commit-message: "Generate account baseline for: ${{ steps.setup-action.outputs.new_account_name }}"
+          title: "Generate account baseline for: ${{ steps.setup-action.outputs.new_account_name }}"
+          body: |
+            This pull request applies an account baseline to the **${{ steps.setup-action.outputs.new_account_name }}** AWS account, which was created in https://github.com/${{ github.repository }}/pull/${{ steps.get_pr_number.outputs.pr_number }} using Gruntwork Landing Zone. To **apply** this baseline, do the following:
+
+              1. Inspect the details in this pull request and confirm correctness.
+              2. Merge this pull request.
+
+            Once merged, Gruntwork Pipelines will `terragrunt apply` the baseline in the newly created AWS account.
 
     outputs:
       account_id: ${{ matrix.jobs.AccountId }}
@@ -243,69 +550,3 @@ jobs:
       child_account_id: ${{ steps.setup-action.outputs.child_account_id }}
       new_account_name: ${{ steps.setup-action.outputs.new_account_name }}
       team_account_names: ${{ steps.setup-action.outputs.team_account_names }}
-
-
-
-
-  # apply_new_account_baseline:
-  #   # This cannot be dynamically determined in the `uses`.
-  #   if: needs.pipelines_determine.outputs.workflow == 'apply-new-account-baseline.yml'
-  #   needs: [pipelines_determine]
-  #   uses: gruntwork-test/gruntcon-pipelines-workflows/.github/workflows/apply-new-account-baseline.yml@main
-  #   with:
-  #     branch: ${{ needs.pipelines_determine.outputs.branch }}
-  #     working_directory: ${{ needs.pipelines_determine.outputs.working_directory }}
-  #     terragrunt_command: ${{ needs.pipelines_determine.outputs.terragrunt_command }}
-  #     management_account: ${{ needs.pipelines_determine.outputs.account_id }}
-  #     child_account_id: ${{ needs.pipelines_determine.outputs.child_account_id }}
-  #     role_prefix: central
-  #   secrets:
-  #     GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
-
-  # apply_new_sdlc_accounts_baseline:
-  #   # This cannot be dynamically determined in the `uses`.
-  #   if: needs.pipelines_determine.outputs.workflow == 'apply-new-sdlc-accounts-baseline.yml'
-  #   needs: [pipelines_determine]
-  #   uses: gruntwork-test/gruntcon-pipelines-workflows/.github/workflows/apply-new-sdlc-accounts-baseline.yml@main
-  #   with:
-  #     branch: ${{ needs.pipelines_determine.outputs.branch }}
-  #     working_directory: ${{ needs.pipelines_determine.outputs.working_directory }}
-  #     terragrunt_command: ${{ needs.pipelines_determine.outputs.terragrunt_command }}
-  #     management_account: ${{ needs.pipelines_determine.outputs.account_id }}
-  #     team_account_data: ${{ needs.pipelines_determine.outputs.additional_data }}
-  #     role_prefix: central
-  #   secrets:
-  #     GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
-  #     MANAGE_REPOS_TOKEN: ${{ secrets.MANAGE_REPOS_TOKEN }}
-
-  # create_account_and_generate_baselines:
-  #   # This cannot be dynamically determined in the `uses`.
-  #   if: needs.pipelines_determine.outputs.workflow == 'create-account-and-generate-baselines.yml'
-  #   needs: [pipelines_determine]
-  #   uses: gruntwork-test/gruntcon-pipelines-workflows/.github/workflows/create-account-and-generate-baselines.yml@main
-  #   with:
-  #     branch: ${{ needs.pipelines_determine.outputs.branch }}
-  #     working_directory: ${{ needs.pipelines_determine.outputs.working_directory }}
-  #     terragrunt_command: ${{ needs.pipelines_determine.outputs.terragrunt_command }}
-  #     management_account: ${{ needs.pipelines_determine.outputs.account_id }}
-  #     new_account_name: ${{ needs.pipelines_determine.outputs.new_account_name }}
-  #     role_prefix: central
-  #   secrets:
-  #     GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
-  #     INFRA_LIVE_ACCESS_TOKEN: ${{ secrets.INFRA_LIVE_ACCESS_TOKEN }}
-
-  # create_sdlc_accounts_and_generate_baselines:
-  #   # This cannot be dynamically determined in the `uses`.
-  #   if: needs.pipelines_determine.outputs.workflow == 'create-sdlc-accounts-and-generate-baselines.yml'
-  #   needs: [pipelines_determine]
-  #   uses: gruntwork-test/gruntcon-pipelines-workflows/.github/workflows/create-sdlc-accounts-and-generate-baselines.yml@main
-  #   with:
-  #     branch: ${{ needs.pipelines_determine.outputs.branch }}
-  #     working_directory: ${{ needs.pipelines_determine.outputs.working_directory }}
-  #     terragrunt_command: ${{ needs.pipelines_determine.outputs.terragrunt_command }}
-  #     management_account: ${{ needs.pipelines_determine.outputs.account_id }}
-  #     team_account_names: ${{ needs.pipelines_determine.outputs.team_account_names }}
-  #     role_prefix: central
-  #   secrets:
-  #     GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
-  #     INFRA_LIVE_ACCESS_TOKEN: ${{ secrets.INFRA_LIVE_ACCESS_TOKEN }}
