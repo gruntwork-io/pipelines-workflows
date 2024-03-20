@@ -168,10 +168,59 @@ jobs:
             echo "working_directory=$WORKING_DIRECTORY" >> "$GITHUB_OUTPUT"
             echo "terragrunt_command=$TERRAGRUNT_COMMAND" >> "$GITHUB_OUTPUT"
 
-      - name: Terragrunt Executor
+
+      - name: Bootstrap Workflow
+        id: bootstrap
+        uses: ./.github/actions/bootstrap-workflows
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          terragrunt_command: ${{ steps.setup-action.outputs.terragrunt_command }}
+          branch: ${{ steps.setup-action.outputs.branch }}
+          role_prefix: ${{ steps.setup-action.outputs.role_prefix }}
+
+      - name: Authenticate to AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          role-to-assume: "arn:aws:iam::${{ steps.setup-action.outputs.account }}:role/${{ steps.bootstrap.outputs.role_name }}"
+          role-duration-seconds: 3600
+          role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
+
+      # If we're doing a pipelines policy update, assume the role in the child account from the mgmt account
+      - name: Authenticate to child AWS account
+        if: ${{ steps.setup-action.outputs.child_account_id != '' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          role-to-assume: "arn:aws:iam::${{ steps.setup-action.outputs.child_account_id }}:role/${{ steps.bootstrap.outputs.child_acct_role_name }}"
+          role-duration-seconds: 3600
+          role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
+          role-chaining: true
+
+      - name: Confirm Account Access
+        env:
+          ACCOUNT: ${{ steps.setup-action.outputs.account }}
+          WORKING_DIRECTORY: ${{ steps.setup-action.outputs.working_directory }}
+        run: echo "::notice ::Running in account $ACCOUNT and planning in $WORKING_DIRECTORY"
+
+      - name: Run terragrunt ${{ steps.setup-action.outputs.terragrunt_command }}
+        id: terragrunt
+        uses: gruntwork-io/pipelines-execute@v3.0.0
         if: steps.setup-action.outputs.workflow == 'terragrunt-executor.yml'
-        run: |
-          echo "Running Terragrunt Executor!"
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          tf_version: 1.5.7
+          #${{ steps.bootstrap.outputs.terraform_version }}
+          tf_binary: terraform
+          tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
+          pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
+          working_directory: ${{ steps.setup-action.outputs.working_directory }}
+          terragrunt_command: "${{ steps.setup-action.outputs.terragrunt_command }}"
+          infra_live_repo: '.'
+          infra_live_directory: '.'
+          infra_live_repo_branch: ${{ steps.setup-action.outputs.branch }}
+          gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
+
       - name: Apply new account baseline
         if: steps.setup-action.outputs.workflow == 'apply-new-account-baseline.yml'
         run: |
@@ -180,15 +229,7 @@ jobs:
 
         # TODO -- Add the other action types
         # uses: gruntwork-test/gruntcon-pipelines-workflows/.github/workflows/terragrunt-executor.yml@main
-        # with:
-        #   branch: ${{ needs.pipelines_determine.outputs.branch }}
-        #   working_directory: ${{ needs.pipelines_determine.outputs.working_directory }}
-        #   account: ${{ needs.pipelines_determine.outputs.account_id }}
-        #   terragrunt_command: ${{ needs.pipelines_determine.outputs.terragrunt_command }}
-        #   child_account_id: ${{ needs.pipelines_determine.outputs.child_account_id }}
-        #   role_prefix: central
-        # secrets:
-        #   GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+
 
     outputs:
       account_id: ${{ matrix.jobs.AccountId }}
