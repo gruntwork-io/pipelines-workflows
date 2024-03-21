@@ -117,7 +117,7 @@ jobs:
         with:
           step_name: "Calculate Infrastructure Changes"
           step_status: "success"
-          step_details: ${{ toJson(steps.orchestrate.outputs.jobs) }}
+          step_details: ${{ steps.orchestrate.outputs.jobs }}
     outputs:
       pipelines_jobs: ${{ steps.orchestrate.outputs.jobs }}
       pipelines_cli_version: ${{ steps.gruntwork.outputs.pipelines_cli_version }}
@@ -177,6 +177,11 @@ jobs:
             echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
             echo "working_directory=$WORKING_DIRECTORY" >> "$GITHUB_OUTPUT"
             echo "terragrunt_command=$TERRAGRUNT_COMMAND" >> "$GITHUB_OUTPUT"
+      - name: Update comment
+        uses: gruntwork-test/gruntwork-pipelines-status-update@v0.1.0
+        with:
+          step_name: ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
+          step_status: "in_progress"
 
       - name: Bootstrap Workflow
         id: bootstrap
