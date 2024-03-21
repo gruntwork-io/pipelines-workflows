@@ -51,6 +51,7 @@ jobs:
         with:
           step_name: "Preflight Checks"
           step_status: "success"
+          details: "Validated envvars and git branch status"
 
   detect_changes:
     name: Detect Infrastructure Changes
