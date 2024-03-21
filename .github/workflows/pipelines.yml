@@ -118,7 +118,7 @@ jobs:
         with:
           step_name: "Calculate Infrastructure Changes"
           step_status: "success"
-          step_details: ${{ toJson(steps.orchestrate.outputs.jobs) }}
+          step_details: ${{ steps.orchestrate.outputs.jobs }}
     outputs:
       pipelines_jobs: ${{ steps.orchestrate.outputs.jobs }}
       pipelines_cli_version: ${{ steps.gruntwork.outputs.pipelines_cli_version }}
