@@ -485,7 +485,7 @@ jobs:
         run: rm -rf terraform-aws-control-tower
 
       - name: "[CreateAccount]: Create Pull Request"
-        if:  ${{ steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' }}
+        if:  ${{ steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' && steps.setup-action.outputs.terragrunt_command == 'apply' }}
         id: create_pr
         uses: peter-evans/create-pull-request@v6
         with:
