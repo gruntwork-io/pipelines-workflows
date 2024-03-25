@@ -394,7 +394,7 @@ jobs:
 
       - name: "[CreateAccount]: Read account request"
         id: account_request
-        if:  ${{ steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' && steps.parse.outputs.account_id != 'null' }}
+        if:  ${{ steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' }}
         # Only try this if we've actually created the account
         env:
           NEW_ACCOUNT_NAME: ${{ steps.setup-action.outputs.new_account_name }}
@@ -425,7 +425,7 @@ jobs:
       - name: "[CreateAccount]: Get requesting PR number"
         id: get_pr_number
         # Only try this if we've actually created the account
-        if:  ${{ steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' && steps.parse.outputs.account_id != 'null' }}
+        if:  ${{ steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' }}
         env:
           COMMIT_SHA: ${{ steps.setup-action.outputs.branch }}
           GH_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
@@ -445,7 +445,7 @@ jobs:
           ref: ${{ env.CONTROL_TOWER_MODULES_VERSION }}
 
       - name: "[CreateAccount]: Install boilerplate"
-        if:  ${{ steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' && steps.parse.outputs.account_id != 'null' }}
+        if:  ${{ steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' }}
         shell: bash
         env:
           GITHUB_OAUTH_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
@@ -454,7 +454,7 @@ jobs:
           gruntwork-install --binary-name boilerplate --repo https://github.com/gruntwork-io/boilerplate --tag "$BOILERPLATE_VERSION"
 
       - name: "[CreateAccount]: Run boilerplate to generate code"
-        if:  ${{ steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' && steps.parse.outputs.account_id != 'null' }}
+        if:  ${{ steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' }}
         shell: bash
         env:
           ACCOUNT_NAME: ${{ steps.setup-action.outputs.new_account_name }}
@@ -481,11 +481,11 @@ jobs:
             --non-interactive
 
       - name: "[CreateAccount]: Remove Control Tower Repo"
-        if:  ${{ steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' && steps.parse.outputs.account_id != 'null' }}
+        if:  ${{ steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' }}
         run: rm -rf terraform-aws-control-tower
 
       - name: "[CreateAccount]: Create Pull Request"
-        if:  ${{ steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' && steps.parse.outputs.account_id != 'null' }}
+        if:  ${{ steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' }}
         id: create_pr
         uses: peter-evans/create-pull-request@v6
         with:
