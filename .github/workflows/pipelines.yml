@@ -350,7 +350,6 @@ jobs:
           gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
 
       - name: Authenticate to AWS
-        if: steps.setup-action.outputs.workflow == 'terragrunt-executor.yml'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: us-east-1
@@ -377,7 +376,7 @@ jobs:
         run: echo "::notice ::Running in account $ACCOUNT and planning in $WORKING_DIRECTORY"
 
       - name: Run terragrunt ${{ steps.setup-action.outputs.terragrunt_command }} in ${{ steps.setup-action.outputs.working_directory }}
-        id: terragrunt        
+        id: terragrunt
         uses: gruntwork-io/pipelines-execute@v3.0.0
         with:
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
