@@ -422,8 +422,7 @@ jobs:
 
       - name: "[ProvisionAccount]: Get requesting PR number"
         id: get_pr_number
-        # Only try this if we've actually created the account
-        if:  ${{ steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' }}
+        if:  ${{ steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' && steps.setup-action.outputs.terragrunt_command == 'apply' }}
         env:
           COMMIT_SHA: ${{ steps.setup-action.outputs.branch }}
           GH_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
@@ -434,7 +433,7 @@ jobs:
           echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
 
       - name: "[ProvisionAccount]: Check out terraform-aws-control-tower repo"
-        if: steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml'
+        if: ${{ steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' && steps.setup-action.outputs.terragrunt_command == 'apply' }}
         uses: actions/checkout@v4
         with:
           repository: gruntwork-io/terraform-aws-control-tower
@@ -443,7 +442,7 @@ jobs:
           ref: ${{ env.CONTROL_TOWER_MODULES_VERSION }}
 
       - name: "[ProvisionAccount]: Install boilerplate"
-        if:  ${{ steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' }}
+        if:  ${{ steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' && steps.setup-action.outputs.terragrunt_command == 'apply' }}
         shell: bash
         env:
           GITHUB_OAUTH_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
@@ -452,7 +451,7 @@ jobs:
           gruntwork-install --binary-name boilerplate --repo https://github.com/gruntwork-io/boilerplate --tag "$BOILERPLATE_VERSION"
 
       - name: "[ProvisionAccount]: Run boilerplate to generate code"
-        if:  ${{ steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' }}
+        if:  ${{ steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' && steps.setup-action.outputs.terragrunt_command == 'apply' }}
         shell: bash
         env:
           ACCOUNT_NAME: ${{ steps.setup-action.outputs.new_account_name }}
@@ -479,7 +478,7 @@ jobs:
             --non-interactive
 
       - name: "[ProvisionAccount]: Remove Control Tower Repo"
-        if:  ${{ steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' }}
+        if:  ${{ steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' && steps.setup-action.outputs.terragrunt_command == 'apply' }}
         run: rm -rf terraform-aws-control-tower
 
       - name: "[ProvisionAccount]: Create Pull Request"
