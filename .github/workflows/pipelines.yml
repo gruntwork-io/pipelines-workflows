@@ -21,7 +21,7 @@ jobs:
       GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
     steps:
       - name: Update comment
-        uses: gruntwork-test/gruntwork-pipelines-status-update@v0.1.0
+        uses: gruntwork-io/pipelines-status-update@v0.1.0
         with:
           step_name: "Preflight Checks"
           step_status: "in_progress"
@@ -47,7 +47,7 @@ jobs:
             exit 1
           fi
       - name: Update comment
-        uses: gruntwork-test/gruntwork-pipelines-status-update@v0.1.0
+        uses: gruntwork-io/pipelines-status-update@v0.1.0
         with:
           step_name: "Preflight Checks"
           step_status: "success"
@@ -59,7 +59,7 @@ jobs:
     needs: [preflight_checks]
     steps:
       - name: Update comment
-        uses: gruntwork-test/gruntwork-pipelines-status-update@v0.1.0
+        uses: gruntwork-io/pipelines-status-update@v0.1.0
         with:
           step_name: "Calculate Infrastructure Changes"
           step_status: "in_progress"
@@ -114,7 +114,7 @@ jobs:
           # We do this because the `GRUNTWORK_CODE_ACCESS_TOKEN` might not be present when vending a delegated account, even though it's always present in the main `infrastructure-live` account.
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
       - name: Update comment
-        uses: gruntwork-test/gruntwork-pipelines-status-update@v0.1.0
+        uses: gruntwork-io/pipelines-status-update@v0.1.0
         with:
           step_name: "Calculate Infrastructure Changes"
           step_status: "success"
@@ -179,7 +179,7 @@ jobs:
             echo "working_directory=$WORKING_DIRECTORY" >> "$GITHUB_OUTPUT"
             echo "terragrunt_command=$TERRAGRUNT_COMMAND" >> "$GITHUB_OUTPUT"
       - name: Update comment
-        uses: gruntwork-test/gruntwork-pipelines-status-update@v0.1.0
+        uses: gruntwork-io/pipelines-status-update@v0.1.0
         with:
           step_name: ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
           step_status: "in_progress"
