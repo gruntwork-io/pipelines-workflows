@@ -499,6 +499,221 @@ jobs:
 
             Once merged, Gruntwork Pipelines will `terragrunt apply` the baseline in the newly created AWS account.
 
+
+
+      - name: "[ProvisionDelegatedAccount] Create new delegated repo"
+        if: ${{ steps.setup-action.outputs.workflow == 'provision-delegated-account.yml' && contains(steps.setup-action.outputs.terragrunt_command , 'apply') }}
+        env:
+          GH_TOKEN: ${{secrets.MANAGE_REPOS_TOKEN }}
+          GH_ORG: ${{github.repository_owner }}
+          GH_DELEGATED_REPO_NAME: ${{ .delegate_repo_name }}
+        run: |
+          # Check if the repo exists before trying to create it
+          GH_REPO_STATUS_CODE="$(curl --silent --write-out '%{http_code}' --output /dev/null \
+            -X GET \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/$GH_ORG/$GH_DELEGATED_REPO_NAME")"
+
+          # If the repo does not exist (404 status code), then create it
+          if [[ "$GH_REPO_STATUS_CODE" == 404 ]]; then
+            gh api \
+              --method POST \
+              -H "Accept: application/vnd.github.v3+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              /orgs/$GH_ORG/repos \
+              -f "name=$GH_DELEGATED_REPO_NAME" \
+              -f visibility=private \
+              -f auto_init=true
+
+              echo "::notice title=New delegated repo created!::See created repository: https://github.com/$GH_ORG/$GH_DELEGATED_REPO_NAME."
+
+          # If the repo exists (200 status code), print a message and continue
+          elif [[ "$GH_REPO_STATUS_CODE" == 200 ]]; then
+            echo "Repository https://github.com/$GH_ORG/$GH_DELEGATED_REPO_NAME already exists."
+
+          # If GH returns a non 200 or non 404 status code, print and exit with an error
+          else
+            echo "Status code $GH_REPO_STATUS_CODE returned from GitHub API. Exiting with error."
+            exit 1
+          fi
+
+      - name: "[ProvisionDelegatedAccount] Set new repo branch protection"
+        if: ${{ steps.setup-action.outputs.workflow == 'provision-delegated-account.yml' && contains(steps.setup-action.outputs.terragrunt_command , 'apply') }}
+        env:
+          GH_TOKEN: ${{secrets.MANAGE_REPOS_TOKEN }}
+          GH_ORG: ${{github.repository_owner }}
+          GH_DELEGATED_REPO_NAME: ${{ steps.bootstrap.outputs.delegate_repo_name }}
+        run: |
+          echo "Setting branch protection rules for $GH_ORG/$GH_DELEGATED_REPO_NAME. See https://docs.gruntwork.io/pipelines/security/branch-protection for more information on recommended rules."
+          curl -L \
+            -X PUT \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/$GH_ORG/$GH_DELEGATED_REPO_NAME/branches/main/protection" \
+            -d '{ "required_status_checks": { "strict": true, "checks": [ ] }, "required_pull_request_reviews": { "require_code_owner_reviews": true, "require_last_push_approval": true, "required_approving_review_count": 1 }, "enforce_admins": false, "restrictions": null }'
+
+      - name: "[ProvisionDelegatedAccount] Assign ci-user as repo collaborator"
+        if: ${{ steps.setup-action.outputs.workflow == 'provision-delegated-account.yml' && contains(steps.setup-action.outputs.terragrunt_command , 'apply') }}
+        env:
+          GH_TOKEN: ${{secrets.MANAGE_REPOS_TOKEN }}
+          GH_ORG: ${{github.repository_owner }}
+          GH_DELEGATED_REPO_NAME: ${{ steps.bootstrap.outputs.delegate_repo_name }}
+          GH_CI_RO_USER: ${{env.GITHUB_CI_READONLY_USER }}
+        run: |
+          echo "Add CI Read Only User as Read-Only Collaborator on the new repo."
+          gh api \
+            --method PUT \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "/repos/$GH_ORG/$GH_DELEGATED_REPO_NAME/collaborators/$GH_CI_RO_USER" \
+            -f permission='read'
+
+      - name: "[ProvisionDelegatedAccount] Add new repository to Gruntwork repo-allow-list"
+        if: ${{ steps.setup-action.outputs.workflow == 'provision-delegated-account.yml' && contains(steps.setup-action.outputs.terragrunt_command , 'apply') }}
+        id: update_repo_allow_list
+        env:
+          GH_TOKEN: ${{secrets.MANAGE_REPOS_TOKEN }}
+          GH_ORG: ${{github.repository_owner }}
+          GH_DELEGATED_REPO_NAME: ${{ steps.bootstrap.outputs.delegate_repo_name }}
+        run: |
+          # Check if repo is already in repo-allow-list
+          REPO_IN_ALLOW_LIST="$(yq ".repo-allow-list | any_c(.  == \"$GH_ORG/$GH_DELEGATED_REPO_NAME\")" .gruntwork/config.yml)"
+          if [[ "$REPO_IN_ALLOW_LIST" == "false" ]]; then
+            echo "Adding $GH_ORG/$GH_DELEGATED_REPO_NAME to repo-allow-list."
+            yq ".repo-allow-list += \"$GH_ORG/$GH_DELEGATED_REPO_NAME\"" -i .gruntwork/config.yml
+            echo "create_pr=true" >> $GITHUB_OUTPUT
+          elif [[ "$REPO_IN_ALLOW_LIST" == "true" ]]; then
+            echo "Repo $GH_ORG/$GH_DELEGATED_REPO_NAME already exists in repo-allow-list. Skipping PR creation."
+            echo "create_pr=false" >> $GITHUB_OUTPUT
+          else
+            echo "Unspecified error. Exiting"
+            echo "create_pr=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: "[ProvisionDelegatedAccount] Create Pull Request to add the new repo to the allow list"
+        if: ${{ steps.setup-action.outputs.workflow == 'provision-delegated-account.yml' && steps.update_repo_allow_list.outputs.create_pr == 'true' }}
+        id: create_pr_allow_list
+        uses: peter-evans/create-pull-request@v6
+        with:
+          base: main
+          token: ${{secrets.MANAGE_REPOS_TOKEN }}
+          add-paths: .gruntwork/config.yml
+          branch: "enhancement/repo-${{ steps.bootstrap.outputs.delegate_repo_name }}"
+          commit-message: "Add repo-allow-list permissions for ${{github.repository_owner }}/${{ steps.bootstrap.outputs.delegate_repo_name }}"
+          title: "Add repo-allow-list permissions for ${{github.repository_owner }}/${{ steps.bootstrap.outputs.delegate_repo_name }}"
+          body: |
+            This pull request updates the `config.yml` `repo-allow-list` permissions file with the newly created `infrastructure-live` repository ${{github.repository_owner }}/${{ steps.bootstrap.outputs.delegate_repo_name }}.
+
+      - name: "[ProvisionDelegatedAccount] Merge PR to add the new reop to the allow list"
+        if: ${{ steps.setup-action.outputs.workflow == 'provision-delegated-account.yml' && steps.update_repo_allow_list.outputs.create_pr == 'true' }}
+        env:
+          GH_TOKEN: ${{secrets.MANAGE_REPOS_TOKEN }}
+          GH_ORG: ${{github.repository_owner }}
+          GH_DELEGATED_REPO_NAME: ${{ steps.bootstrap.outputs.delegate_repo_name }}
+          PR_NUMBER: ${{steps.create_pr_allow_list.outputs.pull-request-number }}
+        run: |
+          # Merge the repo allow list PR and delete the branch
+          gh -R "{{ .GithubOrg }}/{{ .InfraPipelinesRepoName }}" pr merge --admin --squash --delete-branch "$PR_NUMBER"
+
+      - name: "[ProvisionDelegatedAccount] Checkout new delegated repo"
+        if: ${{ steps.setup-action.outputs.workflow == 'provision-delegated-account.yml' && contains(steps.setup-action.outputs.terragrunt_command , 'apply') }}
+        uses: actions/checkout@v4
+        with:
+          token: ${{secrets.MANAGE_REPOS_TOKEN }}
+          repository: ${{github.repository_owner }}/${{ steps.bootstrap.outputs.delegate_repo_name }}
+          path: ${{ steps.bootstrap.outputs.delegate_repo_name }}
+          ref: main
+          fetch-depth: 0
+
+      - name: "[ProvisionDelegatedAccount] Install boilerplate"
+        if: ${{ steps.setup-action.outputs.workflow == 'provision-delegated-account.yml' && contains(steps.setup-action.outputs.terragrunt_command , 'apply') }}
+        shell: bash
+        run: |
+          curl -Ls https://raw.githubusercontent.com/gruntwork-io/gruntwork-installer/main/bootstrap-gruntwork-installer.sh | bash /dev/stdin --version "$GRUNTWORK_INSTALLER_VERSION"
+          gruntwork-install --binary-name boilerplate --repo https://github.com/gruntwork-io/boilerplate --tag "$BOILERPLATE_VERSION"
+
+      - name: "[ProvisionDelegatedAccount] Checkout architecture catalog"
+        if: ${{ steps.setup-action.outputs.workflow == 'provision-delegated-account.yml' && contains(steps.setup-action.outputs.terragrunt_command , 'apply') }}
+        uses: actions/checkout@v4
+        with:
+          token: ${{secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          repository: gruntwork-io/terraform-aws-architecture-catalog
+          path: terraform-aws-architecture-catalog
+          ref: ${{env.ARCH_CATALOG_VERSION }}
+
+      - name: "[ProvisionDelegatedAccount] Run boilerplate to scaffold new delegated repo"
+        if: ${{ steps.setup-action.outputs.workflow == 'provision-delegated-account.yml' && contains(steps.setup-action.outputs.terragrunt_command , 'apply') }}
+        shell: bash
+        working-directory: ${{ steps.bootstrap.outputs.delegate_repo_name }}
+        env:
+          TAGS: ${{ steps.bootstrap.outputs.tags }}
+          WORKING_DIRECTORY: ${{ steps.bootstrap.outputs.working_directory }}
+          INFRA_LIVE_DIRECTORY: ${{ steps.bootstrap.outputs.infra_live_directory }}
+          ORG_NAME_PREFIX: ${{ steps.bootstrap.outputs.org_name_prefix }}
+          AWS_REGION: ${{ steps.bootstrap.outputs.aws_region }}
+          INFRA_LIVE_REPO_NAME: ${{ steps.bootstrap.outputs.terragrunt_version.delegate_repo_name }}
+          TERRAFORM_VERSION: ${{ steps.bootstrap.outputs.s.terraform_version }}
+          TERRAGRUNT_VERSION: ${{ steps.bootstrap.outputs.terragrunt_version }}
+          CREATE_VPC: ${{ steps.bootstrap.outputs.create_vpc }}
+          CATALOG_REPOSITORIES: ${{ steps.bootstrap.outputs.catalog_repositories }}
+        run: |
+          # Convert list of accounts to Bash array. We use working_directory here because GW Pipelines will configure
+          # its name as a comma-separated list of account names.
+          IFS=',' read -ra account_names <<<"$WORKING_DIRECTORY"
+
+          # Convert Bash array to JSON array: https://stackoverflow.com/a/67489301/483528
+          account_names_as_json_list="$(jq --compact-output --raw-output --monochrome-output --null-input '$ARGS.positional' --args -- "${account_names[@]}")"
+
+          # Use yq to filter accounts.yml to just the accounts we created, producing JSON output
+          AWS_ACCOUNTS="$(yq --no-colors -o=json -I=0 pick\("$account_names_as_json_list"\) "../$INFRA_LIVE_DIRECTORY/accounts.yml")"
+
+          # Run boilerplate to scaffold out the delegated infra-live repo contents
+          boilerplate \
+            --template-url ../terraform-aws-architecture-catalog//templates/devops-foundations-infrastructure-live-delegated \
+            --output-folder . \
+            --var AWSAccounts="$AWS_ACCOUNTS" \
+            --var OrgNamePrefix="$ORG_NAME_PREFIX" \
+            --var DefaultRegion="$AWS_REGION" \
+            --var RepoBaseUrl=github.com/{{ .GithubOrg }} \
+            --var GithubOrg={{ .GithubOrg }} \
+            --var InfraLiveRepoName="$INFRA_LIVE_REPO_NAME" \
+            --var InfraModulesRepoName="$INFRA_MODULES_REPO_NAME" \
+            --var InfraModulesReleaseVersion="$INFRA_MODULES_RELEASE_VERSION" \
+            --var TerraformVersion="$TERRAFORM_VERSION" \
+            --var TerragruntVersion="$TERRAGRUNT_VERSION" \
+            --var DefaultTags="$TAGS" \
+            --var VPCCreated="$CREATE_VPC" \
+            --var CatalogRepositories="$CATALOG_REPOSITORIES" \
+            --non-interactive
+
+      - name: "[ProvisionDelegatedAccount] Create Pull Request in new delegated repo with scaffolding"
+        if: ${{ steps.setup-action.outputs.workflow == 'provision-delegated-account.yml' && contains(steps.setup-action.outputs.terragrunt_command , 'apply') }}
+        id: create_scaffolding_pr
+        uses: peter-evans/create-pull-request@v6
+        with:
+          base: main
+          path: ${{ steps.bootstrap.outputs.delegate_repo_name }}
+          token: ${{secrets.MANAGE_REPOS_TOKEN }}
+          branch: "bootstrap-repository"
+          commit-message: "Bootstrap infrastructure-live repository"
+          title: "Bootstrap infrastructure-live repository"
+          body: |
+            This pull request adds all code required to set up your `infrastructure-live` repository.
+
+      - name: "[ProvisionDelegatedAccount] Show Pull Request URL in Summary"
+        if: ${{ steps.setup-action.outputs.workflow == 'provision-delegated-account.yml' && contains(steps.setup-action.outputs.terragrunt_command , 'apply') }}
+        env:
+          PR_URL: ${{steps.create_scaffolding_pr.outputs.pull-request-url }}
+          DELEGATED_REPO_NAME: ${{ steps.bootstrap.outputs.delegate_repo_name }}
+        run: |
+          echo "### Successfully bootstrapped $DELEGATED_REPO_NAME! 🚀" >> "$GITHUB_STEP_SUMMARY"
+          echo "[Link to Pull Request]($PR_URL)" >> "$GITHUB_STEP_SUMMARY"
+
+
     outputs:
       account_id: ${{ matrix.jobs.AccountId }}
       branch: ${{ steps.setup-action.outputs.branch }}
