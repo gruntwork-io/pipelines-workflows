@@ -241,7 +241,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: us-east-1
-          role-to-assume: "arn:aws:iam::${{ steps.bootstrap.outputs.management_account }}:role/${{ steps.bootstrap.outputs.role_name }}"
+          role-to-assume: "arn:aws:iam::${{ steps.bootstrap.outputs.account_id }}:role/${{ steps.bootstrap.outputs.role_name }}"
           role-duration-seconds: 3600
           role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
 
