@@ -147,7 +147,7 @@ jobs:
 
       - name: Bootstrap Workflow
         id: bootstrap
-        uses: ./.github/actions/bootstrap-workflows
+        uses: gruntwork-io-team/pipelines-bootstrap@main
         with:
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           change_type: ${{ matrix.jobs.ChangeType }}

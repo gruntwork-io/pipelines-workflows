@@ -1,0 +1,213 @@
+name: Pipelines Execute
+run-name: Run Gruntwork Pipelines
+on:
+  workflow_call:
+    secrets:
+      GRUNTWORK_CODE_ACCESS_TOKEN:
+        required: true
+
+env:
+  DEPLOY_BRANCH_NAME: main
+  GRUNTWORK_INSTALLER_VERSION: v0.0.39
+  MODULE_SECURITY_VERSION: v0.68.3
+  CONTROL_TOWER_MODULES_VERSION: v0.4.2
+  BOILERPLATE_VERSION: v0.5.8
+
+jobs:
+  preflight_checks:
+    name: Run config preflight checks for gruntwork pipelines
+    runs-on: ubuntu-latest
+    env:
+      GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+    steps:
+      - name: Update comment
+        uses: gruntwork-io/pipelines-status-update@v0.1.0
+        with:
+          step_name: "Preflight Checks"
+          step_status: "in_progress"
+
+      - name: Ensure CI User Variables are populated
+        shell: bash
+        run: |
+          if [[ -z "$GRUNTWORK_CODE_ACCESS_TOKEN" ]]; then echo "Missing GRUNTWORK_CODE_ACCESS_TOKEN"; exit 1; fi
+      # See https://stackoverflow.com/a/76151412
+      - uses: actions/checkout@v4
+        # Only run if this is a pull request and the target branch is main
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main' }}
+        with:
+          fetch-depth: 0
+      - name: Check if branch is ahead of main
+        # Only run if this is a pull request and the target branch is main
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main' }}
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if ! git merge-base --is-ancestor origin/main "$HEAD_SHA"; then
+            echo "::error::Branch is not up to date with main"
+            exit 1
+          fi
+      - name: Update comment
+        uses: gruntwork-io/pipelines-status-update@v0.1.0
+        with:
+          step_name: "Preflight Checks"
+          step_status: "success"
+          step_details: "Validated envvars and git branch status"
+
+  detect_changes:
+    name: Detect Infrastructure Changes
+    runs-on: ubuntu-latest
+    needs: [preflight_checks]
+    steps:
+      - name: Update comment
+        uses: gruntwork-io/pipelines-status-update@v0.1.0
+        with:
+          step_name: "Calculate Infrastructure Changes"
+          step_status: "in_progress"
+      - uses: actions/checkout@v4
+        with:
+          # Fetch all history
+          fetch-depth: 0
+
+      - name: Read Gruntwork config file
+        id: gruntwork
+        shell: bash
+        run: |
+          config="$(cat .gruntwork/config.yml | base64 -w 0)"
+          echo "config=$config" >> $GITHUB_OUTPUT
+          pipelines_cli_version="$(yq -r .pipelines.cli-version .gruntwork/config.yml)"
+          echo "pipelines_cli_version=$pipelines_cli_version" >> $GITHUB_OUTPUT
+
+      - name: Set custom ref variables
+        id: ref
+        # If this run was triggered manually, we'll use the source and target ref from the user input. Otherwise, we'll
+        # use our default approach.
+        # pull requests need to use pull_request.head.sha, rather than HEAD, because by default HEAD for PRs is a merge commit that isn't in the actual history
+        run: |
+          echo "source_ref=${{ inputs.source_ref || '$(./.github/scripts/source-ref.sh)'}}" >> $GITHUB_OUTPUT
+
+          if [[ '${{  github.event_name }}' = 'pull_request' ]]; then
+            echo "branch_ref=${{ inputs.target_ref || github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
+          else
+            echo "branch_ref=${{ inputs.target_ref || '$(git rev-parse HEAD)'}}" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
+
+      - name: Get event-type
+        id: event_type
+        run: |
+          if [[ "${GITHUB_REF##*/}" == "main" ]]; then
+              echo "event_type=push" >> $GITHUB_OUTPUT
+          else
+              echo "event_type=pr-synched-created" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Pipelines Orchestrate
+        id: orchestrate
+        uses: gruntwork-io/pipelines-orchestrate@v1.1.0
+        with:
+          repository-path: "."
+          repository-url: ${{ github.server_url }}/${{ github.repository }}
+          source-ref: ${{ steps.ref.outputs.source_ref }}
+          target-ref: ${{ steps.ref.outputs.branch_ref }}
+          event-type: ${{ steps.event_type.outputs.event_type }}
+          gruntwork-config: ${{ steps.gruntwork.outputs.config }}
+          # We do this because the `GRUNTWORK_CODE_ACCESS_TOKEN` might not be present when vending a delegated account, even though it's always present in the main `infrastructure-live` account.
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
+      - name: Update comment
+        uses: gruntwork-io/pipelines-status-update@v0.1.0
+        with:
+          step_name: "Calculate Infrastructure Changes"
+          step_status: "success"
+          step_details: ${{ steps.orchestrate.outputs.jobs }}
+    outputs:
+      pipelines_jobs: ${{ steps.orchestrate.outputs.jobs }}
+      pipelines_cli_version: ${{ steps.gruntwork.outputs.pipelines_cli_version }}
+
+  pipelines_determine:
+    name: ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
+    needs: [detect_changes]
+    runs-on: ubuntu-latest
+    # GHA can't check for length, so we just check if there is an item in the 0 index
+    if: fromJson(needs.detect_changes.outputs.pipelines_jobs)[0] != null
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        jobs: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs) }}
+    steps:
+      - name: Check out repo code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Update comment
+        uses: gruntwork-io/pipelines-status-update@v0.1.0
+        with:
+          step_name: ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
+          step_status: "in_progress"
+
+      - name: Bootstrap Workflow
+        id: bootstrap
+        uses: gruntwork-io-team/pipelines-bootstrap@main
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          change_type: ${{ matrix.jobs.ChangeType }}
+          branch: ${{ matrix.jobs.Ref }}
+          working_directory: ${{ matrix.jobs.WorkingDirectory }}
+          account_id: ${{ matrix.jobs.AccountId }}
+          terragrunt_command: ${{ matrix.jobs.Action.Command }} ${{ matrix.jobs.Action.Args }}
+          additional_data: ${{ toJson(matrix.jobs.AdditionalData) }}
+          child_account_id: ${{ matrix.jobs.AdditionalData.ChildAccountId }}
+          new_account_name: ${{ matrix.jobs.AdditionalData.AccountName }}
+          team_account_names: ${{ matrix.jobs.AdditionalData.TeamAccountNames }}
+
+      - name: Authenticate to AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          role-to-assume: "arn:aws:iam::${{ steps.bootstrap.outputs.account_id }}:role/${{ steps.bootstrap.outputs.role_name }}"
+          role-duration-seconds: 3600
+          role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
+
+      # If we're doing a pipelines policy update, assume the role in the child account from the mgmt account
+      - name: Authenticate to child AWS account
+        if: ${{ steps.bootstrap.outputs.workflow == 'terragrunt-executor.yml' && steps.bootstrap.outputs.child_account_id != '' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          role-to-assume: "arn:aws:iam::${{ steps.bootstrap.outputs.child_account_id }}:role/${{ steps.bootstrap.outputs.child_acct_role_name }}"
+          role-duration-seconds: 3600
+          role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
+          role-chaining: true
+
+      - name: Confirm Account Access
+        if: steps.bootstrap.outputs.workflow == 'terragrunt-executor.yml'
+        env:
+          ACCOUNT: ${{ steps.bootstrap.outputs.account_id }}
+          WORKING_DIRECTORY: ${{ steps.bootstrap.outputs.working_directory }}
+        run: echo "::notice ::Running in account $ACCOUNT and planning in $WORKING_DIRECTORY"
+
+      - name: Run terragrunt ${{ steps.bootstrap.outputs.terragrunt_command }} in ${{ steps.bootstrap.outputs.working_directory }}
+        id: terragrunt
+        uses: gruntwork-io/pipelines-execute@v3.0.0
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
+          tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
+          pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
+          working_directory: ${{ steps.bootstrap.outputs.working_directory }}
+          terragrunt_command: ${{ steps.bootstrap.outputs.terragrunt_command }}
+          infra_live_repo: '.'
+          infra_live_directory: '.'
+          infra_live_repo_branch: ${{ steps.bootstrap.outputs.branch }}
+          gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
+
+    outputs:
+      account_id: ${{ matrix.jobs.AccountId }}
+      branch: ${{ steps.bootstrap.outputs.branch }}
+      workflow: ${{ steps.bootstrap.outputs.workflow }}
+      working_directory: ${{ steps.bootstrap.outputs.working_directory }}
+      terragrunt_command: ${{ steps.bootstrap.outputs.terragrunt_command }}
+      additional_data: ${{ steps.bootstrap.outputs.additional_data }}
+      child_account_id: ${{ steps.bootstrap.outputs.child_account_id }}
+      new_account_name: ${{ steps.bootstrap.outputs.new_account_name }}
+      team_account_names: ${{ steps.bootstrap.outputs.team_account_names }}
