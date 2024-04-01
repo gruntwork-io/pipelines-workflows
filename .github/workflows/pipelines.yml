@@ -139,45 +139,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Setup Action
-        id: setup-action
-        env:
-          CHANGE_TYPE: ${{ matrix.jobs.ChangeType }}
-          BRANCH: ${{ matrix.jobs.Ref }}
-          WORKING_DIRECTORY: ${{ matrix.jobs.WorkingDirectory }}
-          ACCOUNT_ID: ${{ matrix.jobs.AccountId }}
-          TERRAGRUNT_COMMAND: ${{ matrix.jobs.Action.Command }} ${{ matrix.jobs.Action.Args }}
-          ADDITIONAL_DATA: ${{ toJson(matrix.jobs.AdditionalData) }}
-          CHILD_ACCOUNT_ID: ${{ matrix.jobs.AdditionalData.ChildAccountId }}
-          NEW_ACCOUNT_NAME: ${{ matrix.jobs.AdditionalData.AccountName }}
-          TEAM_ACCOUNT_NAMES: ${{ matrix.jobs.AdditionalData.TeamAccountNames }}
-        run: |
-          case $CHANGE_TYPE in
-            "AccountRequested")
-              echo "workflow=create-account-and-generate-baselines.yml" >> "$GITHUB_OUTPUT"
-              echo "new_account_name=$NEW_ACCOUNT_NAME" >> "$GITHUB_OUTPUT"
-              ;;
-            "AccountAdded")
-              echo "workflow=apply-new-account-baseline.yml" >> "$GITHUB_OUTPUT"
-              ;;
-            "TeamAccountsRequested")
-              echo "workflow=create-sdlc-accounts-and-generate-baselines.yml" >> "$GITHUB_OUTPUT"
-              echo "team_account_names=$TEAM_ACCOUNT_NAMES" >> "$GITHUB_OUTPUT"
-              ;;
-            "TeamAccountsAdded")
-              echo "workflow=apply-new-sdlc-accounts-baseline.yml" >> "$GITHUB_OUTPUT"
-              echo "additional_data=$ADDITIONAL_DATA" >> "$GITHUB_OUTPUT"
-              ;;
-            *)
-              echo "workflow=terragrunt-executor.yml" >> "$GITHUB_OUTPUT"
-              ;;
-              esac
-            echo "child_account_id=$CHILD_ACCOUNT_ID" >> "$GITHUB_OUTPUT"
-            echo "account_id=$ACCOUNT_ID" >> "$GITHUB_OUTPUT"
-            echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
-            echo "working_directory=$WORKING_DIRECTORY" >> "$GITHUB_OUTPUT"
-            echo "terragrunt_command=$TERRAGRUNT_COMMAND" >> "$GITHUB_OUTPUT"
       - name: Update comment
         uses: gruntwork-io/pipelines-status-update@v0.1.0
         with:
@@ -189,15 +150,12 @@ jobs:
         uses: ./.github/actions/bootstrap-workflows
         with:
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
-          terragrunt_command: ${{ steps.setup-action.outputs.terragrunt_command }}
-          branch: ${{ steps.setup-action.outputs.branch }}
-          role_prefix: ${{ steps.setup-action.outputs.role_prefix }}
 
       - name: Parse account IDs
         id: parse
-        if: steps.setup-action.outputs.workflow != 'terragrunt-executor.yml'
+        if: steps.bootstrap.outputs.workflow != 'terragrunt-executor.yml'
         env:
-          NEW_ACCOUNT_NAME: ${{ steps.setup-action.outputs.new_account_name }}
+          NEW_ACCOUNT_NAME: ${{ steps.bootstrap.outputs.new_account_name }}
         run: |
           security_account_id="$(yq -r ".\"security\".id" "./accounts.yml")"
           echo "security_account_id=$security_account_id" >> $GITHUB_OUTPUT
@@ -212,7 +170,7 @@ jobs:
           echo "account_id=$account_id" >> "$GITHUB_OUTPUT"
 
       - name: "[Baseline]: Authenticate to Security AWS account"
-        if: steps.setup-action.outputs.workflow == 'apply-new-account-baseline.yml'
+        if: steps.bootstrap.outputs.workflow == 'apply-new-account-baseline.yml'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: us-east-1
@@ -220,9 +178,9 @@ jobs:
           role-duration-seconds: 3600
           role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
 
-      - name: "[Baseline]: Run terragrunt ${{ steps.setup-action.outputs.terragrunt_command }} in security account"
+      - name: "[Baseline]: Run terragrunt ${{ steps.bootstrap.outputs.terragrunt_command }} in security account"
         id: terragrunt-apply-security
-        if: steps.setup-action.outputs.workflow == 'apply-new-account-baseline.yml'
+        if: steps.bootstrap.outputs.workflow == 'apply-new-account-baseline.yml'
         uses: gruntwork-io/pipelines-execute@v3.0.0
         with:
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
@@ -230,14 +188,14 @@ jobs:
           tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
           pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
           working_directory: security/_global/account-baseline
-          terragrunt_command: "${{ steps.setup-action.outputs.terragrunt_command }}"
+          terragrunt_command: "${{ steps.bootstrap.outputs.terragrunt_command }}"
           infra_live_repo: '.'
           infra_live_directory: '.'
-          infra_live_repo_branch: ${{ steps.setup-action.outputs.branch }}
+          infra_live_repo_branch: ${{ steps.bootstrap.outputs.branch }}
           gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
 
       - name: "[Baseline]: Authenticate to Logs AWS account"
-        if: steps.setup-action.outputs.workflow == 'apply-new-account-baseline.yml'
+        if: steps.bootstrap.outputs.workflow == 'apply-new-account-baseline.yml'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: us-east-1
@@ -245,9 +203,9 @@ jobs:
           role-duration-seconds: 3600
           role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
 
-      - name: "[Baseline]: Run terragrunt ${{ steps.setup-action.outputs.terragrunt_command }} in logs account"
+      - name: "[Baseline]: Run terragrunt ${{ steps.bootstrap.outputs.terragrunt_command }} in logs account"
         id: terragrunt-apply-logs
-        if: steps.setup-action.outputs.workflow == 'apply-new-account-baseline.yml'
+        if: steps.bootstrap.outputs.workflow == 'apply-new-account-baseline.yml'
         uses: gruntwork-io/pipelines-execute@v3.0.0
         with:
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
@@ -255,14 +213,14 @@ jobs:
           tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
           pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
           working_directory: logs/_global/account-baseline
-          terragrunt_command: "${{ steps.setup-action.outputs.terragrunt_command }}"
+          terragrunt_command: "${{ steps.bootstrap.outputs.terragrunt_command }}"
           infra_live_repo: '.'
           infra_live_directory: '.'
-          infra_live_repo_branch: ${{ steps.setup-action.outputs.branch }}
+          infra_live_repo_branch: ${{ steps.bootstrap.outputs.branch }}
           gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
 
       - name: "[Baseline]: Authenticate to Shared Services AWS account"
-        if: steps.setup-action.outputs.workflow == 'apply-new-account-baseline.yml'
+        if: steps.bootstrap.outputs.workflow == 'apply-new-account-baseline.yml'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: us-east-1
@@ -270,9 +228,9 @@ jobs:
           role-duration-seconds: 3600
           role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
 
-      - name: "[Baseline]: Run terragrunt ${{ steps.setup-action.outputs.terragrunt_command }} in shared account"
+      - name: "[Baseline]: Run terragrunt ${{ steps.bootstrap.outputs.terragrunt_command }} in shared account"
         id: terragrunt-apply-shared
-        if: steps.setup-action.outputs.workflow == 'apply-new-account-baseline.yml'
+        if: steps.bootstrap.outputs.workflow == 'apply-new-account-baseline.yml'
         uses: gruntwork-io/pipelines-execute@v3.0.0
         with:
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
@@ -280,19 +238,19 @@ jobs:
           tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
           pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
           working_directory: shared/_global/account-baseline
-          terragrunt_command: "${{ steps.setup-action.outputs.terragrunt_command }}"
+          terragrunt_command: "${{ steps.bootstrap.outputs.terragrunt_command }}"
           infra_live_repo: '.'
           infra_live_directory: '.'
-          infra_live_repo_branch: ${{ steps.setup-action.outputs.branch }}
+          infra_live_repo_branch: ${{ steps.bootstrap.outputs.branch }}
           gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
 
       # Finally, auth to the mgmt account so we can assume a role in the child account
       - name: "[Baseline]: Authenticate to AWS"
-        if: steps.setup-action.outputs.workflow == 'apply-new-account-baseline.yml'
+        if: steps.bootstrap.outputs.workflow == 'apply-new-account-baseline.yml'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: us-east-1
-          role-to-assume: "arn:aws:iam::${{ steps.setup-action.outputs.management_account }}:role/${{ steps.bootstrap.outputs.role_name }}"
+          role-to-assume: "arn:aws:iam::${{ steps.bootstrap.outputs.management_account }}:role/${{ steps.bootstrap.outputs.role_name }}"
           role-duration-seconds: 3600
           role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
 
@@ -301,10 +259,10 @@ jobs:
       # The "AWSControlTowerExecution" role being assumed here is created by Control Tower in each account it provisions
       # and it can be assumed by a role in the management account.
       - name: "[Baseline]: Assume role new child account"
-        if: steps.setup-action.outputs.workflow == 'apply-new-account-baseline.yml'
+        if: steps.bootstrap.outputs.workflow == 'apply-new-account-baseline.yml'
         env:
           SESSION_NAME: ${{ steps.bootstrap.outputs.role_session_name }}
-          CHILD_ACCOUNT: ${{ steps.setup-action.outputs.child_account_id }}
+          CHILD_ACCOUNT: ${{ steps.bootstrap.outputs.child_account_id }}
         run: |
           RESPONSE="$(aws sts assume-role --role-arn "arn:aws:iam::$CHILD_ACCOUNT:role/AWSControlTowerExecution" --role-session-name "$SESSION_NAME")"
           ASSUMED_ROLE_CREDS="$(echo "$RESPONSE" | jq -r '.Credentials')"
@@ -319,10 +277,10 @@ jobs:
           echo "::add-mask::$AWS_SESSION_TOKEN"
 
       - name: "[Baseline]: Confirm Account Access"
-        if: steps.setup-action.outputs.workflow == 'apply-new-account-baseline.yml'
+        if: steps.bootstrap.outputs.workflow == 'apply-new-account-baseline.yml'
         env:
-          CHILD_ACCOUNT: ${{ steps.setup-action.outputs.child_account_id }}
-          WORKING_DIRECTORY: ${{ steps.setup-action.outputs.working_directory }}
+          CHILD_ACCOUNT: ${{ steps.bootstrap.outputs.child_account_id }}
+          WORKING_DIRECTORY: ${{ steps.bootstrap.outputs.working_directory }}
         run: echo "::notice ::Running in account $CHILD_ACCOUNT and planning in $WORKING_DIRECTORY"
 
       # This Bootstrap step is a workaround for the error that happens when running plan-all for the first time in a
@@ -335,47 +293,47 @@ jobs:
       # Setting Terragrunt Parallelism to 1 does NOT prevent this error from happening. So we'll instead run an init in
       # a single module first to create the buckets so that subsequent run-all commands do not fail.
       - name: "[Baseline]: Bootstrap child account with state & logs S3 buckets"
-        if: ${{ contains(steps.setup-action.outputs.terragrunt_command, 'plan') && steps.setup-action.outputs.workflow == 'apply-new-account-baseline.yml' }}
+        if: ${{ contains(steps.bootstrap.outputs.terragrunt_command, 'plan') && steps.bootstrap.outputs.workflow == 'apply-new-account-baseline.yml' }}
         uses: gruntwork-io/pipelines-execute@v3.0.0
         with:
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
           tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
           pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
-          working_directory: "${{ steps.setup-action.outputs.working_directory }}/_global/account-baseline"
+          working_directory: "${{ steps.bootstrap.outputs.working_directory }}/_global/account-baseline"
           terragrunt_command: "init"
           infra_live_repo: '.'
           infra_live_directory: '.'
-          infra_live_repo_branch: ${{ steps.setup-action.outputs.branch }}
+          infra_live_repo_branch: ${{ steps.bootstrap.outputs.branch }}
           gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
 
       - name: Authenticate to AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: us-east-1
-          role-to-assume: "arn:aws:iam::${{ steps.setup-action.outputs.account_id }}:role/${{ steps.bootstrap.outputs.role_name }}"
+          role-to-assume: "arn:aws:iam::${{ steps.bootstrap.outputs.account_id }}:role/${{ steps.bootstrap.outputs.role_name }}"
           role-duration-seconds: 3600
           role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
 
       # If we're doing a pipelines policy update, assume the role in the child account from the mgmt account
       - name: Authenticate to child AWS account
-        if: ${{ steps.setup-action.outputs.workflow == 'terragrunt-executor.yml' && steps.setup-action.outputs.child_account_id != '' }}
+        if: ${{ steps.bootstrap.outputs.workflow == 'terragrunt-executor.yml' && steps.bootstrap.outputs.child_account_id != '' }}
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: us-east-1
-          role-to-assume: "arn:aws:iam::${{ steps.setup-action.outputs.child_account_id }}:role/${{ steps.bootstrap.outputs.child_acct_role_name }}"
+          role-to-assume: "arn:aws:iam::${{ steps.bootstrap.outputs.child_account_id }}:role/${{ steps.bootstrap.outputs.child_acct_role_name }}"
           role-duration-seconds: 3600
           role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
           role-chaining: true
 
       - name: Confirm Account Access
-        if: steps.setup-action.outputs.workflow == 'terragrunt-executor.yml'
+        if: steps.bootstrap.outputs.workflow == 'terragrunt-executor.yml'
         env:
-          ACCOUNT: ${{ steps.setup-action.outputs.account_id }}
-          WORKING_DIRECTORY: ${{ steps.setup-action.outputs.working_directory }}
+          ACCOUNT: ${{ steps.bootstrap.outputs.account_id }}
+          WORKING_DIRECTORY: ${{ steps.bootstrap.outputs.working_directory }}
         run: echo "::notice ::Running in account $ACCOUNT and planning in $WORKING_DIRECTORY"
 
-      - name: Run terragrunt ${{ steps.setup-action.outputs.terragrunt_command }} in ${{ steps.setup-action.outputs.working_directory }}
+      - name: Run terragrunt ${{ steps.bootstrap.outputs.terragrunt_command }} in ${{ steps.bootstrap.outputs.working_directory }}
         id: terragrunt
         uses: gruntwork-io/pipelines-execute@v3.0.0
         with:
@@ -383,19 +341,19 @@ jobs:
           tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
           tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
           pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
-          working_directory: ${{ steps.setup-action.outputs.working_directory }}
-          terragrunt_command: ${{ steps.setup-action.outputs.terragrunt_command }}
+          working_directory: ${{ steps.bootstrap.outputs.working_directory }}
+          terragrunt_command: ${{ steps.bootstrap.outputs.terragrunt_command }}
           infra_live_repo: '.'
           infra_live_directory: '.'
-          infra_live_repo_branch: ${{ steps.setup-action.outputs.branch }}
+          infra_live_repo_branch: ${{ steps.bootstrap.outputs.branch }}
           gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
 
       - name: "[ProvisionAccount]: Read account request"
         id: account_request
-        if:  ${{ steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' }}
+        if:  ${{ steps.bootstrap.outputs.workflow == 'create-account-and-generate-baselines.yml' }}
         # Only try this if we've actually created the account
         env:
-          NEW_ACCOUNT_NAME: ${{ steps.setup-action.outputs.new_account_name }}
+          NEW_ACCOUNT_NAME: ${{ steps.bootstrap.outputs.new_account_name }}
         run: |
           request_file_path="./_new-account-requests/account-$NEW_ACCOUNT_NAME.yml"
 
@@ -422,9 +380,9 @@ jobs:
 
       - name: "[ProvisionAccount]: Get requesting PR number"
         id: get_pr_number
-        if:  ${{ steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' && steps.setup-action.outputs.terragrunt_command == 'apply' }}
+        if:  ${{ steps.bootstrap.outputs.workflow == 'create-account-and-generate-baselines.yml' && steps.bootstrap.outputs.terragrunt_command == 'apply' }}
         env:
-          COMMIT_SHA: ${{ steps.setup-action.outputs.branch }}
+          COMMIT_SHA: ${{ steps.bootstrap.outputs.branch }}
           GH_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           REPO: ${{ github.repository }}
         run: |
@@ -433,7 +391,7 @@ jobs:
           echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
 
       - name: "[ProvisionAccount]: Check out terraform-aws-control-tower repo"
-        if: ${{ steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' && steps.setup-action.outputs.terragrunt_command == 'apply' }}
+        if: ${{ steps.bootstrap.outputs.workflow == 'create-account-and-generate-baselines.yml' && steps.bootstrap.outputs.terragrunt_command == 'apply' }}
         uses: actions/checkout@v4
         with:
           repository: gruntwork-io/terraform-aws-control-tower
@@ -442,7 +400,7 @@ jobs:
           ref: ${{ env.CONTROL_TOWER_MODULES_VERSION }}
 
       - name: "[ProvisionAccount]: Install boilerplate"
-        if:  ${{ steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' && steps.setup-action.outputs.terragrunt_command == 'apply' }}
+        if:  ${{ steps.bootstrap.outputs.workflow == 'create-account-and-generate-baselines.yml' && steps.bootstrap.outputs.terragrunt_command == 'apply' }}
         shell: bash
         env:
           GITHUB_OAUTH_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
@@ -451,16 +409,16 @@ jobs:
           gruntwork-install --binary-name boilerplate --repo https://github.com/gruntwork-io/boilerplate --tag "$BOILERPLATE_VERSION"
 
       - name: "[ProvisionAccount]: Run boilerplate to generate code"
-        if:  ${{ steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' && steps.setup-action.outputs.terragrunt_command == 'apply' }}
+        if:  ${{ steps.bootstrap.outputs.workflow == 'create-account-and-generate-baselines.yml' && steps.bootstrap.outputs.terragrunt_command == 'apply' }}
         shell: bash
         env:
-          ACCOUNT_NAME: ${{ steps.setup-action.outputs.new_account_name }}
+          ACCOUNT_NAME: ${{ steps.bootstrap.outputs.new_account_name }}
           AWS_REGION: ${{ steps.account_request.outputs.aws_region }}
           ORG_NAME_PREFIX: ${{ steps.account_request.outputs.org_name_prefix }}
           ACCOUNT_BASELINE_MODULES_VERSION: ${{ steps.account_request.outputs.account_baseline_modules_version }}
           ACCOUNT_BASELINE_CIS_SERVICE_CATALOG_VERSION: ${{ steps.account_request.outputs.account_baseline_cis_service_catalog_version }}
           REQUESTING_TEAM_NAME: ${{ steps.account_request.outputs.requesting_team_name }}
-          DEFAULT_TAGS: ${{ steps.setup-action.outputs.default_tags }}
+          DEFAULT_TAGS: ${{ steps.bootstrap.outputs.default_tags }}
           CREATE_VPC: ${{ steps.account_request.outputs.create_vpc  }}
         run: |
           boilerplate \
@@ -478,21 +436,21 @@ jobs:
             --non-interactive
 
       - name: "[ProvisionAccount]: Remove Control Tower Repo"
-        if:  ${{ steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' && steps.setup-action.outputs.terragrunt_command == 'apply' }}
+        if:  ${{ steps.bootstrap.outputs.workflow == 'create-account-and-generate-baselines.yml' && steps.bootstrap.outputs.terragrunt_command == 'apply' }}
         run: rm -rf terraform-aws-control-tower
 
       - name: "[ProvisionAccount]: Create Pull Request"
-        if:  ${{ steps.setup-action.outputs.workflow == 'create-account-and-generate-baselines.yml' && steps.setup-action.outputs.terragrunt_command == 'apply' }}
+        if:  ${{ steps.bootstrap.outputs.workflow == 'create-account-and-generate-baselines.yml' && steps.bootstrap.outputs.terragrunt_command == 'apply' }}
         id: create_pr
         uses: peter-evans/create-pull-request@v6
         with:
           base: main
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
-          branch: "enhancement/baseline-account-${{ steps.setup-action.outputs.new_account_name }}"
-          commit-message: "Generate account baseline for: ${{ steps.setup-action.outputs.new_account_name }}"
-          title: "Generate account baseline for: ${{ steps.setup-action.outputs.new_account_name }}"
+          branch: "enhancement/baseline-account-${{ steps.bootstrap.outputs.new_account_name }}"
+          commit-message: "Generate account baseline for: ${{ steps.bootstrap.outputs.new_account_name }}"
+          title: "Generate account baseline for: ${{ steps.bootstrap.outputs.new_account_name }}"
           body: |
-            This pull request applies an account baseline to the **${{ steps.setup-action.outputs.new_account_name }}** AWS account, which was created in https://github.com/${{ github.repository }}/pull/${{ steps.get_pr_number.outputs.pr_number }} using Gruntwork Landing Zone. To **apply** this baseline, do the following:
+            This pull request applies an account baseline to the **${{ steps.bootstrap.outputs.new_account_name }}** AWS account, which was created in https://github.com/${{ github.repository }}/pull/${{ steps.get_pr_number.outputs.pr_number }} using Gruntwork Landing Zone. To **apply** this baseline, do the following:
 
               1. Inspect the details in this pull request and confirm correctness.
               2. Merge this pull request.
@@ -502,7 +460,7 @@ jobs:
 
 
       - name: "[ProvisionDelegatedAccount] Create new delegated repo"
-        if: ${{ steps.setup-action.outputs.workflow == 'provision-delegated-account.yml' && contains(steps.setup-action.outputs.terragrunt_command , 'apply') }}
+        if: ${{ steps.bootstrap.outputs.workflow == 'provision-delegated-account.yml' && contains(steps.bootstrap.outputs.terragrunt_command , 'apply') }}
         env:
           GH_TOKEN: ${{secrets.MANAGE_REPOS_TOKEN }}
           GH_ORG: ${{github.repository_owner }}
@@ -540,7 +498,7 @@ jobs:
           fi
 
       - name: "[ProvisionDelegatedAccount] Set new repo branch protection"
-        if: ${{ steps.setup-action.outputs.workflow == 'provision-delegated-account.yml' && contains(steps.setup-action.outputs.terragrunt_command , 'apply') }}
+        if: ${{ steps.bootstrap.outputs.workflow == 'provision-delegated-account.yml' && contains(steps.bootstrap.outputs.terragrunt_command , 'apply') }}
         env:
           GH_TOKEN: ${{secrets.MANAGE_REPOS_TOKEN }}
           GH_ORG: ${{github.repository_owner }}
@@ -556,7 +514,7 @@ jobs:
             -d '{ "required_status_checks": { "strict": true, "checks": [ ] }, "required_pull_request_reviews": { "require_code_owner_reviews": true, "require_last_push_approval": true, "required_approving_review_count": 1 }, "enforce_admins": false, "restrictions": null }'
 
       - name: "[ProvisionDelegatedAccount] Assign ci-user as repo collaborator"
-        if: ${{ steps.setup-action.outputs.workflow == 'provision-delegated-account.yml' && contains(steps.setup-action.outputs.terragrunt_command , 'apply') }}
+        if: ${{ steps.bootstrap.outputs.workflow == 'provision-delegated-account.yml' && contains(steps.bootstrap.outputs.terragrunt_command , 'apply') }}
         env:
           GH_TOKEN: ${{secrets.MANAGE_REPOS_TOKEN }}
           GH_ORG: ${{github.repository_owner }}
@@ -572,7 +530,7 @@ jobs:
             -f permission='read'
 
       - name: "[ProvisionDelegatedAccount] Checkout new delegated repo"
-        if: ${{ steps.setup-action.outputs.workflow == 'provision-delegated-account.yml' && contains(steps.setup-action.outputs.terragrunt_command , 'apply') }}
+        if: ${{ steps.bootstrap.outputs.workflow == 'provision-delegated-account.yml' && contains(steps.bootstrap.outputs.terragrunt_command , 'apply') }}
         uses: actions/checkout@v4
         with:
           token: ${{secrets.MANAGE_REPOS_TOKEN }}
@@ -582,14 +540,14 @@ jobs:
           fetch-depth: 0
 
       - name: "[ProvisionDelegatedAccount] Install boilerplate"
-        if: ${{ steps.setup-action.outputs.workflow == 'provision-delegated-account.yml' && contains(steps.setup-action.outputs.terragrunt_command , 'apply') }}
+        if: ${{ steps.bootstrap.outputs.workflow == 'provision-delegated-account.yml' && contains(steps.bootstrap.outputs.terragrunt_command , 'apply') }}
         shell: bash
         run: |
           curl -Ls https://raw.githubusercontent.com/gruntwork-io/gruntwork-installer/main/bootstrap-gruntwork-installer.sh | bash /dev/stdin --version "$GRUNTWORK_INSTALLER_VERSION"
           gruntwork-install --binary-name boilerplate --repo https://github.com/gruntwork-io/boilerplate --tag "$BOILERPLATE_VERSION"
 
       - name: "[ProvisionDelegatedAccount] Checkout architecture catalog"
-        if: ${{ steps.setup-action.outputs.workflow == 'provision-delegated-account.yml' && contains(steps.setup-action.outputs.terragrunt_command , 'apply') }}
+        if: ${{ steps.bootstrap.outputs.workflow == 'provision-delegated-account.yml' && contains(steps.bootstrap.outputs.terragrunt_command , 'apply') }}
         uses: actions/checkout@v4
         with:
           token: ${{secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
@@ -598,7 +556,7 @@ jobs:
           ref: ${{env.ARCH_CATALOG_VERSION }}
 
       - name: "[ProvisionDelegatedAccount] Run boilerplate to scaffold new delegated repo"
-        if: ${{ steps.setup-action.outputs.workflow == 'provision-delegated-account.yml' && contains(steps.setup-action.outputs.terragrunt_command , 'apply') }}
+        if: ${{ steps.bootstrap.outputs.workflow == 'provision-delegated-account.yml' && contains(steps.bootstrap.outputs.terragrunt_command , 'apply') }}
         shell: bash
         working-directory: ${{ steps.bootstrap.outputs.delegate_repo_name }}
         env:
@@ -643,7 +601,7 @@ jobs:
             --non-interactive
 
       - name: "[ProvisionDelegatedAccount] Create Pull Request in new delegated repo with scaffolding"
-        if: ${{ steps.setup-action.outputs.workflow == 'provision-delegated-account.yml' && contains(steps.setup-action.outputs.terragrunt_command , 'apply') }}
+        if: ${{ steps.bootstrap.outputs.workflow == 'provision-delegated-account.yml' && contains(steps.bootstrap.outputs.terragrunt_command , 'apply') }}
         id: create_scaffolding_pr
         uses: peter-evans/create-pull-request@v6
         with:
@@ -657,7 +615,7 @@ jobs:
             This pull request adds all code required to set up your `infrastructure-live` repository.
 
       - name: "[ProvisionDelegatedAccount] Show Pull Request URL in Summary"
-        if: ${{ steps.setup-action.outputs.workflow == 'provision-delegated-account.yml' && contains(steps.setup-action.outputs.terragrunt_command , 'apply') }}
+        if: ${{ steps.bootstrap.outputs.workflow == 'provision-delegated-account.yml' && contains(steps.bootstrap.outputs.terragrunt_command , 'apply') }}
         env:
           PR_URL: ${{steps.create_scaffolding_pr.outputs.pull-request-url }}
           DELEGATED_REPO_NAME: ${{ steps.bootstrap.outputs.delegate_repo_name }}
@@ -668,11 +626,11 @@ jobs:
 
     outputs:
       account_id: ${{ matrix.jobs.AccountId }}
-      branch: ${{ steps.setup-action.outputs.branch }}
-      workflow: ${{ steps.setup-action.outputs.workflow }}
-      working_directory: ${{ steps.setup-action.outputs.working_directory }}
-      terragrunt_command: ${{ steps.setup-action.outputs.terragrunt_command }}
-      additional_data: ${{ steps.setup-action.outputs.additional_data }}
-      child_account_id: ${{ steps.setup-action.outputs.child_account_id }}
-      new_account_name: ${{ steps.setup-action.outputs.new_account_name }}
-      team_account_names: ${{ steps.setup-action.outputs.team_account_names }}
+      branch: ${{ steps.bootstrap.outputs.branch }}
+      workflow: ${{ steps.bootstrap.outputs.workflow }}
+      working_directory: ${{ steps.bootstrap.outputs.working_directory }}
+      terragrunt_command: ${{ steps.bootstrap.outputs.terragrunt_command }}
+      additional_data: ${{ steps.bootstrap.outputs.additional_data }}
+      child_account_id: ${{ steps.bootstrap.outputs.child_account_id }}
+      new_account_name: ${{ steps.bootstrap.outputs.new_account_name }}
+      team_account_names: ${{ steps.bootstrap.outputs.team_account_names }}

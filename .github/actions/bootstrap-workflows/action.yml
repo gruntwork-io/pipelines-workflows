@@ -4,12 +4,6 @@ inputs:
   token:
     description: "The GitHub token to use for checking out the infrastructure-live repo"
     required: true
-  terragrunt_command:
-    description: "The terragrunt command to run"
-    required: true
-  branch:
-    description: "The branch in infrastructure-live repo in which to run the command"
-    required: true
   distinct_id:
     description: "Used to identify this workflow so that we can wait on it"
     required: true
@@ -17,9 +11,6 @@ inputs:
     description: "The name of the configured deploy branch"
     required: false
     default: main
-  role_prefix:
-    description: "The prefix to use for the role name"
-    required: true
     # e.g. team, central, access-control
     # central will be root.
 
@@ -52,6 +43,45 @@ outputs:
 runs:
   using: composite
   steps:
+    - name: Setup Action
+      id: setup-action
+      shell: bash
+      env:
+        CHANGE_TYPE: ${{ matrix.jobs.ChangeType }}
+        BRANCH: ${{ matrix.jobs.Ref }}
+        WORKING_DIRECTORY: ${{ matrix.jobs.WorkingDirectory }}
+        ACCOUNT_ID: ${{ matrix.jobs.AccountId }}
+        TERRAGRUNT_COMMAND: ${{ matrix.jobs.Action.Command }} ${{ matrix.jobs.Action.Args }}
+        ADDITIONAL_DATA: ${{ toJson(matrix.jobs.AdditionalData) }}
+        CHILD_ACCOUNT_ID: ${{ matrix.jobs.AdditionalData.ChildAccountId }}
+        NEW_ACCOUNT_NAME: ${{ matrix.jobs.AdditionalData.AccountName }}
+        TEAM_ACCOUNT_NAMES: ${{ matrix.jobs.AdditionalData.TeamAccountNames }}
+      run: |
+        case $CHANGE_TYPE in
+          "AccountRequested")
+            echo "workflow=create-account-and-generate-baselines.yml" >> "$GITHUB_OUTPUT"
+            echo "new_account_name=$NEW_ACCOUNT_NAME" >> "$GITHUB_OUTPUT"
+            ;;
+          "AccountAdded")
+            echo "workflow=apply-new-account-baseline.yml" >> "$GITHUB_OUTPUT"
+            ;;
+          "TeamAccountsRequested")
+            echo "workflow=create-sdlc-accounts-and-generate-baselines.yml" >> "$GITHUB_OUTPUT"
+            echo "team_account_names=$TEAM_ACCOUNT_NAMES" >> "$GITHUB_OUTPUT"
+            ;;
+          "TeamAccountsAdded")
+            echo "workflow=apply-new-sdlc-accounts-baseline.yml" >> "$GITHUB_OUTPUT"
+            echo "additional_data=$ADDITIONAL_DATA" >> "$GITHUB_OUTPUT"
+            ;;
+          *)
+            echo "workflow=terragrunt-executor.yml" >> "$GITHUB_OUTPUT"
+            ;;
+            esac
+          echo "child_account_id=$CHILD_ACCOUNT_ID" >> "$GITHUB_OUTPUT"
+          echo "account_id=$ACCOUNT_ID" >> "$GITHUB_OUTPUT"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "working_directory=$WORKING_DIRECTORY" >> "$GITHUB_OUTPUT"
+          echo "terragrunt_command=$TERRAGRUNT_COMMAND" >> "$GITHUB_OUTPUT"
     - name: Read infra-pipelines' Gruntwork config file
       id: read_gruntwork_config
       shell: bash
