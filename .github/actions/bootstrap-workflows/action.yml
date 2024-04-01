@@ -38,8 +38,6 @@ inputs:
   TEAM_ACCOUNT_NAMES:
     description: ""
     required: true
-    # e.g. team, central, access-control
-    # central will be root.
 
 outputs:
   gruntwork_config:
@@ -84,6 +82,16 @@ outputs:
   terragrunt_command:
     description: "Terragrunt command to run e.g. plan/apply"
     value: ${{ steps.setup-action.outputs.terragrunt_command }}
+  security_account_id:
+    description: "AWS Account ID of the Security Account"
+    value: ${{ steps.parse.outputs.security_account_id }}
+  shared_account_id:
+    description: "AWS Account ID of the Shared Account"
+    value: ${{ steps.parse.outputs.shared_account_id }}
+  logs_account_id:
+    description: "AWS Account ID of the Logs Account"
+    value: ${{ steps.parse.outputs.logs_account_id }}
+
 runs:
   using: composite
   steps:
@@ -216,3 +224,16 @@ runs:
 
         echo "role_name=$role_name" >>$GITHUB_OUTPUT
         echo "child_acct_role_name=$child_acct_role_name" >>$GITHUB_OUTPUT
+
+
+    - name: Parse account IDs
+      id: parse
+      if: steps.setup-action.outputs.workflow != 'terragrunt-executor.yml'
+      shell: bash
+      run: |
+        security_account_id="$(yq -r ".\"security\".id" "./accounts.yml")"
+        echo "security_account_id=$security_account_id" >> $GITHUB_OUTPUT
+        shared_account_id="$(yq -r ".\"shared\".id" "./accounts.yml")"
+        echo "shared_account_id=$shared_account_id" >> $GITHUB_OUTPUT
+        logs_account_id="$(yq -r ".\"logs\".id" "./accounts.yml")"
+        echo "logs_account_id=$logs_account_id" >> $GITHUB_OUTPUT

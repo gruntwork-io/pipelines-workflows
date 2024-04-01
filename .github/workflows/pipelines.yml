@@ -160,19 +160,6 @@ jobs:
           NEW_ACCOUNT_NAME: ${{ matrix.jobs.AdditionalData.AccountName }}
           TEAM_ACCOUNT_NAMES: ${{ matrix.jobs.AdditionalData.TeamAccountNames }}
 
-      - name: Parse account IDs
-        id: parse
-        if: steps.bootstrap.outputs.workflow != 'terragrunt-executor.yml'
-        env:
-          NEW_ACCOUNT_NAME: ${{ steps.bootstrap.outputs.new_account_name }}
-        run: |
-          security_account_id="$(yq -r ".\"security\".id" "./accounts.yml")"
-          echo "security_account_id=$security_account_id" >> $GITHUB_OUTPUT
-          shared_account_id="$(yq -r ".\"shared\".id" "./accounts.yml")"
-          echo "shared_account_id=$shared_account_id" >> $GITHUB_OUTPUT
-          logs_account_id="$(yq -r ".\"logs\".id" "./accounts.yml")"
-          echo "logs_account_id=$logs_account_id" >> $GITHUB_OUTPUT
-
       - name: "[Baseline]: Authenticate to Security AWS account"
         if: steps.bootstrap.outputs.workflow == 'apply-new-account-baseline.yml'
         uses: aws-actions/configure-aws-credentials@v4
