@@ -39,7 +39,24 @@ outputs:
   admins:
     description: "The list of GitHub users that are allowed to use admin functionality in workflows"
     value: ${{ steps.get_pipelines_admins.outputs.admins }}
-
+  workflow:
+    description: "The type of workflow to run in this job"
+    value: ${{ steps.setup-action.outputs.workflow }}
+  child_account_id:
+    description: "The child account id to assume from `account_id`"
+    value: ${{ steps.setup-action.outputs.workflow }}
+  account_id:
+    description: "The management account Id to use"
+    value: ${{ steps.setup-action.outputs.account_id }}
+  branch:
+    description: "The branch we're operating on"
+    value: ${{ steps.setup-action.outputs.branch }}
+  working_directory:
+    description: "Where to run terragrunt"
+    value: ${{ steps.setup-action.outputs.working_directory }}
+  terragrunt_command:
+    description: "Terragrunt command to run e.g. plan/apply"
+    value: ${{ steps.setup-action.outputs.terragrunt_command }}
 runs:
   using: composite
   steps:
@@ -101,8 +118,8 @@ runs:
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.token }}
-        COMMIT_SHA: ${{ inputs.branch }}
-        TG_CMD: ${{ inputs.terragrunt_command }}
+        COMMIT_SHA: ${{ steps.setup-action.outputs.branch }}
+        TG_CMD: ${{ steps.setup-action.outputs.terragrunt_command }}
       run: |
         if [[ $TG_CMD =~ ^(plan|run-all plan) ]]; then
           PR_SEARCH=$(gh pr list --search $COMMIT_SHA --json author --json mergedBy --json number --json baseRefName --json commits)
@@ -165,8 +182,8 @@ runs:
       id: get_role_name
       shell: bash
       env:
-        TG_CMD: ${{ inputs.terragrunt_command }}
-        ROLE_PREFIX: ${{ inputs.role_prefix }}
+        TG_CMD: ${{ steps.setup-action.outputs.terragrunt_command }}
+        ROLE_PREFIX: ${{ steps.setup-action.outputs.role_prefix }}
       run: |
         role_suffix="pipelines-plan"
         child_acct_role_name="pipelines-policy-plan-update"
