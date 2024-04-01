@@ -120,7 +120,7 @@ jobs:
           step_name: "Detect Infrastructure Changes"
           step_status: "success"
           step_details_preview: "Detected Changes"
-          step_details: "```${{ toJson(steps.orchestrate.outputs.jobs) }}```"
+          step_details: "```json\n${{ toJson(steps.orchestrate.outputs.jobs) }}```"
 
     outputs:
       pipelines_jobs: ${{ steps.orchestrate.outputs.jobs }}
