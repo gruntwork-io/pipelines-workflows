@@ -118,7 +118,8 @@ jobs:
         with:
           step_name: "Calculate Infrastructure Changes"
           step_status: "success"
-          step_details: ${{ steps.orchestrate.outputs.jobs }}
+          step_details: "```${{ steps.orchestrate.outputs.jobs }}```"
+
     outputs:
       pipelines_jobs: ${{ steps.orchestrate.outputs.jobs }}
       pipelines_cli_version: ${{ steps.gruntwork.outputs.pipelines_cli_version }}
@@ -139,6 +140,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - name: Update comment
         uses: gruntwork-io/pipelines-status-update@v0.1.0
         with:
@@ -201,6 +203,13 @@ jobs:
           infra_live_repo_branch: ${{ steps.bootstrap.outputs.branch }}
           gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
 
+      - name: Update comment
+        if: always()
+        uses: gruntwork-io/pipelines-status-update@v0.1.0
+        with:
+          step_name: ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
+          step_status: ${{ steps.terragrunt.conclusion == 'success' && 'success' || 'failed' }}
+          step_details: "```plan would go here```"
     outputs:
       account_id: ${{ matrix.jobs.AccountId }}
       branch: ${{ steps.bootstrap.outputs.branch }}

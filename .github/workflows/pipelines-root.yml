@@ -339,6 +339,14 @@ jobs:
           infra_live_repo_branch: ${{ steps.bootstrap.outputs.branch }}
           gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
 
+
+      - name: "[ProvisionAccount]: Setup access-control PR"
+        id: provision_access_control
+        if:  ${{ steps.bootstrap.outputs.workflow == 'create-account-and-generate-baselines.yml' }}
+        uses: gruntwork-io-team/pipelines-setup-access-control@main
+        with:
+          new_account_name: ${{ steps.bootstrap.outputs.new_account_name }}
+
       - name: "[ProvisionAccount]: Read account request"
         id: account_request
         if:  ${{ steps.bootstrap.outputs.workflow == 'create-account-and-generate-baselines.yml' }}
