@@ -165,7 +165,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: us-east-1
-          role-to-assume: "arn:aws:iam::${{ steps.parse.outputs.security_account_id }}:role/${{ steps.bootstrap.outputs.role_name }}"
+          role-to-assume: "arn:aws:iam::${{ steps.bootstrap.outputs.security_account_id }}:role/${{ steps.bootstrap.outputs.role_name }}"
           role-duration-seconds: 3600
           role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
 
@@ -190,7 +190,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: us-east-1
-          role-to-assume: "arn:aws:iam::${{ steps.parse.outputs.logs_account_id }}:role/${{ steps.bootstrap.outputs.role_name }}"
+          role-to-assume: "arn:aws:iam::${{ steps.bootstrap.outputs.logs_account_id }}:role/${{ steps.bootstrap.outputs.role_name }}"
           role-duration-seconds: 3600
           role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
 
@@ -215,7 +215,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: us-east-1
-          role-to-assume: "arn:aws:iam::${{ steps.parse.outputs.shared_account_id }}:role/${{ steps.bootstrap.outputs.role_name }}"
+          role-to-assume: "arn:aws:iam::${{ steps.bootstrap.outputs.shared_account_id }}:role/${{ steps.bootstrap.outputs.role_name }}"
           role-duration-seconds: 3600
           role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
 
