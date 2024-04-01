@@ -506,7 +506,7 @@ jobs:
         env:
           GH_TOKEN: ${{secrets.MANAGE_REPOS_TOKEN }}
           GH_ORG: ${{github.repository_owner }}
-          GH_DELEGATED_REPO_NAME: ${{ .delegate_repo_name }}
+          GH_DELEGATED_REPO_NAME: ${{ steps.bootstrap.outputs.delegate_repo_name }}
         run: |
           # Check if the repo exists before trying to create it
           GH_REPO_STATUS_CODE="$(curl --silent --write-out '%{http_code}' --output /dev/null \
@@ -570,54 +570,6 @@ jobs:
             -H "X-GitHub-Api-Version: 2022-11-28" \
             "/repos/$GH_ORG/$GH_DELEGATED_REPO_NAME/collaborators/$GH_CI_RO_USER" \
             -f permission='read'
-
-      - name: "[ProvisionDelegatedAccount] Add new repository to Gruntwork repo-allow-list"
-        if: ${{ steps.setup-action.outputs.workflow == 'provision-delegated-account.yml' && contains(steps.setup-action.outputs.terragrunt_command , 'apply') }}
-        id: update_repo_allow_list
-        env:
-          GH_TOKEN: ${{secrets.MANAGE_REPOS_TOKEN }}
-          GH_ORG: ${{github.repository_owner }}
-          GH_DELEGATED_REPO_NAME: ${{ steps.bootstrap.outputs.delegate_repo_name }}
-        run: |
-          # Check if repo is already in repo-allow-list
-          REPO_IN_ALLOW_LIST="$(yq ".repo-allow-list | any_c(.  == \"$GH_ORG/$GH_DELEGATED_REPO_NAME\")" .gruntwork/config.yml)"
-          if [[ "$REPO_IN_ALLOW_LIST" == "false" ]]; then
-            echo "Adding $GH_ORG/$GH_DELEGATED_REPO_NAME to repo-allow-list."
-            yq ".repo-allow-list += \"$GH_ORG/$GH_DELEGATED_REPO_NAME\"" -i .gruntwork/config.yml
-            echo "create_pr=true" >> $GITHUB_OUTPUT
-          elif [[ "$REPO_IN_ALLOW_LIST" == "true" ]]; then
-            echo "Repo $GH_ORG/$GH_DELEGATED_REPO_NAME already exists in repo-allow-list. Skipping PR creation."
-            echo "create_pr=false" >> $GITHUB_OUTPUT
-          else
-            echo "Unspecified error. Exiting"
-            echo "create_pr=false" >> $GITHUB_OUTPUT
-            exit 1
-          fi
-
-      - name: "[ProvisionDelegatedAccount] Create Pull Request to add the new repo to the allow list"
-        if: ${{ steps.setup-action.outputs.workflow == 'provision-delegated-account.yml' && steps.update_repo_allow_list.outputs.create_pr == 'true' }}
-        id: create_pr_allow_list
-        uses: peter-evans/create-pull-request@v6
-        with:
-          base: main
-          token: ${{secrets.MANAGE_REPOS_TOKEN }}
-          add-paths: .gruntwork/config.yml
-          branch: "enhancement/repo-${{ steps.bootstrap.outputs.delegate_repo_name }}"
-          commit-message: "Add repo-allow-list permissions for ${{github.repository_owner }}/${{ steps.bootstrap.outputs.delegate_repo_name }}"
-          title: "Add repo-allow-list permissions for ${{github.repository_owner }}/${{ steps.bootstrap.outputs.delegate_repo_name }}"
-          body: |
-            This pull request updates the `config.yml` `repo-allow-list` permissions file with the newly created `infrastructure-live` repository ${{github.repository_owner }}/${{ steps.bootstrap.outputs.delegate_repo_name }}.
-
-      - name: "[ProvisionDelegatedAccount] Merge PR to add the new reop to the allow list"
-        if: ${{ steps.setup-action.outputs.workflow == 'provision-delegated-account.yml' && steps.update_repo_allow_list.outputs.create_pr == 'true' }}
-        env:
-          GH_TOKEN: ${{secrets.MANAGE_REPOS_TOKEN }}
-          GH_ORG: ${{github.repository_owner }}
-          GH_DELEGATED_REPO_NAME: ${{ steps.bootstrap.outputs.delegate_repo_name }}
-          PR_NUMBER: ${{steps.create_pr_allow_list.outputs.pull-request-number }}
-        run: |
-          # Merge the repo allow list PR and delete the branch
-          gh -R "{{ .GithubOrg }}/{{ .InfraPipelinesRepoName }}" pr merge --admin --squash --delete-branch "$PR_NUMBER"
 
       - name: "[ProvisionDelegatedAccount] Checkout new delegated repo"
         if: ${{ steps.setup-action.outputs.workflow == 'provision-delegated-account.yml' && contains(steps.setup-action.outputs.terragrunt_command , 'apply') }}
