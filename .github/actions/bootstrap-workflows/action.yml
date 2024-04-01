@@ -11,6 +11,33 @@ inputs:
     description: "The name of the configured deploy branch"
     required: false
     default: main
+  CHANGE_TYPE:
+    description: ""
+    required: true
+  BRANCH:
+    description: ""
+    required: true
+  WORKING_DIRECTORY:
+    description: ""
+    required: true
+  ACCOUNT_ID:
+    description: ""
+    required: true
+  TERRAGRUNT_COMMAND:
+    description: ""
+    required: true
+  ADDITIONAL_DATA:
+    description: ""
+    required: true
+  CHILD_ACCOUNT_ID:
+    description: ""
+    required: true
+  NEW_ACCOUNT_NAME:
+    description: ""
+    required: true
+  TEAM_ACCOUNT_NAMES:
+    description: ""
+    required: true
     # e.g. team, central, access-control
     # central will be root.
 
@@ -63,16 +90,6 @@ runs:
     - name: Setup Action
       id: setup-action
       shell: bash
-      env:
-        CHANGE_TYPE: ${{ matrix.jobs.ChangeType }}
-        BRANCH: ${{ matrix.jobs.Ref }}
-        WORKING_DIRECTORY: ${{ matrix.jobs.WorkingDirectory }}
-        ACCOUNT_ID: ${{ matrix.jobs.AccountId }}
-        TERRAGRUNT_COMMAND: ${{ matrix.jobs.Action.Command }} ${{ matrix.jobs.Action.Args }}
-        ADDITIONAL_DATA: ${{ toJson(matrix.jobs.AdditionalData) }}
-        CHILD_ACCOUNT_ID: ${{ matrix.jobs.AdditionalData.ChildAccountId }}
-        NEW_ACCOUNT_NAME: ${{ matrix.jobs.AdditionalData.AccountName }}
-        TEAM_ACCOUNT_NAMES: ${{ matrix.jobs.AdditionalData.TeamAccountNames }}
       run: |
         case $CHANGE_TYPE in
           "AccountRequested")

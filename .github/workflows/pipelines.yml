@@ -150,6 +150,15 @@ jobs:
         uses: ./.github/actions/bootstrap-workflows
         with:
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          CHANGE_TYPE: ${{ matrix.jobs.ChangeType }}
+          BRANCH: ${{ matrix.jobs.Ref }}
+          WORKING_DIRECTORY: ${{ matrix.jobs.WorkingDirectory }}
+          ACCOUNT_ID: ${{ matrix.jobs.AccountId }}
+          TERRAGRUNT_COMMAND: ${{ matrix.jobs.Action.Command }} ${{ matrix.jobs.Action.Args }}
+          ADDITIONAL_DATA: ${{ toJson(matrix.jobs.AdditionalData) }}
+          CHILD_ACCOUNT_ID: ${{ matrix.jobs.AdditionalData.ChildAccountId }}
+          NEW_ACCOUNT_NAME: ${{ matrix.jobs.AdditionalData.AccountName }}
+          TEAM_ACCOUNT_NAMES: ${{ matrix.jobs.AdditionalData.TeamAccountNames }}
 
       - name: Parse account IDs
         id: parse
@@ -163,11 +172,6 @@ jobs:
           echo "shared_account_id=$shared_account_id" >> $GITHUB_OUTPUT
           logs_account_id="$(yq -r ".\"logs\".id" "./accounts.yml")"
           echo "logs_account_id=$logs_account_id" >> $GITHUB_OUTPUT
-
-          # The multi-account-factory updates the accounts.yml file with the ID of any created account.
-          account_id="$(yq -r ".$NEW_ACCOUNT_NAME.id" ./accounts.yml)"
-          echo "Account ID of $NEW_ACCOUNT_NAME is: $account_id"
-          echo "account_id=$account_id" >> "$GITHUB_OUTPUT"
 
       - name: "[Baseline]: Authenticate to Security AWS account"
         if: steps.bootstrap.outputs.workflow == 'apply-new-account-baseline.yml'
