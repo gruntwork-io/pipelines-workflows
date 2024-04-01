@@ -51,6 +51,7 @@ jobs:
         with:
           step_name: "Preflight Checks"
           step_status: "success"
+          step_details_preview: 'Preflight Results'
           step_details: "Validated envvars and git branch status"
 
   detect_changes:
@@ -61,7 +62,7 @@ jobs:
       - name: Update comment
         uses: gruntwork-io/pipelines-status-update@v0.1.0
         with:
-          step_name: "Calculate Infrastructure Changes"
+          step_name: "Detect Infrastructure Changes"
           step_status: "in_progress"
       - uses: actions/checkout@v4
         with:
@@ -116,8 +117,9 @@ jobs:
       - name: Update comment
         uses: gruntwork-io/pipelines-status-update@v0.1.0
         with:
-          step_name: "Calculate Infrastructure Changes"
+          step_name: "Detect Infrastructure Changes"
           step_status: "success"
+          step_details_preview: "Detected Changes"
           step_details: "```${{ toJson(steps.orchestrate.outputs.jobs) }}```"
 
     outputs:
