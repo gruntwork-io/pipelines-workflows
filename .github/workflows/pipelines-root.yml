@@ -166,6 +166,7 @@ jobs:
         if: steps.bootstrap.outputs.workflow == 'apply-new-account-baseline.yml'
         uses: gruntwork-io-team/pipelines-baseline-account-action@main
         with:
+          gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           terragrunt_command: ${{ steps.bootstrap.outputs.terragrunt_command }}
           new_account_name: ${{ steps.bootstrap.outputs.new_account_name }}
 
