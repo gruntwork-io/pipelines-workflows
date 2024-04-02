@@ -113,12 +113,14 @@ jobs:
           gruntwork-config: ${{ steps.gruntwork.outputs.config }}
           # We do this because the `GRUNTWORK_CODE_ACCESS_TOKEN` might not be present when vending a delegated account, even though it's always present in the main `infrastructure-live` account.
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
+
       - name: Update comment
         uses: gruntwork-io/pipelines-status-update@v0.1.0
         with:
           step_name: "Calculate Infrastructure Changes"
           step_status: "success"
           step_details: ${{ steps.orchestrate.outputs.jobs }}
+
     outputs:
       pipelines_jobs: ${{ steps.orchestrate.outputs.jobs }}
       pipelines_cli_version: ${{ steps.gruntwork.outputs.pipelines_cli_version }}
@@ -160,184 +162,12 @@ jobs:
           new_account_name: ${{ matrix.jobs.AdditionalData.AccountName }}
           team_account_names: ${{ matrix.jobs.AdditionalData.TeamAccountNames }}
 
-      - name: "[Baseline]: Authenticate to Security AWS account"
+      - name: "[Baseline]: Apply New Account Baseline"
         if: steps.bootstrap.outputs.workflow == 'apply-new-account-baseline.yml'
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: gruntwork-io-team/pipelines-baseline-account-action@main
         with:
-          aws-region: us-east-1
-          role-to-assume: "arn:aws:iam::${{ steps.bootstrap.outputs.security_account_id }}:role/${{ steps.bootstrap.outputs.role_name }}"
-          role-duration-seconds: 3600
-          role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
-
-      - name: "[Baseline]: Run terragrunt ${{ steps.bootstrap.outputs.terragrunt_command }} in security account"
-        id: terragrunt-apply-security
-        if: steps.bootstrap.outputs.workflow == 'apply-new-account-baseline.yml'
-        uses: gruntwork-io/pipelines-execute@v3.0.0
-        with:
-          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
-          tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
-          tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
-          pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
-          working_directory: security/_global/account-baseline
-          terragrunt_command: "${{ steps.bootstrap.outputs.terragrunt_command }}"
-          infra_live_repo: '.'
-          infra_live_directory: '.'
-          infra_live_repo_branch: ${{ steps.bootstrap.outputs.branch }}
-          gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
-
-      - name: "[Baseline]: Authenticate to Logs AWS account"
-        if: steps.bootstrap.outputs.workflow == 'apply-new-account-baseline.yml'
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-region: us-east-1
-          role-to-assume: "arn:aws:iam::${{ steps.bootstrap.outputs.logs_account_id }}:role/${{ steps.bootstrap.outputs.role_name }}"
-          role-duration-seconds: 3600
-          role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
-
-      - name: "[Baseline]: Run terragrunt ${{ steps.bootstrap.outputs.terragrunt_command }} in logs account"
-        id: terragrunt-apply-logs
-        if: steps.bootstrap.outputs.workflow == 'apply-new-account-baseline.yml'
-        uses: gruntwork-io/pipelines-execute@v3.0.0
-        with:
-          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
-          tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
-          tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
-          pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
-          working_directory: logs/_global/account-baseline
-          terragrunt_command: "${{ steps.bootstrap.outputs.terragrunt_command }}"
-          infra_live_repo: '.'
-          infra_live_directory: '.'
-          infra_live_repo_branch: ${{ steps.bootstrap.outputs.branch }}
-          gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
-
-      - name: "[Baseline]: Authenticate to Shared Services AWS account"
-        if: steps.bootstrap.outputs.workflow == 'apply-new-account-baseline.yml'
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-region: us-east-1
-          role-to-assume: "arn:aws:iam::${{ steps.bootstrap.outputs.shared_account_id }}:role/${{ steps.bootstrap.outputs.role_name }}"
-          role-duration-seconds: 3600
-          role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
-
-      - name: "[Baseline]: Run terragrunt ${{ steps.bootstrap.outputs.terragrunt_command }} in shared account"
-        id: terragrunt-apply-shared
-        if: steps.bootstrap.outputs.workflow == 'apply-new-account-baseline.yml'
-        uses: gruntwork-io/pipelines-execute@v3.0.0
-        with:
-          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
-          tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
-          tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
-          pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
-          working_directory: shared/_global/account-baseline
-          terragrunt_command: "${{ steps.bootstrap.outputs.terragrunt_command }}"
-          infra_live_repo: '.'
-          infra_live_directory: '.'
-          infra_live_repo_branch: ${{ steps.bootstrap.outputs.branch }}
-          gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
-
-      # Finally, auth to the mgmt account so we can assume a role in the child account
-      - name: "[Baseline]: Authenticate to AWS"
-        if: steps.bootstrap.outputs.workflow == 'apply-new-account-baseline.yml'
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-region: us-east-1
-          role-to-assume: "arn:aws:iam::${{ steps.bootstrap.outputs.account_id }}:role/${{ steps.bootstrap.outputs.role_name }}"
-          role-duration-seconds: 3600
-          role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
-
-      # Auth to child account
-      # THIS RETRIEVES PERMISSIONS TO BE ABLE TO RUN A PLAN/APPLY IN THE NEWLY CREATED CHILD ACCOUNT
-      # The "AWSControlTowerExecution" role being assumed here is created by Control Tower in each account it provisions
-      # and it can be assumed by a role in the management account.
-      - name: "[Baseline]: Assume role new child account"
-        if: steps.bootstrap.outputs.workflow == 'apply-new-account-baseline.yml'
-        env:
-          SESSION_NAME: ${{ steps.bootstrap.outputs.role_session_name }}
-          CHILD_ACCOUNT: ${{ steps.bootstrap.outputs.child_account_id }}
-        run: |
-          RESPONSE="$(aws sts assume-role --role-arn "arn:aws:iam::$CHILD_ACCOUNT:role/AWSControlTowerExecution" --role-session-name "$SESSION_NAME")"
-          ASSUMED_ROLE_CREDS="$(echo "$RESPONSE" | jq -r '.Credentials')"
-          AWS_ACCESS_KEY_ID="$(echo "$ASSUMED_ROLE_CREDS" | jq -r '.AccessKeyId')"
-          echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> "$GITHUB_ENV"
-          echo "::add-mask::$AWS_ACCESS_KEY_ID"
-          AWS_SECRET_ACCESS_KEY="$(echo "$ASSUMED_ROLE_CREDS" | jq -r '.SecretAccessKey')"
-          echo AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" >> "$GITHUB_ENV"
-          echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
-          AWS_SESSION_TOKEN="$(echo "$ASSUMED_ROLE_CREDS" | jq -r '.SessionToken')"
-          echo AWS_SESSION_TOKEN="$AWS_SESSION_TOKEN" >> "$GITHUB_ENV"
-          echo "::add-mask::$AWS_SESSION_TOKEN"
-
-      - name: "[Baseline]: Confirm Account Access"
-        if: steps.bootstrap.outputs.workflow == 'apply-new-account-baseline.yml'
-        env:
-          CHILD_ACCOUNT: ${{ steps.bootstrap.outputs.child_account_id }}
-          WORKING_DIRECTORY: ${{ steps.bootstrap.outputs.working_directory }}
-        run: echo "::notice ::Running in account $CHILD_ACCOUNT and planning in $WORKING_DIRECTORY"
-
-      # This Bootstrap step is a workaround for the error that happens when running plan-all for the first time in a
-      # new account with multiple modules. The error is:
-      #
-      #    OperationAborted: A conflicting conditional operation is currently in progress against this resource. Please try again.
-      #    BucketAlreadyOwnedByYou: Your previous request to create the named bucket succeeded and you already own it.
-      #
-      # This happens because each module is trying to create buckets for state and logs when they do not exist.
-      # Setting Terragrunt Parallelism to 1 does NOT prevent this error from happening. So we'll instead run an init in
-      # a single module first to create the buckets so that subsequent run-all commands do not fail.
-      - name: "[Baseline]: Bootstrap child account with state & logs S3 buckets"
-        if: ${{ contains(steps.bootstrap.outputs.terragrunt_command, 'plan') && steps.bootstrap.outputs.workflow == 'apply-new-account-baseline.yml' }}
-        uses: gruntwork-io/pipelines-execute@v3.0.0
-        with:
-          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
-          tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
-          tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
-          pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
-          working_directory: "${{ steps.bootstrap.outputs.working_directory }}/_global/account-baseline"
-          terragrunt_command: "init"
-          infra_live_repo: '.'
-          infra_live_directory: '.'
-          infra_live_repo_branch: ${{ steps.bootstrap.outputs.branch }}
-          gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
-
-      - name: Authenticate to AWS
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-region: us-east-1
-          role-to-assume: "arn:aws:iam::${{ steps.bootstrap.outputs.account_id }}:role/${{ steps.bootstrap.outputs.role_name }}"
-          role-duration-seconds: 3600
-          role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
-
-      # If we're doing a pipelines policy update, assume the role in the child account from the mgmt account
-      - name: Authenticate to child AWS account
-        if: ${{ steps.bootstrap.outputs.workflow == 'terragrunt-executor.yml' && steps.bootstrap.outputs.child_account_id != '' }}
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-region: us-east-1
-          role-to-assume: "arn:aws:iam::${{ steps.bootstrap.outputs.child_account_id }}:role/${{ steps.bootstrap.outputs.child_acct_role_name }}"
-          role-duration-seconds: 3600
-          role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
-          role-chaining: true
-
-      - name: Confirm Account Access
-        if: steps.bootstrap.outputs.workflow == 'terragrunt-executor.yml'
-        env:
-          ACCOUNT: ${{ steps.bootstrap.outputs.account_id }}
-          WORKING_DIRECTORY: ${{ steps.bootstrap.outputs.working_directory }}
-        run: echo "::notice ::Running in account $ACCOUNT and planning in $WORKING_DIRECTORY"
-
-      - name: Run terragrunt ${{ steps.bootstrap.outputs.terragrunt_command }} in ${{ steps.bootstrap.outputs.working_directory }}
-        id: terragrunt
-        uses: gruntwork-io/pipelines-execute@v3.0.0
-        with:
-          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
-          tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
-          tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
-          pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
-          working_directory: ${{ steps.bootstrap.outputs.working_directory }}
           terragrunt_command: ${{ steps.bootstrap.outputs.terragrunt_command }}
-          infra_live_repo: '.'
-          infra_live_directory: '.'
-          infra_live_repo_branch: ${{ steps.bootstrap.outputs.branch }}
-          gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
+          new_account_name: ${{ steps.bootstrap.outputs.new_account_name }}
 
       - name: "[ProvisionAccount]: Setup access-control PR"
         id: provision_access_control
@@ -355,7 +185,20 @@ jobs:
         with:
           new_account_name: ${{ steps.bootstrap.outputs.new_account_name }}
           terragrunt_command: ${{ steps.bootstrap.outputs.terragrunt_command }}
-          branch: ${{ steps.bootstrap.outputs.branch }}
+
+      - name: "[TerragruntExecute]: Authenticate with AWS and then Invoke Terragrunt"
+        id: terragrunt
+        if:  ${{ steps.bootstrap.outputs.workflow == 'terragrunt-execute.yml' }}
+        uses: gruntwork-io-team/pipelines-aws-execute@main
+        with:
+          gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          terragrunt_command: ${{ steps.bootstrap.outputs.terragrunt_command }}
+          account_id: ${{ steps.bootstrap.outputs.account_id }}
+          account_role_name: ${{ steps.bootstrap.outputs.role_name }}
+          role_session_name: ${{ steps.bootstrap.outputs.role_session_name }}
+          chain_account_id: ${{ steps.bootstrap.outputs.child_account_id }}
+          chain_account_role_name: ${{ steps.bootstrap.outputs.child_acct_role_name }}
+
 
     outputs:
       account_id: ${{ matrix.jobs.AccountId }}
