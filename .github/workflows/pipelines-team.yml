@@ -12,6 +12,7 @@ env:
   MODULE_SECURITY_VERSION: v0.68.3
   CONTROL_TOWER_MODULES_VERSION: v0.4.2
   BOILERPLATE_VERSION: v0.5.8
+  DEFAULT_AWS_REGION: us-east-1
 
 jobs:
   preflight_checks:
@@ -114,6 +115,7 @@ jobs:
           gruntwork-config: ${{ steps.gruntwork.outputs.config }}
           # We do this because the `GRUNTWORK_CODE_ACCESS_TOKEN` might not be present when vending a delegated account, even though it's always present in the main `infrastructure-live` account.
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
+
       - name: Update comment
         uses: gruntwork-io/pipelines-status-update@v0.1.0
         with:
@@ -164,46 +166,20 @@ jobs:
           new_account_name: ${{ matrix.jobs.AdditionalData.AccountName }}
           team_account_names: ${{ matrix.jobs.AdditionalData.TeamAccountNames }}
 
-      - name: Authenticate to AWS
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-region: us-east-1
-          role-to-assume: "arn:aws:iam::${{ steps.bootstrap.outputs.account_id }}:role/${{ steps.bootstrap.outputs.role_name }}"
-          role-duration-seconds: 3600
-          role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
 
-      # If we're doing a pipelines policy update, assume the role in the child account from the mgmt account
-      - name: Authenticate to child AWS account
-        if: ${{ steps.bootstrap.outputs.workflow == 'terragrunt-executor.yml' && steps.bootstrap.outputs.child_account_id != '' }}
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: "[Baseline]: Run terragrunt ${{ steps.bootstrap.outputs.terragrunt_command }} in logs account"
+        id: terragrunt-apply-logs
+        uses: gruntwork-io-team/pipelines-aws-execute@main
         with:
-          aws-region: us-east-1
-          role-to-assume: "arn:aws:iam::${{ steps.bootstrap.outputs.child_account_id }}:role/${{ steps.bootstrap.outputs.child_acct_role_name }}"
-          role-duration-seconds: 3600
-          role-session-name: ${{ steps.bootstrap.outputs.role_session_name }}
-          role-chaining: true
-
-      - name: Confirm Account Access
-        if: steps.bootstrap.outputs.workflow == 'terragrunt-executor.yml'
-        env:
-          ACCOUNT: ${{ steps.bootstrap.outputs.account_id }}
-          WORKING_DIRECTORY: ${{ steps.bootstrap.outputs.working_directory }}
-        run: echo "::notice ::Running in account $ACCOUNT and planning in $WORKING_DIRECTORY"
-
-      - name: Run terragrunt ${{ steps.bootstrap.outputs.terragrunt_command }} in ${{ steps.bootstrap.outputs.working_directory }}
-        id: terragrunt
-        uses: gruntwork-io/pipelines-execute@v3.0.0
-        with:
-          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
-          tf_version: ${{ steps.bootstrap.outputs.terraform_version }}
-          tg_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
-          pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
-          working_directory: ${{ steps.bootstrap.outputs.working_directory }}
+          aws_region: ${{ env.DEFAULT_AWS_REGION }}
+          gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           terragrunt_command: ${{ steps.bootstrap.outputs.terragrunt_command }}
-          infra_live_repo: '.'
-          infra_live_directory: '.'
-          infra_live_repo_branch: ${{ steps.bootstrap.outputs.branch }}
-          gruntwork_config: "${{ steps.bootstrap.outputs.gruntwork_config }}"
+          account_id: ${{ steps.bootstrap.outputs.account_id }}
+          account_role_name: ${{ steps.bootstrap.outputs.role_name }}
+          role_session_name: ${{ steps.bootstrap.outputs.role_session_name }}
+          working_directory: logs/_global/account-baseline
+          chain_account_id: ${{ steps.bootstrap.outputs.child_account_id }}
+          chain_account_role_name: ${{ steps.bootstrap.outputs.child_acct_role_name }}
 
       - name: Update comment
         if: always()
@@ -212,6 +188,7 @@ jobs:
           step_name: ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
           step_status: ${{ steps.terragrunt.conclusion == 'success' && 'success' || 'failed' }}
           step_details: "```plan would go here```"
+
     outputs:
       account_id: ${{ matrix.jobs.AccountId }}
       branch: ${{ steps.bootstrap.outputs.branch }}
