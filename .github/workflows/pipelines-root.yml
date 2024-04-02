@@ -195,6 +195,8 @@ jobs:
           gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           terragrunt_command: ${{ steps.bootstrap.outputs.terragrunt_command }}
           account_id: ${{ steps.bootstrap.outputs.account_id }}
+          aws_region: ${{ steps.bootstrap.outputs.aws_region }}
+          working_directory: ${{ steps.bootstrap.outputs.working_directory }}
           account_role_name: ${{ steps.bootstrap.outputs.role_name }}
           role_session_name: ${{ steps.bootstrap.outputs.role_session_name }}
           chain_account_id: ${{ steps.bootstrap.outputs.child_account_id }}
