@@ -173,6 +173,7 @@ jobs:
           terragrunt_command: ${{ steps.bootstrap.outputs.terragrunt_command }}
           branch: ${{ steps.bootstrap.outputs.branch }}
           gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          bootstrap: ${{ steps.bootstrap.outputs }}
 
       - name: "[ProvisionDelegatedRepo]: Setup delegated Repo"
         id: provision_delegated_repo
