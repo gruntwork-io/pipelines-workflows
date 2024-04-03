@@ -189,6 +189,7 @@ jobs:
         with:
           new_account_name: ${{ steps.bootstrap.outputs.new_account_name }}
           terragrunt_command: ${{ steps.bootstrap.outputs.terragrunt_command }}
+          gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           # TODO - this needs to be a different token that has enhanced scopes for creating repos
           manage_repo_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
 
