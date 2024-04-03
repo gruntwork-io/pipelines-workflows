@@ -164,15 +164,7 @@ jobs:
           new_account_name: ${{ matrix.jobs.AdditionalData.AccountName }}
           team_account_names: ${{ matrix.jobs.AdditionalData.TeamAccountNames }}
 
-      - name: "[Baseline]: Apply New Account Baseline"
-        if: steps.bootstrap.outputs.workflow == 'apply-new-account-baseline.yml'
-        uses: gruntwork-io-team/pipelines-baseline-account-action@main
-        with:
-          gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
-          terragrunt_command: ${{ steps.bootstrap.outputs.terragrunt_command }}
-          new_account_name: ${{ steps.bootstrap.outputs.new_account_name }}
-
-      - name: "[ProvisionAccount]: Setup access-control PR"
+      - name: "[ProvisionAccount]: Provision New Account"
         id: provision_access_control
         if:  ${{ steps.bootstrap.outputs.workflow == 'create-account-and-generate-baselines.yml' }}
         uses: gruntwork-io-team/pipelines-provision-account-action@main
@@ -192,6 +184,14 @@ jobs:
           gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           # TODO - this needs to be a different token that has enhanced scopes for creating repos
           manage_repo_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+
+      - name: "[Baseline]: Apply New Account Baseline"
+        if: steps.bootstrap.outputs.workflow == 'apply-new-account-baseline.yml'
+        uses: gruntwork-io-team/pipelines-baseline-account-action@main
+        with:
+          gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          terragrunt_command: ${{ steps.bootstrap.outputs.terragrunt_command }}
+          new_account_name: ${{ steps.bootstrap.outputs.new_account_name }}
 
       - name: "[TerragruntExecute]: Authenticate with AWS and then Invoke Terragrunt"
         id: terragrunt
