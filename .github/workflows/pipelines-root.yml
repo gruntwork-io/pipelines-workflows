@@ -180,6 +180,7 @@ jobs:
           new_account_name: ${{ steps.bootstrap.outputs.new_account_name }}
           terragrunt_command: ${{ steps.bootstrap.outputs.terragrunt_command }}
           branch: ${{ steps.bootstrap.outputs.branch }}
+          gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
 
       - name: "[ProvisionDelegatedRepo]: Setup delegated Repo"
         id: provision_delegated_repo
@@ -188,6 +189,8 @@ jobs:
         with:
           new_account_name: ${{ steps.bootstrap.outputs.new_account_name }}
           terragrunt_command: ${{ steps.bootstrap.outputs.terragrunt_command }}
+          # TODO - this needs to be a different token that has enhanced scopes for creating repos
+          manage_repo_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
 
       - name: "[TerragruntExecute]: Authenticate with AWS and then Invoke Terragrunt"
         id: terragrunt
@@ -198,6 +201,7 @@ jobs:
           terragrunt_command: ${{ steps.bootstrap.outputs.terragrunt_command }}
           account_id: ${{ steps.bootstrap.outputs.account_id }}
           aws_region: ${{ steps.bootstrap.outputs.aws_region }}
+          branch: ${{ steps.bootstrap.outputs.branch }}
           working_directory: ${{ steps.bootstrap.outputs.working_directory }}
           account_role_name: ${{ steps.bootstrap.outputs.role_name }}
           role_session_name: ${{ steps.bootstrap.outputs.role_session_name }}
