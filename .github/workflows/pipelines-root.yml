@@ -166,18 +166,18 @@ jobs:
 
       - name: "[ProvisionAccount]: Provision New Account"
         id: provision_access_control
-        if:  ${{ steps.bootstrap.outputs.workflow == 'create-account-and-generate-baselines.yml' }}
+        if: ${{ steps.bootstrap.outputs.workflow == 'create-account-and-generate-baselines.yml' }}
         uses: gruntwork-io-team/pipelines-provision-account-action@main
         with:
           new_account_name: ${{ steps.bootstrap.outputs.new_account_name }}
           terragrunt_command: ${{ steps.bootstrap.outputs.terragrunt_command }}
           branch: ${{ steps.bootstrap.outputs.branch }}
           gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
-          bootstrap: ${{ steps.bootstrap.outputs }}
+          gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
 
       - name: "[ProvisionDelegatedRepo]: Setup delegated Repo"
         id: provision_delegated_repo
-        if:  ${{ steps.bootstrap.outputs.workflow == 'provision-delegated-account.yml' }}
+        if: ${{ steps.bootstrap.outputs.workflow == 'provision-delegated-account.yml' }}
         uses: gruntwork-io-team/pipelines-provision-repo-action@main
         with:
           new_account_name: ${{ steps.bootstrap.outputs.new_account_name }}
@@ -196,7 +196,7 @@ jobs:
 
       - name: "[TerragruntExecute]: Authenticate with AWS and then Invoke Terragrunt"
         id: terragrunt
-        if:  ${{ steps.bootstrap.outputs.workflow == 'terragrunt-execute.yml' }}
+        if: ${{ steps.bootstrap.outputs.workflow == 'terragrunt-execute.yml' }}
         uses: gruntwork-io-team/pipelines-aws-execute@main
         with:
           gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
@@ -209,7 +209,6 @@ jobs:
           role_session_name: ${{ steps.bootstrap.outputs.role_session_name }}
           chain_account_id: ${{ steps.bootstrap.outputs.child_account_id }}
           chain_account_role_name: ${{ steps.bootstrap.outputs.child_acct_role_name }}
-
 
     outputs:
       account_id: ${{ matrix.jobs.AccountId }}
