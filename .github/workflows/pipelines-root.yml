@@ -25,6 +25,7 @@ jobs:
         with:
           step_name: "Preflight Checks"
           step_status: "in_progress"
+          first_update: true
 
       - name: Ensure CI User Variables are populated
         shell: bash
@@ -63,7 +64,6 @@ jobs:
         with:
           step_name: "Calculate Infrastructure Changes"
           step_status: "in_progress"
-          first_update: true
 
       - uses: actions/checkout@v4
         with:
