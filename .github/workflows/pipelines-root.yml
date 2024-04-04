@@ -195,7 +195,7 @@ jobs:
 
       - name: "[TerragruntExecute]: Authenticate with AWS and then Invoke Terragrunt"
         id: terragrunt
-        if: ${{ steps.bootstrap.outputs.workflow == 'terragrunt-execute.yml' }}
+        if: ${{ steps.bootstrap.outputs.workflow == 'terragrunt-executor.yml' }}
         uses: gruntwork-io-team/pipelines-aws-execute@main
         with:
           gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
