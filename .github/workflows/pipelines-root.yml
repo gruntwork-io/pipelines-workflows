@@ -14,12 +14,20 @@ on:
         description: "The name of the Gruntwork Pipelines Access Control Repo into which we vend roles that govern team repos"
         required: true
         type: string
+      deploy_branch_name:
+        description: ""
+        required: false
+        default: "main"
+        type: string
+
 env:
-  DEPLOY_BRANCH_NAME: main
+  DEPLOY_BRANCH_NAME: ${{ inputs.deploy_branch_name }}
   GRUNTWORK_INSTALLER_VERSION: v0.0.39
   MODULE_SECURITY_VERSION: v0.68.3
   CONTROL_TOWER_MODULES_VERSION: v0.4.2
   BOILERPLATE_VERSION: v0.5.8
+  ARCH_CATALOG_VERSION: v2.0.10-beta
+  DEFAULT_AWS_REGION: ${{ inputs.default_aws_region }}
 
 jobs:
   detect_changes:
@@ -154,6 +162,7 @@ jobs:
         with:
           gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
+
 
       - name: "[TerragruntExecute]: Authenticate with AWS and then Invoke Terragrunt"
         id: terragrunt
