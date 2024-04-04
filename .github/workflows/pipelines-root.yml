@@ -19,15 +19,35 @@ on:
         required: false
         default: "main"
         type: string
-
+      gruntwork_installer_version:
+        description: ""
+        required: true
+        type: string
+      module_security_version:
+        description: ""
+        type: string
+        required: true
+      control_tower_modules_version:
+        description: ""
+        type: string
+        required: true
+      boilerplate_version:
+        description: ""
+        type: string
+        required: true
+      arch_catalog_version:
+        description: ""
+        type: string
+        required: true
 env:
   DEPLOY_BRANCH_NAME: ${{ inputs.deploy_branch_name }}
-  GRUNTWORK_INSTALLER_VERSION: v0.0.39
-  MODULE_SECURITY_VERSION: v0.68.3
-  CONTROL_TOWER_MODULES_VERSION: v0.4.2
-  BOILERPLATE_VERSION: v0.5.8
-  ARCH_CATALOG_VERSION: v2.0.10-beta
+  GRUNTWORK_INSTALLER_VERSION: ${{ inputs.gruntwork_installer_version }}
+  MODULE_SECURITY_VERSION: ${{ inputs.module_security_version }}
+  CONTROL_TOWER_MODULES_VERSION: ${{ inputs.control_tower_modules_version }}
+  BOILERPLATE_VERSION: ${{ inputs.boilerplate_version }}
+  ARCH_CATALOG_VERSION: ${{ inputs.arch_catalog_version }}
   DEFAULT_AWS_REGION: ${{ inputs.default_aws_region }}
+  ACCESS_CONTROL_REPO: ${{ inputs.access_control_repo }}
 
 jobs:
   detect_changes:
