@@ -166,7 +166,7 @@ jobs:
           child_account_id: ${{ matrix.jobs.AdditionalData.ChildAccountId }}
           new_account_name: ${{ matrix.jobs.AdditionalData.AccountName }}
           team_account_names: ${{ matrix.jobs.AdditionalData.TeamAccountNames }}
-
+          default_aws_region: ${{ env.DEFAULT_AWS_REGION }}
 
       - name: "Run terragrunt ${{ steps.bootstrap.outputs.terragrunt_command }} in ${{ steps.bootstrap.outputs.working_directory }}"
         id: terragrunt
@@ -182,6 +182,10 @@ jobs:
           working_directory: ${{ steps.bootstrap.outputs.working_directory }}
           chain_account_id: ${{ steps.bootstrap.outputs.child_account_id }}
           chain_account_role_name: ${{ steps.bootstrap.outputs.child_acct_role_name }}
+          terraform_version: ${{ steps.bootstrap.outputs.terraform_version }}
+          terragrunt_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
+          gruntwork_config_file: ${{ steps.bootstrap.outputs.gruntwork_config_file }}
+          pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
 
       - name: Update comment
         if: always()

@@ -12,6 +12,7 @@ env:
   MODULE_SECURITY_VERSION: v0.68.3
   CONTROL_TOWER_MODULES_VERSION: v0.4.2
   BOILERPLATE_VERSION: v0.5.8
+  DEFAULT_AWS_REGION: us-west-2
 
 jobs:
   preflight_checks:
@@ -164,15 +165,13 @@ jobs:
           child_account_id: ${{ matrix.jobs.AdditionalData.ChildAccountId }}
           new_account_name: ${{ matrix.jobs.AdditionalData.AccountName }}
           team_account_names: ${{ matrix.jobs.AdditionalData.TeamAccountNames }}
+          default_aws_region: ${{ env.DEFAULT_AWS_REGION }}
 
       - name: "[ProvisionAccount]: Provision New Account"
         id: provision_access_control
         if: ${{ steps.bootstrap.outputs.workflow == 'create-account-and-generate-baselines.yml' }}
         uses: gruntwork-io-team/pipelines-provision-account-action@main
         with:
-          new_account_name: ${{ steps.bootstrap.outputs.new_account_name }}
-          terragrunt_command: ${{ steps.bootstrap.outputs.terragrunt_command }}
-          branch: ${{ steps.bootstrap.outputs.branch }}
           gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
 
@@ -181,8 +180,7 @@ jobs:
         if: ${{ steps.bootstrap.outputs.workflow == 'provision-delegated-account.yml' }}
         uses: gruntwork-io-team/pipelines-provision-repo-action@main
         with:
-          new_account_name: ${{ steps.bootstrap.outputs.new_account_name }}
-          terragrunt_command: ${{ steps.bootstrap.outputs.terragrunt_command }}
+          gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
           gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           # TODO - this needs to be a different token that has enhanced scopes for creating repos
           manage_repo_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
@@ -193,8 +191,7 @@ jobs:
         uses: gruntwork-io-team/pipelines-baseline-account-action@main
         with:
           gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
-          terragrunt_command: ${{ steps.bootstrap.outputs.terragrunt_command }}
-          new_account_name: ${{ steps.bootstrap.outputs.new_account_name }}
+          gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
 
       - name: "[TerragruntExecute]: Authenticate with AWS and then Invoke Terragrunt"
         id: terragrunt
@@ -211,7 +208,10 @@ jobs:
           role_session_name: ${{ steps.bootstrap.outputs.role_session_name }}
           chain_account_id: ${{ steps.bootstrap.outputs.child_account_id }}
           chain_account_role_name: ${{ steps.bootstrap.outputs.child_acct_role_name }}
-          gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
+          terraform_version: ${{ steps.bootstrap.outputs.terraform_version }}
+          terragrunt_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
+          gruntwork_config_file: ${{ steps.bootstrap.outputs.gruntwork_config_file }}
+          pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
 
       - name: Update comment
         uses: gruntwork-io/pipelines-status-update@v0.1.0
