@@ -137,6 +137,7 @@ jobs:
           new_account_name: ${{ matrix.jobs.AdditionalData.AccountName }}
           team_account_names: ${{ matrix.jobs.AdditionalData.TeamAccountNames }}
           default_aws_region: ${{ inputs.DEFAULT_AWS_REGION }}
+          access_control_repo: ${{ inputs.access_control_repo }}
 
       - name: "[ProvisionAccount]: Provision New Account"
         id: provision_access_control
