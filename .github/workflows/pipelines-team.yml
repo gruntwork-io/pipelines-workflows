@@ -198,7 +198,7 @@ jobs:
     outputs:
       account_id: ${{ matrix.jobs.AccountId }}
       branch: ${{ steps.bootstrap.outputs.branch }}
-      workflow: ${{ steps.bootstrap.outputs.workflow }}
+      action: ${{ steps.bootstrap.outputs.action }}
       working_directory: ${{ steps.bootstrap.outputs.working_directory }}
       terragrunt_command: ${{ steps.bootstrap.outputs.terragrunt_command }}
       additional_data: ${{ steps.bootstrap.outputs.additional_data }}

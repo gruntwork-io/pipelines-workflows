@@ -169,25 +169,15 @@ jobs:
 
       - name: "[ProvisionAccount]: Provision New Account"
         id: provision_access_control
-        if: ${{ steps.bootstrap.outputs.workflow == 'create-account-and-generate-baselines.yml' }}
+        if: ${{ steps.bootstrap.outputs.action == 'PROVISION_ACCOUNT' }}
         uses: gruntwork-io-team/pipelines-provision-account-action@main
         with:
           gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
 
-      - name: "[ProvisionDelegatedRepo]: Setup delegated Repo"
-        id: provision_delegated_repo
-        if: ${{ steps.bootstrap.outputs.workflow == 'provision-delegated-account.yml' }}
-        uses: gruntwork-io-team/pipelines-provision-repo-action@main
-        with:
-          gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
-          gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
-          # TODO - this needs to be a different token that has enhanced scopes for creating repos
-          manage_repo_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
-
       - name: "[Baseline]: Apply New Account Baseline"
         id: baseline
-        if: steps.bootstrap.outputs.workflow == 'apply-new-account-baseline.yml'
+        if: steps.bootstrap.outputs.action == 'BASELINE_ACCOUNT'
         uses: gruntwork-io-team/pipelines-baseline-account-action@main
         with:
           gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
@@ -195,7 +185,7 @@ jobs:
 
       - name: "[TerragruntExecute]: Authenticate with AWS and then Invoke Terragrunt"
         id: terragrunt
-        if: ${{ steps.bootstrap.outputs.workflow == 'terragrunt-executor.yml' }}
+        if: ${{ steps.bootstrap.outputs.action == 'TERRAGRUNT_EXECUTE' }}
         uses: gruntwork-io-team/pipelines-aws-execute@main
         with:
           gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
@@ -224,7 +214,7 @@ jobs:
     outputs:
       account_id: ${{ matrix.jobs.AccountId }}
       branch: ${{ steps.bootstrap.outputs.branch }}
-      workflow: ${{ steps.bootstrap.outputs.workflow }}
+      action: ${{ steps.bootstrap.outputs.action }}
       working_directory: ${{ steps.bootstrap.outputs.working_directory }}
       terragrunt_command: ${{ steps.bootstrap.outputs.terragrunt_command }}
       additional_data: ${{ steps.bootstrap.outputs.additional_data }}
