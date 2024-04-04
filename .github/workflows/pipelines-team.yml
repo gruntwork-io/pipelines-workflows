@@ -5,14 +5,17 @@ on:
     secrets:
       GRUNTWORK_CODE_ACCESS_TOKEN:
         required: true
-
+    inputs:
+      default_aws_region:
+        description: "The AWS Region where control tower is setup"
+        required: true
+        type: string
 env:
   DEPLOY_BRANCH_NAME: main
   GRUNTWORK_INSTALLER_VERSION: v0.0.39
   MODULE_SECURITY_VERSION: v0.68.3
   CONTROL_TOWER_MODULES_VERSION: v0.4.2
   BOILERPLATE_VERSION: v0.5.8
-  DEFAULT_AWS_REGION: us-east-1
 
 jobs:
   preflight_checks:
@@ -166,13 +169,13 @@ jobs:
           child_account_id: ${{ matrix.jobs.AdditionalData.ChildAccountId }}
           new_account_name: ${{ matrix.jobs.AdditionalData.AccountName }}
           team_account_names: ${{ matrix.jobs.AdditionalData.TeamAccountNames }}
-          default_aws_region: ${{ env.DEFAULT_AWS_REGION }}
+          default_aws_region: ${{ inputs.default_aws_region }}
 
       - name: "Run terragrunt ${{ steps.bootstrap.outputs.terragrunt_command }} in ${{ steps.bootstrap.outputs.working_directory }}"
         id: terragrunt
         uses: gruntwork-io-team/pipelines-aws-execute@main
         with:
-          aws_region: ${{ env.DEFAULT_AWS_REGION }}
+          aws_region: ${{ inputs.default_aws_region }}
           branch: ${{ matrix.jobs.Ref }}
           gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           terragrunt_command: ${{ steps.bootstrap.outputs.terragrunt_command }}
