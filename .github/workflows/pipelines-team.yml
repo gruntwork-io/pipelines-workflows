@@ -121,13 +121,12 @@ jobs:
           child_account_id: ${{ matrix.jobs.AdditionalData.ChildAccountId }}
           new_account_name: ${{ matrix.jobs.AdditionalData.AccountName }}
           team_account_names: ${{ matrix.jobs.AdditionalData.TeamAccountNames }}
-          default_aws_region: ${{ inputs.default_aws_region }}
 
       - name: "Run terragrunt ${{ steps.bootstrap.outputs.terragrunt_command }} in ${{ steps.bootstrap.outputs.working_directory }}"
         id: terragrunt
         uses: gruntwork-io-team/pipelines-aws-execute@main
         with:
-          aws_region: ${{ inputs.default_aws_region }}
+          aws_region: ${{ steps.bootstrap.outputs.default_aws_region }}
           branch: ${{ matrix.jobs.Ref }}
           gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           terragrunt_command: ${{ steps.bootstrap.outputs.terragrunt_command }}

@@ -121,8 +121,6 @@ jobs:
           child_account_id: ${{ matrix.jobs.AdditionalData.ChildAccountId }}
           new_account_name: ${{ matrix.jobs.AdditionalData.AccountName }}
           team_account_names: ${{ matrix.jobs.AdditionalData.TeamAccountNames }}
-          default_aws_region: ${{ inputs.DEFAULT_AWS_REGION }}
-          access_control_repo: ${{ inputs.access_control_repo }}
 
       - name: "[ProvisionAccount]: Provision New Account"
         id: provision_access_control
@@ -167,7 +165,7 @@ jobs:
         if: always()
         with:
           step_name: ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
-          step_status: ${{ (steps.provision_access_control.conclusion == 'success' || steps.provision_delegated_repo.conclusion == 'success' || steps.terragrunt.conclusion == 'success' || steps.baseline.conclusion == 'success') && 'success' || 'failed' }}
+          step_status: ${{ (steps.provision_access_control.conclusion == 'success' || steps.terragrunt.conclusion == 'success' || steps.baseline.conclusion == 'success') && 'success' || 'failed' }}
           step_details: "output will go here"
 
     outputs:
