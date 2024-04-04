@@ -5,14 +5,21 @@ on:
     secrets:
       GRUNTWORK_CODE_ACCESS_TOKEN:
         required: true
-
+    inputs:
+      default_aws_region:
+        description: "The AWS Region where control tower is setup"
+        required: true
+        type: string
+      access_control_repo:
+        description: "The name of the Gruntwork Pipelines Access Control Repo into which we vend roles that govern team repos"
+        required: true
+        type: string
 env:
   DEPLOY_BRANCH_NAME: main
   GRUNTWORK_INSTALLER_VERSION: v0.0.39
   MODULE_SECURITY_VERSION: v0.68.3
   CONTROL_TOWER_MODULES_VERSION: v0.4.2
   BOILERPLATE_VERSION: v0.5.8
-  DEFAULT_AWS_REGION: us-west-2
 
 jobs:
   preflight_checks:
@@ -165,7 +172,7 @@ jobs:
           child_account_id: ${{ matrix.jobs.AdditionalData.ChildAccountId }}
           new_account_name: ${{ matrix.jobs.AdditionalData.AccountName }}
           team_account_names: ${{ matrix.jobs.AdditionalData.TeamAccountNames }}
-          default_aws_region: ${{ env.DEFAULT_AWS_REGION }}
+          default_aws_region: ${{ inputs.DEFAULT_AWS_REGION }}
 
       - name: "[ProvisionAccount]: Provision New Account"
         id: provision_access_control
