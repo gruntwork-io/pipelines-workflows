@@ -22,47 +22,9 @@ jobs:
           step_name: "Calculate Infrastructure Changes"
           step_status: "in_progress"
 
-      - uses: actions/checkout@v4
-        with:
-          # Fetch all history
-          fetch-depth: 0
-
-      - name: Read Gruntwork config file
-        id: gruntwork
-        shell: bash
-        run: |
-          config="$(cat .gruntwork/config.yml | base64 -w 0)"
-          echo "config=$config" >> $GITHUB_OUTPUT
-          pipelines_cli_version="$(yq -r .pipelines.cli-version .gruntwork/config.yml)"
-          echo "pipelines_cli_version=$pipelines_cli_version" >> $GITHUB_OUTPUT
-
-      - name: Set custom ref variables
-        id: ref
-        # If this run was triggered manually, we'll use the source and target ref from the user input. Otherwise, we'll
-        # use our default approach.
-        # pull requests need to use pull_request.head.sha, rather than HEAD, because by default HEAD for PRs is a merge commit that isn't in the actual history
-        run: |
-          echo "source_ref=${{ inputs.source_ref || '$(./.github/scripts/source-ref.sh)'}}" >> $GITHUB_OUTPUT
-
-          if [[ '${{  github.event_name }}' = 'pull_request' ]]; then
-            echo "branch_ref=${{ inputs.target_ref || github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
-          else
-            echo "branch_ref=${{ inputs.target_ref || '$(git rev-parse HEAD)'}}" >> $GITHUB_OUTPUT
-          fi
-        shell: bash
-
-      - name: Get event-type
-        id: event_type
-        run: |
-          if [[ "${GITHUB_REF##*/}" == "main" ]]; then
-              echo "event_type=push" >> $GITHUB_OUTPUT
-          else
-              echo "event_type=pr-synched-created" >> $GITHUB_OUTPUT
-          fi
-
       - name: Pipelines Orchestrate
         id: orchestrate
-        uses: gruntwork-io/pipelines-orchestrate@v1.1.0
+        uses: gruntwork-io/pipelines-orchestrate@v2.0.0
         with:
           repository-path: "."
           repository-url: ${{ github.server_url }}/${{ github.repository }}
@@ -82,7 +44,7 @@ jobs:
 
     outputs:
       pipelines_jobs: ${{ steps.orchestrate.outputs.jobs }}
-      pipelines_cli_version: ${{ steps.gruntwork.outputs.pipelines_cli_version }}
+      pipelines_cli_version: ${{ steps.orchestrate.outputs.pipelines_cli_version }}
 
   pipelines_determine:
     name: ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
