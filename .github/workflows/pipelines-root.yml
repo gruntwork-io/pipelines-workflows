@@ -24,7 +24,7 @@ jobs:
 
       - name: Pipelines Orchestrate
         id: orchestrate
-        uses: gruntwork-io/pipelines-orchestrate@v2.0.1
+        uses: gruntwork-io/pipelines-orchestrate@v2.0.2
         with:
           # We do this because the `GRUNTWORK_CODE_ACCESS_TOKEN` might not be present when vending a delegated account, even though it's always present in the main `infrastructure-live` account.
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
