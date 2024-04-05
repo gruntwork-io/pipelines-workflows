@@ -26,12 +26,6 @@ jobs:
         id: orchestrate
         uses: gruntwork-io/pipelines-orchestrate@v2.0.0
         with:
-          repository-path: "."
-          repository-url: ${{ github.server_url }}/${{ github.repository }}
-          source-ref: ${{ steps.ref.outputs.source_ref }}
-          target-ref: ${{ steps.ref.outputs.branch_ref }}
-          event-type: ${{ steps.event_type.outputs.event_type }}
-          gruntwork-config: ${{ steps.gruntwork.outputs.config }}
           # We do this because the `GRUNTWORK_CODE_ACCESS_TOKEN` might not be present when vending a delegated account, even though it's always present in the main `infrastructure-live` account.
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
 
@@ -99,7 +93,6 @@ jobs:
         with:
           gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
-
 
       - name: "[TerragruntExecute]: Authenticate with AWS and then Invoke Terragrunt"
         id: terragrunt
