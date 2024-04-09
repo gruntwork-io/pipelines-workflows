@@ -109,9 +109,6 @@ jobs:
           role_session_name: ${{ steps.bootstrap.outputs.role_session_name }}
           chain_account_id: ${{ steps.bootstrap.outputs.child_account_id }}
           chain_account_role_name: ${{ steps.bootstrap.outputs.child_acct_role_name }}
-          tofu_version: ${{ steps.bootstrap.outputs.tofu_version }}
-          tf_binary: ${{ steps.bootstrap.outputs.tf_binary }}
-          terragrunt_version: ${{ steps.bootstrap.outputs.terragrunt_version }}
           gruntwork_config_file: ${{ steps.bootstrap.outputs.gruntwork_config_file }}
           pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
 
