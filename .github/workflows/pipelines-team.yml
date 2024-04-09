@@ -76,8 +76,7 @@ jobs:
           terragrunt_command: ${{ matrix.jobs.Action.Command }} ${{ matrix.jobs.Action.Args }}
           additional_data: ${{ toJson(matrix.jobs.AdditionalData) }}
           child_account_id: ${{ matrix.jobs.AdditionalData.ChildAccountId }}
-          new_account_name: ${{ matrix.jobs.AdditionalData.AccountName }}
-          team_account_names: ${{ matrix.jobs.AdditionalData.TeamAccountNames }}
+          account_names: ${{ matrix.jobs.AdditionalData.AccountNames }}
 
       - name: "Run terragrunt ${{ steps.bootstrap.outputs.terragrunt_command }} in ${{ steps.bootstrap.outputs.working_directory }}"
         id: terragrunt
