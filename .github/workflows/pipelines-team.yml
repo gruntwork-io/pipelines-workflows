@@ -82,19 +82,14 @@ jobs:
         id: terragrunt
         uses: gruntwork-io-team/pipelines-aws-execute@main
         with:
-          aws_region: ${{ steps.bootstrap.outputs.default_aws_region }}
-          branch: ${{ matrix.jobs.Ref }}
           gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
-          terragrunt_command: ${{ steps.bootstrap.outputs.terragrunt_command }}
           account_id: ${{ steps.bootstrap.outputs.account_id }}
           account_role_name: ${{ steps.bootstrap.outputs.role_name }}
           role_session_name: ${{ steps.bootstrap.outputs.role_session_name }}
           working_directory: ${{ steps.bootstrap.outputs.working_directory }}
           chain_account_id: ${{ steps.bootstrap.outputs.child_account_id }}
           chain_account_role_name: ${{ steps.bootstrap.outputs.child_acct_role_name }}
-          tf_binary: ${{ steps.bootstrap.outputs.tf_binary }}
-          gruntwork_config_file: ${{ steps.bootstrap.outputs.gruntwork_config_file }}
-          pipelines_cli_version: ${{ steps.bootstrap.outputs.pipelines_cli_version }}
+          gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
 
       - name: Update comment
         if: always()
