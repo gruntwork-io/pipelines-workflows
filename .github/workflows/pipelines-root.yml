@@ -85,7 +85,7 @@ jobs:
           gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
 
-      - name: "[Baseline]: Apply New Account Baseline"
+      - name: "[Baseline]: Apply New Account Baseline Part 1"
         id: baseline
         if: steps.bootstrap.outputs.action == 'BASELINE_ACCOUNT'
         uses: gruntwork-io-team/pipelines-baseline-account-action@main
@@ -125,3 +125,73 @@ jobs:
       child_account_id: ${{ steps.bootstrap.outputs.child_account_id }}
       new_account_name: ${{ steps.bootstrap.outputs.new_account_name }}
       team_account_names: ${{ steps.bootstrap.outputs.team_account_names }}
+
+  pipelines_apply_baselines:
+    name: ${{ matrix.jobs.Name }} - ${{ matrix.jobs.ID }}
+    needs: [detect_changes, pipelines_determine]
+    runs-on: ubuntu-latest
+    # GHA can't check for length, so we just check if there is an item in the 0 index
+    if: fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].NewAccounts[0] != null
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        jobs: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs[0].NewAccounts) }}
+    steps:
+      - name: "[Baseline]: Baseline the Child Account"
+        id: terragrunt
+        uses: gruntwork-io-team/pipelines-baseline-child-account-action@main
+        with:
+          gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          account_id: ${{ matrix.jobs.ID }}
+          account_name: ${{ matrix.jobs.Name }}
+          job: ${{ toJson(needs.detect_changes.outputs.pipelines_jobs[0]) }}
+
+  pipelines_setup_access_control:
+    name: "Pipelines Setup Access Control"
+    needs: [detect_changes, pipelines_apply_baselines]
+    runs-on: ubuntu-latest
+    # GHA can't check for length, so we just check if there is an item in the 0 index
+    if: fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].NewAccounts[0] != null
+    steps:
+      - name: Check out repo code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Bootstrap Workflow
+        id: bootstrap
+        uses: gruntwork-io-team/pipelines-bootstrap@main
+        with:
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          change_type: ${{ needs.detect_changes.outputs.pipelines_jobs[0].ChangeType }}
+          branch: ${{ needs.detect_changes.outputs.pipelines_jobs[0].Ref }}
+          working_directory: ${{ needs.detect_changes.outputs.pipelines_jobs[0].WorkingDirectory }}
+          account_id: ${{ needs.detect_changes.outputs.pipelines_jobs[0].AccountId }}
+          terragrunt_command: ${{ needs.detect_changes.outputs.pipelines_jobs[0].Action.Command }} ${{ needs.detect_changes.outputs.pipelines_jobs[0].Action.Args }}
+          additional_data: ${{ toJson(needs.detect_changes.outputs.pipelines_jobs[0].AdditionalData) }}
+          child_account_id: ${{ needs.detect_changes.outputs.pipelines_jobs[0].AdditionalData.ChildAccountId }}
+          account_names: ${{ needs.detect_changes.outputs.pipelines_jobs[0].AdditionalData.AccountNames }}
+
+      # Create Access Control PR
+      # Merge Access Control PR
+      - name: "[ProvisionAccount]: Setup Access Control PR"
+        id: access_control_pr
+        if: ${{ steps.bootstrap.outputs.action == 'apply' }}
+        uses: gruntwork-io-team/pipelines-provision-access-control-action@main
+        with:
+          gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
+          gruntwork_code_access_token: ${{ inputs.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          # TODO - this needs to be a different token that has enhanced scopes for creating repos
+          manage_repo_token: ${{ inputs.GRUNTWORK_CODE_ACCESS_TOKEN }}
+
+      # Create Delegated Repo
+      # Create PR in Delegated Repo
+      - name: "[ProvisionDelegatedRepo]: Setup delegated Repo"
+        id: provision_delegated_repo
+        uses: gruntwork-io-team/pipelines-provision-repo-action@main
+        with:
+          gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
+          gruntwork_code_access_token: ${{ inputs.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          # TODO - this needs to be a different token that has enhanced scopes for creating repos
+          manage_repo_token: ${{ inputs.GRUNTWORK_CODE_ACCESS_TOKEN }}
