@@ -107,5 +107,3 @@ jobs:
       terragrunt_command: ${{ steps.bootstrap.outputs.terragrunt_command }}
       additional_data: ${{ steps.bootstrap.outputs.additional_data }}
       child_account_id: ${{ steps.bootstrap.outputs.child_account_id }}
-      new_account_name: ${{ steps.bootstrap.outputs.new_account_name }}
-      team_account_names: ${{ steps.bootstrap.outputs.team_account_names }}
