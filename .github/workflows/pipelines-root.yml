@@ -176,14 +176,14 @@ jobs:
         uses: gruntwork-io-team/pipelines-bootstrap@main
         with:
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
-          change_type: ${{ needs.detect_changes.outputs.pipelines_jobs[0].ChangeType }}
-          branch: ${{ needs.detect_changes.outputs.pipelines_jobs[0].Ref }}
-          working_directory: ${{ needs.detect_changes.outputs.pipelines_jobs[0].WorkingDirectory }}
-          account_id: ${{ needs.detect_changes.outputs.pipelines_jobs[0].AccountId }}
-          terragrunt_command: ${{ needs.detect_changes.outputs.pipelines_jobs[0].Action.Command }} ${{ needs.detect_changes.outputs.pipelines_jobs[0].Action.Args }}
-          additional_data: ${{ toJson(needs.detect_changes.outputs.pipelines_jobs[0].AdditionalData) }}
-          child_account_id: ${{ needs.detect_changes.outputs.pipelines_jobs[0].AdditionalData.ChildAccountId }}
-          account_names: ${{ needs.detect_changes.outputs.pipelines_jobs[0].AdditionalData.AccountNames }}
+          change_type: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].ChangeType }}
+          branch: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].Ref }}
+          working_directory: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].WorkingDirectory }}
+          account_id: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].AccountId }}
+          terragrunt_command: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].Action.Command }} ${{ needs.detect_changes.outputs.pipelines_jobs[0].Action.Args }}
+          additional_data: ${{ toJson(fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].AdditionalData) }}
+          child_account_id: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].AdditionalData.ChildAccountId }}
+          account_names: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].AdditionalData.AccountNames }}
 
       # Create Access Control PR
       # Merge Access Control PR
