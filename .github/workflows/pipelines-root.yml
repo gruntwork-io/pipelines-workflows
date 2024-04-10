@@ -193,9 +193,9 @@ jobs:
         uses: gruntwork-io-team/pipelines-provision-repo-action@main
         with:
           gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
-          gruntwork_code_access_token: ${{ inputs.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           # TODO - this needs to be a different token that has enhanced scopes for creating repos
-          manage_repo_token: ${{ inputs.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          manage_repo_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
 
       # Create Access Control PR
       # Merge Access Control PR
@@ -205,6 +205,6 @@ jobs:
         uses: gruntwork-io-team/pipelines-provision-access-control-action@main
         with:
           gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
-          gruntwork_code_access_token: ${{ inputs.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           # TODO - this needs to be a different token that has enhanced scopes for creating repos
-          manage_repo_token: ${{ inputs.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          manage_repo_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
