@@ -123,8 +123,6 @@ jobs:
       terragrunt_command: ${{ steps.bootstrap.outputs.terragrunt_command }}
       additional_data: ${{ steps.bootstrap.outputs.additional_data }}
       child_account_id: ${{ steps.bootstrap.outputs.child_account_id }}
-      new_account_name: ${{ steps.bootstrap.outputs.new_account_name }}
-      team_account_names: ${{ steps.bootstrap.outputs.team_account_names }}
 
   pipelines_apply_baselines:
     name: ${{ matrix.jobs.Name }} - ${{ matrix.jobs.ID }}
@@ -136,7 +134,7 @@ jobs:
       fail-fast: false
       max-parallel: 3
       matrix:
-        jobs: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs[0].NewAccounts) }}
+        jobs: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].NewAccounts }}
     steps:
       - name: "[Baseline]: Baseline the Child Account"
         id: terragrunt
