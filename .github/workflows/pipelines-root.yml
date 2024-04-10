@@ -125,7 +125,7 @@ jobs:
       child_account_id: ${{ steps.bootstrap.outputs.child_account_id }}
 
   pipelines_apply_baselines:
-    name: ${{ matrix.jobs.Name }} - ${{ matrix.jobs.ID }}
+    name: Baseline Child Account ${{ matrix.jobs.Name }} (${{ matrix.jobs.ID }})
     needs: [detect_changes, pipelines_determine]
     runs-on: ubuntu-latest
     # GHA can't check for length, so we just check if there is an item in the 0 index
@@ -136,7 +136,6 @@ jobs:
       matrix:
         jobs: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].NewAccounts }}
     steps:
-
       - name: Update comment
         uses: gruntwork-io/pipelines-status-update@v0.1.0
         with:
@@ -150,7 +149,7 @@ jobs:
           gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           account_id: ${{ matrix.jobs.ID }}
           account_name: ${{ matrix.jobs.Name }}
-          job: ${{ toJson(needs.detect_changes.outputs.pipelines_jobs)[0] }}
+          job: ${{ toJson(fromJson(needs.detect_changes.outputs.pipelines_jobs)[0]) }}
 
       - name: Update comment
         uses: gruntwork-io/pipelines-status-update@v0.1.0
