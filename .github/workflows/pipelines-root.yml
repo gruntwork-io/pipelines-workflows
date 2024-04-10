@@ -143,7 +143,7 @@ jobs:
           gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           account_id: ${{ matrix.jobs.ID }}
           account_name: ${{ matrix.jobs.Name }}
-          job: ${{ toJson(needs.detect_changes.outputs.pipelines_jobs[0]) }}
+          job: ${{ toJson(needs.detect_changes.outputs.pipelines_jobs)[0] }}
 
   pipelines_setup_access_control:
     name: "Pipelines Setup Access Control"
