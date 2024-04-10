@@ -138,98 +138,14 @@ jobs:
       matrix:
         jobs: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs[0].NewAccounts) }}
     steps:
-      - name: Check out repo code
-        uses: actions/checkout@v4
+      - name: "[Baseline]: Baseline the Child Account"
+        id: terragrunt
+        uses: gruntwork-io-team/pipelines-baseline-child-account-action@main
         with:
-          fetch-depth: 0
-
-      - name: Update comment
-        uses: gruntwork-io/pipelines-status-update@v0.1.0
-        with:
-          step_name: Baseline Account ${{ matrix.jobs.Name }} - ${{ matrix.jobs.ID }}
-          step_status: "in_progress"
-
-      - name: Bootstrap Workflow
-        id: bootstrap
-        uses: gruntwork-io-team/pipelines-bootstrap@main
-        with:
-          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
-          change_type: ${{ needs.detect_changes.outputs.pipelines_jobs[0].ChangeType }}
-          branch: ${{ needs.detect_changes.outputs.pipelines_jobs[0].Ref }}
-          working_directory: ${{ needs.detect_changes.outputs.pipelines_jobs[0].WorkingDirectory }}
-          account_id: ${{ needs.detect_changes.outputs.pipelines_jobs[0].AccountId }}
-          terragrunt_command: ${{ needs.detect_changes.outputs.pipelines_jobs[0].Action.Command }} ${{ needs.detect_changes.outputs.pipelines_jobs[0].Action.Args }}
-          additional_data: ${{ toJson(needs.detect_changes.outputs.pipelines_jobs[0].AdditionalData) }}
-          child_account_id: ${{ needs.detect_changes.outputs.pipelines_jobs[0].AdditionalData.ChildAccountId }}
-          account_names: ${{ needs.detect_changes.outputs.pipelines_jobs[0].AdditionalData.AccountNames }}
-
-      # Auth to child account
-      # THIS RETRIEVES PERMISSIONS TO BE ABLE TO RUN A PLAN/APPLY IN THE NEWLY CREATED CHILD ACCOUNT
-      # The "AWSControlTowerExecution" role being assumed here is created by Control Tower in each account it provisions
-      # and it can be assumed by a role in the management account.
-      - name: "[Baseline]: Assume role new child account"
-        shell: bash
-        env:
-          SESSION_NAME: ${{ steps.gruntwork_context.outputs.role_session_name }}
-          CHILD_ACCOUNT: ${{ matrix.jobs.ID }}
-        run: |
-          RESPONSE="$(aws sts assume-role --role-arn "arn:aws:iam::$CHILD_ACCOUNT:role/AWSControlTowerExecution" --role-session-name "$SESSION_NAME")"
-          ASSUMED_ROLE_CREDS="$(echo "$RESPONSE" | jq -r '.Credentials')"
-          AWS_ACCESS_KEY_ID="$(echo "$ASSUMED_ROLE_CREDS" | jq -r '.AccessKeyId')"
-          echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> "$GITHUB_ENV"
-          echo "::add-mask::$AWS_ACCESS_KEY_ID"
-          AWS_SECRET_ACCESS_KEY="$(echo "$ASSUMED_ROLE_CREDS" | jq -r '.SecretAccessKey')"
-          echo AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" >> "$GITHUB_ENV"
-          echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
-          AWS_SESSION_TOKEN="$(echo "$ASSUMED_ROLE_CREDS" | jq -r '.SessionToken')"
-          echo AWS_SESSION_TOKEN="$AWS_SESSION_TOKEN" >> "$GITHUB_ENV"
-          echo "::add-mask::$AWS_SESSION_TOKEN"
-
-      - name: "[Baseline]: Confirm Account Access"
-        shell: bash
-        env:
-          CHILD_ACCOUNT: ${{ matrix.jobs.ID }}
-          WORKING_DIRECTORY: ${{ matrix.jobs.Name }}
-        run: aws sts get-caller-identity
-
-      # This Bootstrap step is a workaround for the error that happens when running plan-all for the first time in a
-      # new account with multiple modules. The error is:
-      #
-      #    OperationAborted: A conflicting conditional operation is currently in progress against this resource. Please try again.
-      #    BucketAlreadyOwnedByYou: Your previous request to create the named bucket succeeded and you already own it.
-      #
-      # This happens because each module is trying to create buckets for state and logs when they do not exist.
-      # Setting Terragrunt Parallelism to 1 does NOT prevent this error from happening. So we'll instead run an init in
-      # a single module first to create the buckets so that subsequent run-all commands do not fail.
-      - name: "[Baseline]: Bootstrap child account with state & logs S3 buckets"
-        if: ${{ contains(steps.gruntwork_context.outputs.terragrunt_command, 'plan') }}
-        uses: gruntwork-io/pipelines-execute@v3.0.0-beta4
-        with:
-          token: ${{ inputs.gruntwork_code_access_token }}
-          pipelines_cli_version: ${{ steps.gruntwork_context.outputs.pipelines_cli_version }}
-          working_directory: "${{ matrix.jobs.Name }}/_global/account-baseline"
-          terragrunt_command: "init"
-          infra_live_repo: '.'
-          infra_live_directory: '.'
-          infra_live_repo_branch: ${{ steps.gruntwork_context.outputs.branch }}
-          gruntwork_config: "${{ steps.gruntwork_context.outputs.gruntwork_config }}"
-          deploy_branch_name: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
-
-      # Apply Access Control Roles and Baseline in Delegated Account
-      - name: "[Baseline]: Bootstrap child account with access control roles, state & logs S3 buckets"
-        uses: gruntwork-io/pipelines-execute@v3.0.0-beta4
-        with:
-          token: ${{ inputs.gruntwork_code_access_token }}
-          pipelines_cli_version: ${{ steps.gruntwork_context.outputs.pipelines_cli_version }}
-          working_directory: "${{ matrix.jobs.Name }}/_global/account-baseline"
-          terragrunt_command: ${{ steps.gruntwork_context.outputs.terragrunt_command }}
-          infra_live_repo: '.'
-          infra_live_directory: '.'
-          infra_live_repo_branch: ${{ steps.gruntwork_context.outputs.branch }}
-          gruntwork_config: "${{ steps.gruntwork_context.outputs.gruntwork_config }}"
-          deploy_branch_name: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
-
-
+          gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          account_id: ${{ matrix.jobs.ID }}
+          account_name: ${{ matrix.jobs.Name }}
+          job: ${{ toJson(needs.detect_changes.outputs.pipelines_jobs[0]) }}
 
   pipelines_setup_access_control:
     name: "Pipelines Setup Access Control"
