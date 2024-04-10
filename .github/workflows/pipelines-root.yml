@@ -187,7 +187,7 @@ jobs:
           # This is just to help bootstrap find one of the (possibly several) new account request files
           # Inside those files is some shared config that we need to setup access control such as
           # the delegated_repo_name (which is the same in all the new request files)
-          new_account_name: ${{ needs.detect_changes.outputs.pipelines_jobs[0].NewAccounts[0].Name }}
+          new_account_name: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].NewAccounts[0].Name }}
 
       # Create Delegated Repo
       # Create PR in Delegated Repo
