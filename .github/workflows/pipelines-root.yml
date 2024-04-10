@@ -136,14 +136,29 @@ jobs:
       matrix:
         jobs: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].NewAccounts }}
     steps:
+
+      - name: Update comment
+        uses: gruntwork-io/pipelines-status-update@v0.1.0
+        with:
+          step_name: Baseline Child Account ${{ matrix.jobs.Name }}
+          step_status: "in_progress"
+
       - name: "[Baseline]: Baseline the Child Account"
-        id: terragrunt
+        id: baseline_child_account
         uses: gruntwork-io-team/pipelines-baseline-child-account-action@main
         with:
           gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           account_id: ${{ matrix.jobs.ID }}
           account_name: ${{ matrix.jobs.Name }}
           job: ${{ toJson(needs.detect_changes.outputs.pipelines_jobs)[0] }}
+
+      - name: Update comment
+        uses: gruntwork-io/pipelines-status-update@v0.1.0
+        if: always()
+        with:
+          step_name: Baseline Child Account ${{ matrix.jobs.Name }}
+          step_status: ${{ steps.baseline_child_account.conclusion == 'success' && 'success' || 'failed' }}
+          step_details: "output will go here"
 
   pipelines_setup_access_control:
     name: "Pipelines Setup Access Control"
