@@ -25,7 +25,7 @@ jobs:
       - name: Pipelines Orchestrate
         id: orchestrate
         # TODO: Move to a tagged release
-        uses: gruntwork-io/pipelines-orchestrate@44b7f27ec1dd0b379e15109f8e2485a399827009
+        uses: gruntwork-io/pipelines-orchestrate@828fa69144c299ba691086451062626c7970bdf8
         with:
           # We do this because the `GRUNTWORK_CODE_ACCESS_TOKEN` might not be present when vending a delegated account, even though it's always present in the main `infrastructure-live` account.
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
