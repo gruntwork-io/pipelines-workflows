@@ -2,6 +2,9 @@ name: Pipelines Execute
 run-name: Run Gruntwork Pipelines
 on:
   workflow_call:
+    secrets:
+      GRUNTWORK_CODE_ACCESS_TOKEN:
+        required: true
 
 jobs:
   detect_changes:
@@ -11,7 +14,7 @@ jobs:
       - name: Preflight Checks
         uses: gruntwork-io-team/pipelines-preflight-action@main
         with:
-          GRUNTWORK_CODE_ACCESS_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
 
       - name: Update comment
         uses: gruntwork-io/pipelines-status-update@v0.1.0
@@ -25,7 +28,7 @@ jobs:
         uses: gruntwork-io/pipelines-orchestrate@828fa69144c299ba691086451062626c7970bdf8
         with:
           # We do this because the `GRUNTWORK_CODE_ACCESS_TOKEN` might not be present when vending a delegated account, even though it's always present in the main `infrastructure-live` account.
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Update comment
         uses: gruntwork-io/pipelines-status-update@v0.1.0
@@ -65,7 +68,7 @@ jobs:
         id: bootstrap
         uses: gruntwork-io-team/pipelines-bootstrap@main
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           change_type: ${{ matrix.jobs.ChangeType }}
           branch: ${{ matrix.jobs.Ref }}
           working_directory: ${{ matrix.jobs.WorkingDirectory }}
@@ -79,7 +82,7 @@ jobs:
         id: terragrunt
         uses: gruntwork-io-team/pipelines-aws-execute@main
         with:
-          gruntwork_code_access_token: ${{ secrets.GITHUB_TOKEN }}
+          gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           account_id: ${{ steps.bootstrap.outputs.account_id }}
           account_role_name: ${{ steps.bootstrap.outputs.role_name }}
           role_session_name: ${{ steps.bootstrap.outputs.role_session_name }}
