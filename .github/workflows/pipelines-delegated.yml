@@ -50,7 +50,6 @@ jobs:
     if: fromJson(needs.detect_changes.outputs.pipelines_jobs)[0] != null
     strategy:
       fail-fast: false
-      max-parallel: 3
       matrix:
         jobs: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs) }}
     steps:
