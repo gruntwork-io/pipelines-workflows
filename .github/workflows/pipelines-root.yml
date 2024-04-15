@@ -156,8 +156,8 @@ jobs:
           step_status: ${{ steps.baseline_child_account.conclusion == 'success' && 'success' || 'failed' }}
           step_details: "output will go here"
 
-  pipelines_setup_access_control:
-    name: "Pipelines Setup Access Control"
+  pipelines_setup_delegated_repo:
+    name: "Pipelines Setup Delegated Repo"
     needs: [detect_changes, pipelines_apply_baselines]
     runs-on: ubuntu-latest
     # GHA can't check for length, so we just check if there is an item in the 0 index
