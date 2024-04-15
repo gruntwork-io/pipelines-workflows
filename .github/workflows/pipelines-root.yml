@@ -103,8 +103,6 @@ jobs:
           working_directory: ${{ steps.bootstrap.outputs.working_directory }}
           account_role_name: ${{ steps.bootstrap.outputs.role_name }}
           role_session_name: ${{ steps.bootstrap.outputs.role_session_name }}
-          chain_account_id: ${{ steps.bootstrap.outputs.child_account_id }}
-          chain_account_role_name: ${{ steps.bootstrap.outputs.child_acct_role_name }}
           gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
 
       - name: Update comment
