@@ -85,7 +85,7 @@ jobs:
           gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
           gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
 
-      - name: "[Baseline]: Apply New Account Baseline Part 1"
+      - name: "[Baseline]: Run New Account Baseline"
         id: baseline
         if: steps.bootstrap.outputs.action == 'BASELINE_ACCOUNT'
         uses: gruntwork-io-team/pipelines-baseline-account-action@main
