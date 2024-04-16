@@ -17,7 +17,7 @@ jobs:
           GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
 
       - name: Update comment
-        uses: gruntwork-io/pipelines-status-update@v0.1.0
+        uses: gruntwork-io/pipelines-status-update@main
         with:
           step_name: "Detect Infrastructure Changes"
           step_status: "in_progress"
@@ -30,7 +30,7 @@ jobs:
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Update comment
-        uses: gruntwork-io/pipelines-status-update@v0.1.0
+        uses: gruntwork-io/pipelines-status-update@main
         with:
           step_name: "Detect Infrastructure Changes"
           step_status: "success"
@@ -58,7 +58,7 @@ jobs:
           fetch-depth: 0
 
       - name: Update comment
-        uses: gruntwork-io/pipelines-status-update@v0.1.0
+        uses: gruntwork-io/pipelines-status-update@main
         with:
           step_name: ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
           step_status: "in_progress"
@@ -90,7 +90,7 @@ jobs:
 
       - name: Update comment
         if: always()
-        uses: gruntwork-io/pipelines-status-update@v0.1.0
+        uses: gruntwork-io/pipelines-status-update@main
         with:
           step_name: ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
           step_status: ${{ steps.terragrunt.conclusion == 'success' && 'success' || 'failed' }}
