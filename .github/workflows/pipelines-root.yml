@@ -3,8 +3,12 @@ run-name: Run Gruntwork Pipelines
 on:
   workflow_call:
     secrets:
-      GRUNTWORK_CODE_ACCESS_TOKEN:
+      PIPELINES_READ_TOKEN:
         required: true
+      INFRA_ROOT_WRITE_TOKEN:
+        required: true
+      ORG_REPO_ADMIN_TOKEN:
+        required: false
 
 jobs:
   detect_changes:
@@ -14,7 +18,7 @@ jobs:
       - name: Preflight Checks
         uses: gruntwork-io-team/pipelines-preflight-action@main
         with:
-          GRUNTWORK_CODE_ACCESS_TOKEN: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
 
       - name: Update comment
         uses: gruntwork-io/pipelines-status-update@main
@@ -26,8 +30,7 @@ jobs:
         id: orchestrate
         uses: gruntwork-io/pipelines-orchestrate@v2.1.0
         with:
-          # We do this because the `GRUNTWORK_CODE_ACCESS_TOKEN` might not be present when vending a delegated account, even though it's always present in the main `infrastructure-live` account.
-          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PIPELINES_READ_TOKEN }}
 
       - name: Update comment
         uses: gruntwork-io/pipelines-status-update@main
@@ -66,7 +69,7 @@ jobs:
         id: bootstrap
         uses: gruntwork-io-team/pipelines-bootstrap@main
         with:
-          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          token: ${{ secrets.PIPELINES_READ_TOKEN }}
           change_type: ${{ matrix.jobs.ChangeType }}
           branch: ${{ matrix.jobs.Ref }}
           working_directory: ${{ matrix.jobs.WorkingDirectory }}
@@ -81,7 +84,8 @@ jobs:
         if: ${{ steps.bootstrap.outputs.action == 'PROVISION_ACCOUNT' }}
         uses: gruntwork-io-team/pipelines-provision-account-action@main
         with:
-          gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          INFRA_ROOT_WRITE_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
           gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
 
       - name: "[Baseline]: Run New Account Baseline"
@@ -89,7 +93,7 @@ jobs:
         if: steps.bootstrap.outputs.action == 'BASELINE_ACCOUNT'
         uses: gruntwork-io-team/pipelines-baseline-account-action@main
         with:
-          gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
 
       - name: "[TerragruntExecute]: Authenticate with AWS and then Invoke Terragrunt"
@@ -97,7 +101,7 @@ jobs:
         if: ${{ steps.bootstrap.outputs.action == 'TERRAGRUNT_EXECUTE' }}
         uses: gruntwork-io-team/pipelines-aws-execute@main
         with:
-          gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           account_id: ${{ steps.bootstrap.outputs.account_id }}
           working_directory: ${{ steps.bootstrap.outputs.working_directory }}
           account_role_name: ${{ steps.bootstrap.outputs.role_name }}
@@ -142,7 +146,7 @@ jobs:
         id: baseline_child_account
         uses: gruntwork-io-team/pipelines-baseline-child-account-action@main
         with:
-          gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           account_id: ${{ matrix.jobs.ID }}
           account_name: ${{ matrix.jobs.Name }}
           job: ${{ toJson(fromJson(needs.detect_changes.outputs.pipelines_jobs)[0]) }}
@@ -171,7 +175,7 @@ jobs:
         id: bootstrap
         uses: gruntwork-io-team/pipelines-bootstrap@main
         with:
-          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          token: ${{ secrets.PIPELINES_READ_TOKEN }}
           change_type: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].ChangeType }}
           branch: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].Ref }}
           working_directory: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].WorkingDirectory }}
@@ -193,9 +197,8 @@ jobs:
         uses: gruntwork-io-team/pipelines-provision-repo-action@main
         with:
           gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
-          gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
-          # TODO - this needs to be a different token that has enhanced scopes for creating repos
-          manage_repo_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          ORG_REPO_ADMIN_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
 
       # Create Access Control PR
       # Merge Access Control PR
@@ -205,6 +208,5 @@ jobs:
         uses: gruntwork-io-team/pipelines-provision-access-control-action@main
         with:
           gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
-          gruntwork_code_access_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
-          # TODO - this needs to be a different token that has enhanced scopes for creating repos
-          manage_repo_token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          ORG_REPO_ADMIN_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
