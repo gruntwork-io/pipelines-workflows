@@ -93,7 +93,7 @@ jobs:
         with:
           step_name: ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
           step_status: ${{ steps.terragrunt.conclusion == 'success' && 'success' || 'failed' }}
-          step_details: "```plan would go here```"
+          step_details: ${{ steps.terragrunt.outputs.formatted_plan_output || steps.terragrunt.outputs.execute_stdout || "Unable to determine output" }}
 
     outputs:
       account_id: ${{ matrix.jobs.AccountId }}
