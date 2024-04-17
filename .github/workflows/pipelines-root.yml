@@ -194,24 +194,21 @@ jobs:
           # the delegated_repo_name (which is the same in all the new request files)
           new_account_name: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].NewAccounts[0].Name }}
 
-      # Create Delegated Repo
-      # Create PR in Delegated Repo
-      - name: "[ProvisionDelegatedRepo]: Setup delegated Repo"
-        id: provision_delegated_repo
-        if: ${{ steps.bootstrap.outputs.terragrunt_command == 'run-all apply' }}
-        uses: gruntwork-io-team/pipelines-provision-repo-action@main
-        with:
-          gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
-          PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
-          ORG_REPO_ADMIN_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
-
-      # Create Access Control PR
-      # Merge Access Control PR
-      - name: "[ProvisionAccount]: Setup Access Control PR"
+      - name: "Create Access Control PR"
         id: access_control_pr
         if: ${{ steps.bootstrap.outputs.terragrunt_command == 'run-all apply' }}
         uses: gruntwork-io-team/pipelines-provision-access-control-action@main
         with:
           gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
+          PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          ORG_REPO_ADMIN_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
+
+      - name: "Create and bootstrap delegated Repo"
+        id: provision_delegated_repo
+        if: ${{ steps.bootstrap.outputs.terragrunt_command == 'run-all apply' }}
+        uses: gruntwork-io-team/pipelines-provision-repo-action@main
+        with:
+          gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
+          access_control_pull_request_url: ${{ steps.access_control_pr.outputs.pull_request_url }}
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           ORG_REPO_ADMIN_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
