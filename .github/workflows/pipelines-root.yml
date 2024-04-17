@@ -131,6 +131,7 @@ jobs:
       additional_data: ${{ steps.bootstrap.outputs.additional_data }}
       child_account_id: ${{ steps.bootstrap.outputs.child_account_id }}
       pr_number: ${{ steps.bootstrap.outputs.pr_number }}
+      delegate_management: ${{ steps.bootstrap.outputs.delegate_management }}
 
   pipelines_apply_baselines:
     name: Baseline Child Account ${{ matrix.jobs.Name }} (${{ matrix.jobs.ID }})
@@ -170,10 +171,10 @@ jobs:
 
   pipelines_setup_delegated_repo:
     name: "Setup Delegated Repo"
-    needs: [detect_changes, pipelines_apply_baselines]
+    needs: [detect_changes, pipelines_apply_baselines, pipelines_determine]
     runs-on: ubuntu-latest
     # GHA can't check for length, so we just check if there is an item in the 0 index
-    if: fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].NewAccounts[0] != null
+    if: fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].NewAccounts[0] != null && needs.pipelines_determine.outputs.delegate_management == 'true' && needs.pipelines_determine.outputs.terragrunt_command == 'run-all apply'
     steps:
       - name: Check out repo code
         uses: actions/checkout@v4
@@ -200,7 +201,6 @@ jobs:
 
       - name: "Create Access Control PR"
         id: access_control_pr
-        if: ${{ steps.bootstrap.outputs.terragrunt_command == 'run-all apply' }}
         uses: gruntwork-io-team/pipelines-provision-access-control-action@main
         with:
           gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
@@ -209,7 +209,6 @@ jobs:
 
       - name: "Create and bootstrap delegated Repo"
         id: provision_delegated_repo
-        if: ${{ steps.bootstrap.outputs.terragrunt_command == 'run-all apply' }}
         uses: gruntwork-io-team/pipelines-provision-repo-action@main
         with:
           gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
