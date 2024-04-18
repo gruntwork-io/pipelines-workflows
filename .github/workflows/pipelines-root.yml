@@ -20,24 +20,11 @@ jobs:
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
 
-      - name: Update comment
-        uses: gruntwork-io/pipelines-status-update@main
-        with:
-          step_name: "Calculate Infrastructure Changes"
-          step_status: "in_progress"
-
       - name: Pipelines Orchestrate
         id: orchestrate
-        uses: gruntwork-io/pipelines-orchestrate@v2.1.0
+        uses: gruntwork-io/pipelines-orchestrate@main
         with:
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
-
-      - name: Update comment
-        uses: gruntwork-io/pipelines-status-update@main
-        with:
-          step_name: "Calculate Infrastructure Changes"
-          step_status: "success"
-          step_details: ${{ steps.orchestrate.outputs.jobs }}
 
     outputs:
       pipelines_jobs: ${{ steps.orchestrate.outputs.jobs }}
