@@ -72,6 +72,8 @@ jobs:
           additional_data: ${{ toJson(matrix.jobs.AdditionalData) }}
           child_account_id: ${{ matrix.jobs.AdditionalData.ChildAccountId }}
           account_names: ${{ matrix.jobs.AdditionalData.AccountNames }}
+          # TODO: This should be "first_new_account_name".
+          new_account_name: ${{ matrix.jobs.NewAccounts[0].Name }}
 
       - name: Update comment
         uses: gruntwork-io/pipelines-status-update@main
