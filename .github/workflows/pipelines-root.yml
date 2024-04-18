@@ -10,6 +10,9 @@ on:
       ORG_REPO_ADMIN_TOKEN:
         required: false
 
+env:
+  TF_LOG: DEBUG
+
 jobs:
   detect_changes:
     name: Detect Infrastructure Changes
