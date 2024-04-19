@@ -59,7 +59,8 @@ jobs:
       - name: Update comment
         uses: gruntwork-io/pipelines-status-update@main
         with:
-          step_name: ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
+          step_name: ${{ matrix.jobs.ChangeType }}
+          step_working_directory: ${{ matrix.jobs.WorkingDirectory }}
           step_status: "in_progress"
           pull_request_number: ${{ steps.bootstrap.outputs.pr_number }}
 
@@ -78,7 +79,8 @@ jobs:
         if: always()
         uses: gruntwork-io/pipelines-status-update@main
         with:
-          step_name: ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
+          step_name: ${{ matrix.jobs.ChangeType }}
+          step_working_directory: ${{ matrix.jobs.WorkingDirectory }}
           step_status: ${{ steps.terragrunt.conclusion == 'success' && 'success' || 'failed' }}
           step_details: ${{ steps.terragrunt.outputs.formatted_plan_output || steps.terragrunt.outputs.execute_stdout || 'Unable to determine output' }}
           pull_request_number: ${{ steps.bootstrap.outputs.pr_number }}
