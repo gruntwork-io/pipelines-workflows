@@ -62,14 +62,6 @@ jobs:
           # TODO: This should be "first_new_account_name".
           new_account_name: ${{ matrix.jobs.NewAccounts[0].Name }}
 
-      - name: Update comment
-        uses: gruntwork-io/pipelines-status-update@main
-        with:
-          step_name: ${{ matrix.jobs.ChangeType }}
-          step_working_directory: ${{ matrix.jobs.WorkingDirectory }}
-          step_status: "in_progress"
-          pull_request_number: ${{ steps.bootstrap.outputs.pr_number }}
-
       - name: "[ProvisionAccount]: Provision New Account"
         id: provision_access_control
         if: ${{ steps.bootstrap.outputs.action == 'PROVISION_ACCOUNT' }}
