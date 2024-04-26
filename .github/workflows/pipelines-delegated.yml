@@ -61,7 +61,7 @@ jobs:
 
       - name: "Run terragrunt ${{ steps.bootstrap.outputs.terragrunt_command }} in ${{ steps.bootstrap.outputs.working_directory }}"
         id: terragrunt
-        uses: gruntwork-io/pipelines-aws-execute@v0.0.1
+        uses: gruntwork-io/pipelines-aws-execute@v0.0.2
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           account_id: ${{ steps.bootstrap.outputs.account_id }}
