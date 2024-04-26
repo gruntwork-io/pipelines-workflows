@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Preflight Checks
-        uses: gruntwork-io-team/pipelines-preflight-action@main
+        uses: gruntwork-io/pipelines-preflight-action@main
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
 
@@ -48,7 +48,7 @@ jobs:
 
       - name: Bootstrap Workflow
         id: bootstrap
-        uses: gruntwork-io-team/pipelines-bootstrap@main
+        uses: gruntwork-io/pipelines-bootstrap@main
         with:
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
           change_type: ${{ matrix.jobs.ChangeType }}
@@ -65,7 +65,7 @@ jobs:
       - name: "[ProvisionAccount]: Provision New Account"
         id: provision_access_control
         if: ${{ steps.bootstrap.outputs.action == 'PROVISION_ACCOUNT' }}
-        uses: gruntwork-io-team/pipelines-provision-account-action@main
+        uses: gruntwork-io/pipelines-provision-account-action@main
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           INFRA_ROOT_WRITE_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
@@ -78,7 +78,7 @@ jobs:
         # TODO: Rename this as pipelines-apply-core-baselines or something similar
         # Also, the final Auth to the management account in this action should be done by the pipelines-baseline-child-account-action
         # instead to prevent the indirection and confusion
-        uses: gruntwork-io-team/pipelines-baseline-account-action@main
+        uses: gruntwork-io/pipelines-baseline-account-action@main
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
@@ -86,7 +86,7 @@ jobs:
       - name: "[TerragruntExecute]: Authenticate with AWS and then Invoke Terragrunt"
         id: terragrunt
         if: ${{ steps.bootstrap.outputs.action == 'TERRAGRUNT_EXECUTE' }}
-        uses: gruntwork-io-team/pipelines-aws-execute@main
+        uses: gruntwork-io/pipelines-aws-execute@main
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           account_id: ${{ steps.bootstrap.outputs.account_id }}
@@ -136,7 +136,7 @@ jobs:
 
       - name: "[Baseline]: Baseline the Child Account"
         id: baseline_child_account
-        uses: gruntwork-io-team/pipelines-baseline-child-account-action@main
+        uses: gruntwork-io/pipelines-baseline-child-account-action@main
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           account_id: ${{ matrix.jobs.ID }}
@@ -166,7 +166,7 @@ jobs:
 
       - name: Bootstrap Workflow
         id: bootstrap
-        uses: gruntwork-io-team/pipelines-bootstrap@main
+        uses: gruntwork-io/pipelines-bootstrap@main
         with:
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
           change_type: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].ChangeType }}
@@ -184,7 +184,7 @@ jobs:
 
       - name: "Create Access Control PR"
         id: access_control_pr
-        uses: gruntwork-io-team/pipelines-provision-access-control-action@main
+        uses: gruntwork-io/pipelines-provision-access-control-action@main
         with:
           gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -192,7 +192,7 @@ jobs:
 
       - name: "Create and bootstrap delegated Repo"
         id: provision_delegated_repo
-        uses: gruntwork-io-team/pipelines-provision-repo-action@main
+        uses: gruntwork-io/pipelines-provision-repo-action@main
         with:
           gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
           access_control_pull_request_url: ${{ steps.access_control_pr.outputs.pull_request_url }}
