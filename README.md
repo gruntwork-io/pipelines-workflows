@@ -1,7 +1,19 @@
-# GruntCon `pipelines-workflows`
+# Gruntwork Pipelines Workflows
 
-This is a demo repo showing part of the [Pipelines V3 architecture](https://www.notion.so/gruntwork/Pipelines-v3-69db3c6636034cb3bfc72afe235005f4?pvs=4) built during the 2024/02 GruntCon.
+These two workflows contain the encapsulated logic for the Gruntwork Pipelines CI/CD system.
 
-The `pipelines-workflows` repo is the repo that contains the shared workflows that are used throughout Gruntwork Pipelines.
+They are designed to integrate with the [Gruntwork Pipelines CLI](https://github.com/gruntwork-io/pipelines-cli).
 
-It has analogous workflows for those that are present in `infra-pipelines` in the V2 architecture.
+## Workflows
+
+### [pipelines-root.yml](./github/workflows/pipelines-root.yml)
+
+This workflow handles the CI/CD for deploying updates to infrastructure managed by the DevOps Foundations `infrastructure-live-root` repository.
+
+### [pipelines-delegated.yml](./github/workflows/pipelines-delegated.yml)
+
+This workflow handles the CI/CD for deploying updates to infrastructure managed by all the other repositories vended as part of DevOps Foundations.
+
+## Customization
+
+Ask Gruntwork Support for guidance on this if you have a subscription.
