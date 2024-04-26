@@ -6,6 +6,9 @@ on:
       PIPELINES_READ_TOKEN:
         required: true
 
+env:
+  PIPELINES_CLI_VERSION: 0.9.3
+
 jobs:
   detect_changes:
     name: Detect Infrastructure Changes
