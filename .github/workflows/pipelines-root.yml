@@ -68,7 +68,7 @@ jobs:
       - name: "[ProvisionAccount]: Provision New Account"
         id: provision_access_control
         if: ${{ steps.bootstrap.outputs.action == 'PROVISION_ACCOUNT' }}
-        uses: gruntwork-io/pipelines-provision-account-action@v0.0.5
+        uses: gruntwork-io/pipelines-provision-account-action@v0.0.6
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           INFRA_ROOT_WRITE_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
@@ -81,7 +81,7 @@ jobs:
         # TODO: Rename this as pipelines-apply-core-baselines or something similar
         # Also, the final Auth to the management account in this action should be done by the pipelines-baseline-child-account-action
         # instead to prevent the indirection and confusion
-        uses: gruntwork-io/pipelines-baseline-account-action@v0.0.4
+        uses: gruntwork-io/pipelines-baseline-account-action@v0.0.5
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
@@ -89,7 +89,7 @@ jobs:
       - name: "[TerragruntExecute]: Authenticate with AWS and then Invoke Terragrunt"
         id: terragrunt
         if: ${{ steps.bootstrap.outputs.action == 'TERRAGRUNT_EXECUTE' }}
-        uses: gruntwork-io/pipelines-aws-execute@v0.0.4
+        uses: gruntwork-io/pipelines-aws-execute@v0.0.5
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           account_id: ${{ steps.bootstrap.outputs.account_id }}
