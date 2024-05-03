@@ -15,13 +15,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Preflight Checks
-        uses: gruntwork-io/pipelines-preflight-action@v0.0.2
+        uses: gruntwork-io/pipelines-preflight-action@v0.0.3
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
 
       - name: Pipelines Orchestrate
         id: orchestrate
-        uses: gruntwork-io/pipelines-orchestrate@v3.0.0
+        uses: gruntwork-io/pipelines-orchestrate@v3.0.1
         with:
           token: ${{ secrets.PIPELINES_READ_TOKEN || secrets.GITHUB_TOKEN }}
 
