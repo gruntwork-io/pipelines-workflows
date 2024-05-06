@@ -47,7 +47,7 @@ jobs:
 
       - name: Bootstrap Workflow
         id: bootstrap
-        uses: gruntwork-io/pipelines-bootstrap@v0.0.2
+        uses: gruntwork-io/pipelines-bootstrap@v1.0.0
         with:
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
           change_type: ${{ matrix.jobs.ChangeType }}
@@ -61,7 +61,7 @@ jobs:
 
       - name: "Run terragrunt ${{ steps.bootstrap.outputs.terragrunt_command }} in ${{ steps.bootstrap.outputs.working_directory }}"
         id: terragrunt
-        uses: gruntwork-io/pipelines-aws-execute@v0.0.6
+        uses: gruntwork-io/pipelines-aws-execute@v1.0.0
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           account_id: ${{ steps.bootstrap.outputs.account_id }}
@@ -72,7 +72,7 @@ jobs:
 
       - name: Update comment
         if: always()
-        uses: gruntwork-io/pipelines-status-update@v0.2.0
+        uses: gruntwork-io/pipelines-status-update@v0.2.1
         with:
           step_name: ${{ matrix.jobs.ChangeType }}
           step_working_directory: ${{ matrix.jobs.WorkingDirectory }}
