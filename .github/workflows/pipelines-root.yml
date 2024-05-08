@@ -105,7 +105,7 @@ jobs:
           step_name: ${{ matrix.jobs.ChangeType }}
           step_working_directory: ${{ matrix.jobs.WorkingDirectory }}
           step_status: ${{ (steps.provision_access_control.conclusion == 'success' || steps.terragrunt.conclusion == 'success' || steps.core_accounts_baselines.conclusion == 'success') && 'success' || 'failed' }}
-          step_details: ${{ steps.terragrunt.outputs.formatted_plan_output || steps.terragrunt.outputs.execute_stdout || 'Unable to determine output. Check the logs for more details.' }}
+          step_details: ${{ steps.terragrunt.outputs.formatted_plan_output || steps.terragrunt.outputs.execute_stdout || 'Check the logs for more details.' }}
           pull_request_number: ${{ steps.bootstrap.outputs.pr_number }}
 
     outputs:
@@ -152,7 +152,7 @@ jobs:
         with:
           step_name: Baseline Child Account ${{ matrix.jobs.Name }}
           step_status: ${{ steps.baseline_child_account.conclusion == 'success' && 'success' || 'failed' }}
-          step_details: ${{ steps.baseline_child_account.outputs.formatted_plan_output || steps.baseline_child_account.outputs.execute_stdout || 'Unable to determine output. Check the logs for more details.' }}
+          step_details: ${{ steps.baseline_child_account.outputs.formatted_plan_output || steps.baseline_child_account.outputs.execute_stdout || 'Check the logs for more details.' }}
           pull_request_number: ${{ needs.pipelines_determine.outputs.pr_number }}
 
   pipelines_setup_delegated_repo:
