@@ -68,7 +68,7 @@ jobs:
       - name: "[ProvisionAccount]: Provision New Account"
         id: provision_access_control
         if: ${{ steps.bootstrap.outputs.action == 'PROVISION_ACCOUNT' }}
-        uses: gruntwork-io/pipelines-provision-account-action@v1.1.0
+        uses: gruntwork-io/pipelines-provision-account-action@v1.1.1
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           INFRA_ROOT_WRITE_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
