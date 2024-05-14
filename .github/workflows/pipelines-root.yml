@@ -31,7 +31,6 @@ jobs:
 
     outputs:
       pipelines_jobs: ${{ steps.orchestrate.outputs.jobs }}
-      pipelines_cli_version: ${{ steps.orchestrate.outputs.pipelines_cli_version }}
 
   pipelines_determine:
     name: ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
