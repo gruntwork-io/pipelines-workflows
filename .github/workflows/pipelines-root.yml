@@ -31,7 +31,6 @@ jobs:
 
     outputs:
       pipelines_jobs: ${{ steps.orchestrate.outputs.jobs }}
-      pipelines_cli_version: ${{ steps.orchestrate.outputs.pipelines_cli_version }}
 
   pipelines_determine:
     name: ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
@@ -51,7 +50,7 @@ jobs:
 
       - name: Bootstrap Workflow
         id: bootstrap
-        uses: gruntwork-io/pipelines-bootstrap@v1.0.0
+        uses: gruntwork-io/pipelines-bootstrap@v2.0.0
         with:
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
           change_type: ${{ matrix.jobs.ChangeType }}
@@ -68,7 +67,7 @@ jobs:
       - name: "[ProvisionAccount]: Provision New Account"
         id: provision_access_control
         if: ${{ steps.bootstrap.outputs.action == 'PROVISION_ACCOUNT' }}
-        uses: gruntwork-io/pipelines-provision-account-action@v1.1.1
+        uses: gruntwork-io/pipelines-provision-account-action@v2.0.0
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           INFRA_ROOT_WRITE_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
@@ -81,7 +80,7 @@ jobs:
         # TODO: Rename this as pipelines-apply-core-baselines or something similar
         # Also, the final Auth to the management account in this action should be done by the pipelines-baseline-child-account-action
         # instead to prevent the indirection and confusion
-        uses: gruntwork-io/pipelines-baseline-account-action@v1.0.1
+        uses: gruntwork-io/pipelines-baseline-account-action@v2.0.0
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
@@ -89,7 +88,7 @@ jobs:
       - name: "[TerragruntExecute]: Authenticate with AWS and then Invoke Terragrunt"
         id: terragrunt
         if: ${{ steps.bootstrap.outputs.action == 'TERRAGRUNT_EXECUTE' }}
-        uses: gruntwork-io/pipelines-aws-execute@v1.0.0
+        uses: gruntwork-io/pipelines-aws-execute@v2.0.0
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           account_id: ${{ steps.bootstrap.outputs.account_id }}
@@ -140,7 +139,7 @@ jobs:
 
       - name: "[Baseline]: Baseline the Child Account"
         id: baseline_child_account
-        uses: gruntwork-io/pipelines-baseline-child-account-action@v1.0.1
+        uses: gruntwork-io/pipelines-baseline-child-account-action@v2.0.0
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           account_id: ${{ matrix.jobs.ID }}
@@ -171,7 +170,7 @@ jobs:
 
       - name: Bootstrap Workflow
         id: bootstrap
-        uses: gruntwork-io/pipelines-bootstrap@v1.0.0
+        uses: gruntwork-io/pipelines-bootstrap@v2.0.0
         with:
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
           change_type: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].ChangeType }}
