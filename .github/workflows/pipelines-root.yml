@@ -65,7 +65,6 @@ jobs:
 
       - name: Bootstrap Workflow
         id: bootstrap
-        working-directory: ./infra-repo
         uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
         with:
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -83,7 +82,7 @@ jobs:
       - name: "[ProvisionAccount]: Provision New Account"
         id: provision_access_control
         if: ${{ steps.bootstrap.outputs.action == 'PROVISION_ACCOUNT' }}
-        uses: gruntwork-io/pipelines-provision-account-action@v2.0.0
+        uses: ./pipelines-actions/.github/actions/pipelines-provision-account-action
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           INFRA_ROOT_WRITE_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
