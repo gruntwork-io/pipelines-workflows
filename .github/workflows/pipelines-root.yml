@@ -50,14 +50,23 @@ jobs:
       matrix:
         jobs: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs) }}
     steps:
+      - name: Checkout Pipelines Actions
+        uses: actions/checkout@v4
+        with:
+          path: pipelines-actions
+          repository: gruntwork-test/pipelines-actions
+          ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
+
       - name: Check out repo code
         uses: actions/checkout@v4
         with:
+          path: infra-repo
           fetch-depth: 0
 
       - name: Bootstrap Workflow
         id: bootstrap
-        uses: gruntwork-io/pipelines-bootstrap@v2.0.0
+        working-directory: ./infra-repo
+        uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
         with:
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
           change_type: ${{ matrix.jobs.ChangeType }}
