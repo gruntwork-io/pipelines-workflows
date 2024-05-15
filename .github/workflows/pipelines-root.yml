@@ -14,22 +14,16 @@ env:
   PIPELINES_CLI_VERSION: v0.9.8
 
 jobs:
-  setup:
-    name: Setup Pipelines Actions
+  detect_changes:
+    name: Detect Infrastructure Changes
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout actions
+      - name: Setup Pipelines Actions
         uses: actions/checkout@v4
         with:
           path: pipelines-actions
           repository: gruntwork-test/pipelines-actions
           ref: main
-
-  detect_changes:
-    name: Detect Infrastructure Changes
-    needs: [setup]
-    runs-on: ubuntu-latest
-    steps:
       - name: Preflight Checks
         uses: ./pipelines-actions/.github/actions/pipelines-preflight-action
         with:
@@ -46,7 +40,7 @@ jobs:
 
   pipelines_determine:
     name: ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
-    needs: [setup, detect_changes]
+    needs: [detect_changes]
     runs-on: ubuntu-latest
     # GHA can't check for length, so we just check if there is an item in the 0 index
     if: fromJson(needs.detect_changes.outputs.pipelines_jobs)[0] != null
@@ -133,7 +127,7 @@ jobs:
 
   pipelines_apply_baselines:
     name: Baseline Child Account ${{ matrix.jobs.Name }} (${{ matrix.jobs.ID }})
-    needs: [setup, detect_changes, pipelines_determine]
+    needs: [detect_changes, pipelines_determine]
     runs-on: ubuntu-latest
     # GHA can't check for length, so we just check if there is an item in the 0 index
     if: fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].NewAccounts[0] != null
@@ -170,7 +164,7 @@ jobs:
 
   pipelines_setup_delegated_repo:
     name: "Setup Delegated Repo"
-    needs: [setup, detect_changes, pipelines_apply_baselines, pipelines_determine]
+    needs: [detect_changes, pipelines_apply_baselines, pipelines_determine]
     runs-on: ubuntu-latest
     # GHA can't check for length, so we just check if there is an item in the 0 index
     if: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].NewAccounts[0] != null && needs.pipelines_determine.outputs.delegate_management == 'true' && needs.pipelines_determine.outputs.terragrunt_command == 'run-all apply' }}
