@@ -14,18 +14,29 @@ env:
   PIPELINES_CLI_VERSION: v0.9.8
 
 jobs:
+  setup:
+    name: Setup Pipelines Actions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout actions
+        uses: actions/checkout@v4
+        path: pipelines-actions
+        repository: gruntwork-test/pipelines-actions
+        ref: main
+
   detect_changes:
     name: Detect Infrastructure Changes
+    needs: [setup]
     runs-on: ubuntu-latest
     steps:
       - name: Preflight Checks
-        uses: gruntwork-io/pipelines-preflight-action@v0.0.3
+        uses: ./pipelines-actions/.github/actions/pipelines-preflight-action
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
 
       - name: Pipelines Orchestrate
         id: orchestrate
-        uses: gruntwork-io/pipelines-orchestrate@v3.0.1
+        uses: ./pipelines-actions/.github/actions/gruntwork-io/pipelines-orchestrate
         with:
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
 
@@ -34,7 +45,7 @@ jobs:
 
   pipelines_determine:
     name: ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
-    needs: [detect_changes]
+    needs: [setup, detect_changes]
     runs-on: ubuntu-latest
     # GHA can't check for length, so we just check if there is an item in the 0 index
     if: fromJson(needs.detect_changes.outputs.pipelines_jobs)[0] != null
@@ -121,7 +132,7 @@ jobs:
 
   pipelines_apply_baselines:
     name: Baseline Child Account ${{ matrix.jobs.Name }} (${{ matrix.jobs.ID }})
-    needs: [detect_changes, pipelines_determine]
+    needs: [setup, detect_changes, pipelines_determine]
     runs-on: ubuntu-latest
     # GHA can't check for length, so we just check if there is an item in the 0 index
     if: fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].NewAccounts[0] != null
@@ -158,7 +169,7 @@ jobs:
 
   pipelines_setup_delegated_repo:
     name: "Setup Delegated Repo"
-    needs: [detect_changes, pipelines_apply_baselines, pipelines_determine]
+    needs: [setup, detect_changes, pipelines_apply_baselines, pipelines_determine]
     runs-on: ubuntu-latest
     # GHA can't check for length, so we just check if there is an item in the 0 index
     if: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].NewAccounts[0] != null && needs.pipelines_determine.outputs.delegate_management == 'true' && needs.pipelines_determine.outputs.terragrunt_command == 'run-all apply' }}
