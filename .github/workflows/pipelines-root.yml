@@ -20,9 +20,10 @@ jobs:
     steps:
       - name: Checkout actions
         uses: actions/checkout@v4
-        path: pipelines-actions
-        repository: gruntwork-test/pipelines-actions
-        ref: main
+        with:
+          path: pipelines-actions
+          repository: gruntwork-test/pipelines-actions
+          ref: main
 
   detect_changes:
     name: Detect Infrastructure Changes
