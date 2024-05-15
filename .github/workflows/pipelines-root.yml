@@ -12,18 +12,19 @@ on:
 
 env:
   PIPELINES_CLI_VERSION: v0.9.8
+  PIPELINES_ACTIONS_VERSION: main
 
 jobs:
   detect_changes:
     name: Detect Infrastructure Changes
     runs-on: ubuntu-latest
     steps:
-      - name: Setup Pipelines Actions
+      - name: Checkout Pipelines Actions
         uses: actions/checkout@v4
         with:
           path: pipelines-actions
           repository: gruntwork-test/pipelines-actions
-          ref: main
+          ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
       - name: Preflight Checks
         uses: ./pipelines-actions/.github/actions/pipelines-preflight-action
         with:
