@@ -25,6 +25,7 @@ jobs:
           path: pipelines-actions
           repository: gruntwork-test/pipelines-actions
           ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
+
       - name: Preflight Checks
         uses: ./pipelines-actions/.github/actions/pipelines-preflight-action
         with:
@@ -145,6 +146,13 @@ jobs:
       matrix:
         jobs: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].NewAccounts }}
     steps:
+      - name: Checkout Pipelines Actions
+        uses: actions/checkout@v4
+        with:
+          path: pipelines-actions
+          repository: gruntwork-test/pipelines-actions
+          ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
+
       - name: Update comment
         uses: ./pipelines-actions/.github/actions/pipelines-status-update
         with:
