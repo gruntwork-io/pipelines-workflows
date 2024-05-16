@@ -186,9 +186,17 @@ jobs:
     # GHA can't check for length, so we just check if there is an item in the 0 index
     if: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].NewAccounts[0] != null && needs.pipelines_determine.outputs.delegate_management == 'true' && needs.pipelines_determine.outputs.terragrunt_command == 'run-all apply' }}
     steps:
+      - name: Checkout Pipelines Actions
+        uses: actions/checkout@v4
+        with:
+          path: pipelines-actions
+          repository: gruntwork-test/pipelines-actions
+          ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
+
       - name: Check out repo code
         uses: actions/checkout@v4
         with:
+          path: infra-repo
           fetch-depth: 0
 
       - name: Bootstrap Workflow
