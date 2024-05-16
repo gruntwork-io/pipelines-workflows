@@ -95,7 +95,7 @@ jobs:
         # TODO: Rename this as pipelines-apply-core-baselines or something similar
         # Also, the final Auth to the management account in this action should be done by the pipelines-baseline-child-account-action
         # instead to prevent the indirection and confusion
-        uses: gruntwork-io/pipelines-baseline-account-action@v2.0.0
+        uses: ./pipelines-actions/.github/actions/pipelines-baseline-account-action
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
@@ -113,7 +113,7 @@ jobs:
           gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
 
       - name: Update comment
-        uses: gruntwork-io/pipelines-status-update@v0.2.1
+        uses: ./pipelines-actions/.github/actions/pipelines-status-update
         if: always()
         with:
           step_name: ${{ matrix.jobs.ChangeType }}
@@ -146,7 +146,7 @@ jobs:
         jobs: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].NewAccounts }}
     steps:
       - name: Update comment
-        uses: gruntwork-io/pipelines-status-update@v0.2.1
+        uses: ./pipelines-actions/.github/actions/pipelines-status-update
         with:
           step_name: Baseline Child Account ${{ matrix.jobs.Name }}
           step_status: "in_progress"
@@ -154,7 +154,7 @@ jobs:
 
       - name: "[Baseline]: Baseline the Child Account"
         id: baseline_child_account
-        uses: gruntwork-io/pipelines-baseline-child-account-action@v2.0.0
+        uses: ./pipelines-actions/.github/actions/pipelines-baseline-child-account-action
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           account_id: ${{ matrix.jobs.ID }}
@@ -162,7 +162,7 @@ jobs:
           job: ${{ toJson(fromJson(needs.detect_changes.outputs.pipelines_jobs)[0]) }}
 
       - name: Update comment
-        uses: gruntwork-io/pipelines-status-update@v0.2.1
+        uses: ./pipelines-actions/.github/actions/pipelines-status-update
         if: always()
         with:
           step_name: Baseline Child Account ${{ matrix.jobs.Name }}
@@ -185,7 +185,7 @@ jobs:
 
       - name: Bootstrap Workflow
         id: bootstrap
-        uses: gruntwork-io/pipelines-bootstrap@v2.0.0
+        uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
         with:
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
           change_type: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].ChangeType }}
@@ -203,7 +203,7 @@ jobs:
 
       - name: "Create Access Control PR"
         id: access_control_pr
-        uses: gruntwork-io/pipelines-provision-access-control-action@v1.0.0
+        uses: ./pipelines-actions/.github/actions/pipelines-provision-access-control-action
         with:
           gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -211,7 +211,7 @@ jobs:
 
       - name: "Create and bootstrap delegated Repo"
         id: provision_delegated_repo
-        uses: gruntwork-io/pipelines-provision-repo-action@v1.0.0
+        uses: ./pipelines-actions/.github/actions/pipelines-provision-repo-action
         with:
           gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
           access_control_pull_request_url: ${{ steps.access_control_pr.outputs.pull_request_url }}
