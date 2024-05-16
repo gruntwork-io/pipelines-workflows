@@ -22,6 +22,12 @@ jobs:
           repository: gruntwork-test/pipelines-actions
           ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
 
+      - name: Check out repo code
+        uses: actions/checkout@v4
+        with:
+          path: infra-repo
+          fetch-depth: 0
+
       - name: Preflight Checks
         uses: ./pipelines-actions/.github/actions/pipelines-preflight-action
         with:
