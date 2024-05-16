@@ -103,7 +103,7 @@ jobs:
       - name: "[TerragruntExecute]: Authenticate with AWS and then Invoke Terragrunt"
         id: terragrunt
         if: ${{ steps.bootstrap.outputs.action == 'TERRAGRUNT_EXECUTE' }}
-        uses: gruntwork-io/pipelines-aws-execute@v2.0.0
+        uses: ./pipelines-actions/.github/actions/pipelines-aws-execute
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           account_id: ${{ steps.bootstrap.outputs.account_id }}
