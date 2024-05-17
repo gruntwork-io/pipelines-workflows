@@ -29,7 +29,7 @@ jobs:
       - name: Check out repo code
         uses: actions/checkout@v4
         with:
-          path: infra-repo
+          path: infra-live-repo
           fetch-depth: 0
 
       - name: Preflight Checks
@@ -67,7 +67,7 @@ jobs:
       - name: Check out repo code
         uses: actions/checkout@v4
         with:
-          path: infra-repo
+          path: infra-live-repo
           fetch-depth: 0
 
       - name: Bootstrap Workflow
@@ -162,7 +162,7 @@ jobs:
       - name: Check out repo code
         uses: actions/checkout@v4
         with:
-          path: infra-repo
+          path: infra-live-repo
           fetch-depth: 0
 
       - name: Update comment
@@ -208,7 +208,7 @@ jobs:
       - name: Check out repo code
         uses: actions/checkout@v4
         with:
-          path: infra-repo
+          path: infra-live-repo
           fetch-depth: 0
 
       - name: Bootstrap Workflow
