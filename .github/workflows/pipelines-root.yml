@@ -33,7 +33,7 @@ jobs:
       pipelines_jobs: ${{ steps.orchestrate.outputs.jobs }}
 
   pipelines_determine:
-    name: ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
+    name: ${{ contains(matrix.jobs.Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
     needs: [detect_changes]
     runs-on: ubuntu-latest
     # GHA can't check for length, so we just check if there is an item in the 0 index
@@ -120,7 +120,7 @@ jobs:
       delegate_management: ${{ steps.bootstrap.outputs.delegate_management }}
 
   pipelines_apply_baselines:
-    name: Baseline Child Account ${{ matrix.jobs.Name }} (${{ matrix.jobs.ID }})
+    name: Baseline Child Account ${{ contains(matrix.jobs.Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.Name }} (${{ matrix.jobs.ID }})
     needs: [detect_changes, pipelines_determine]
     runs-on: ubuntu-latest
     # GHA can't check for length, so we just check if there is an item in the 0 index
