@@ -23,8 +23,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: pipelines-actions
-          repository: gruntwork-test/pipelines-actions
+          repository: gruntwork-io/pipelines-actions
           ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
+          token: ${{ secrets.PIPELINES_READ_TOKEN }}
 
       - name: Check out repo code
         uses: actions/checkout@v4
@@ -61,8 +62,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: pipelines-actions
-          repository: gruntwork-test/pipelines-actions
+          repository: gruntwork-io/pipelines-actions
           ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
+          token: ${{ secrets.PIPELINES_READ_TOKEN }}
 
       - name: Check out repo code
         uses: actions/checkout@v4
@@ -156,8 +158,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: pipelines-actions
-          repository: gruntwork-test/pipelines-actions
+          repository: gruntwork-io/pipelines-actions
           ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
+          token: ${{ secrets.PIPELINES_READ_TOKEN }}
 
       - name: Check out repo code
         uses: actions/checkout@v4
@@ -202,8 +205,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: pipelines-actions
-          repository: gruntwork-test/pipelines-actions
+          repository: gruntwork-io/pipelines-actions
           ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
+          token: ${{ secrets.PIPELINES_READ_TOKEN }}
 
       - name: Check out repo code
         uses: actions/checkout@v4
