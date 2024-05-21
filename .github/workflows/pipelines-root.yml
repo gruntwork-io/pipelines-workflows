@@ -12,20 +12,35 @@ on:
 
 env:
   PIPELINES_CLI_VERSION: v0.9.8
+  PIPELINES_ACTIONS_VERSION: v1.0.1
 
 jobs:
   detect_changes:
     name: Detect Infrastructure Changes
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Pipelines Actions
+        uses: actions/checkout@v4
+        with:
+          path: pipelines-actions
+          repository: gruntwork-io/pipelines-actions
+          ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
+          token: ${{ secrets.PIPELINES_READ_TOKEN }}
+
+      - name: Check out repo code
+        uses: actions/checkout@v4
+        with:
+          path: infra-live-repo
+          fetch-depth: 0
+
       - name: Preflight Checks
-        uses: gruntwork-io/pipelines-preflight-action@v0.0.3
+        uses: ./pipelines-actions/.github/actions/pipelines-preflight-action
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
 
       - name: Pipelines Orchestrate
         id: orchestrate
-        uses: gruntwork-io/pipelines-orchestrate@v3.0.1
+        uses: ./pipelines-actions/.github/actions/pipelines-orchestrate
         with:
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
 
@@ -43,14 +58,23 @@ jobs:
       matrix:
         jobs: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs) }}
     steps:
+      - name: Checkout Pipelines Actions
+        uses: actions/checkout@v4
+        with:
+          path: pipelines-actions
+          repository: gruntwork-io/pipelines-actions
+          ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
+          token: ${{ secrets.PIPELINES_READ_TOKEN }}
+
       - name: Check out repo code
         uses: actions/checkout@v4
         with:
+          path: infra-live-repo
           fetch-depth: 0
 
       - name: Bootstrap Workflow
         id: bootstrap
-        uses: gruntwork-io/pipelines-bootstrap@v2.0.0
+        uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
         with:
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
           change_type: ${{ matrix.jobs.ChangeType }}
@@ -67,7 +91,7 @@ jobs:
       - name: "[ProvisionAccount]: Provision New Account"
         id: provision_access_control
         if: ${{ steps.bootstrap.outputs.action == 'PROVISION_ACCOUNT' }}
-        uses: gruntwork-io/pipelines-provision-account-action@v2.0.0
+        uses: ./pipelines-actions/.github/actions/pipelines-provision-account-action
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           INFRA_ROOT_WRITE_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
@@ -80,7 +104,7 @@ jobs:
         # TODO: Rename this as pipelines-apply-core-baselines or something similar
         # Also, the final Auth to the management account in this action should be done by the pipelines-baseline-child-account-action
         # instead to prevent the indirection and confusion
-        uses: gruntwork-io/pipelines-baseline-account-action@v2.0.0
+        uses: ./pipelines-actions/.github/actions/pipelines-baseline-account-action
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
@@ -88,7 +112,7 @@ jobs:
       - name: "[TerragruntExecute]: Authenticate with AWS and then Invoke Terragrunt"
         id: terragrunt
         if: ${{ steps.bootstrap.outputs.action == 'TERRAGRUNT_EXECUTE' }}
-        uses: gruntwork-io/pipelines-aws-execute@v2.0.0
+        uses: ./pipelines-actions/.github/actions/pipelines-aws-execute
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           account_id: ${{ steps.bootstrap.outputs.account_id }}
@@ -98,14 +122,14 @@ jobs:
           gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
 
       - name: Update comment
-        uses: gruntwork-io/pipelines-status-update@v0.2.1
+        uses: ./pipelines-actions/.github/actions/pipelines-status-update
         if: always()
         with:
           step_name: ${{ matrix.jobs.ChangeType }}
           step_working_directory: ${{ matrix.jobs.WorkingDirectory }}
           step_status: ${{ (steps.provision_access_control.conclusion == 'success' || steps.terragrunt.conclusion == 'success' || steps.core_accounts_baselines.conclusion == 'success') && 'success' || 'failed' }}
           step_details: ${{ steps.terragrunt.outputs.formatted_plan_output  || 'Check the logs for more details.' }}
-          step_details_extended: ${{ steps.terragrunt.outputs.execute_stdout }}
+          step_details_extended_log: ${{ steps.terragrunt.outputs.execute_stdout_log }}
           pull_request_number: ${{ steps.bootstrap.outputs.pr_number }}
 
     outputs:
@@ -130,8 +154,22 @@ jobs:
       matrix:
         jobs: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].NewAccounts }}
     steps:
+      - name: Checkout Pipelines Actions
+        uses: actions/checkout@v4
+        with:
+          path: pipelines-actions
+          repository: gruntwork-io/pipelines-actions
+          ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
+          token: ${{ secrets.PIPELINES_READ_TOKEN }}
+
+      - name: Check out repo code
+        uses: actions/checkout@v4
+        with:
+          path: infra-live-repo
+          fetch-depth: 0
+
       - name: Update comment
-        uses: gruntwork-io/pipelines-status-update@v0.2.1
+        uses: ./pipelines-actions/.github/actions/pipelines-status-update
         with:
           step_name: Baseline Child Account ${{ matrix.jobs.Name }}
           step_status: "in_progress"
@@ -139,7 +177,7 @@ jobs:
 
       - name: "[Baseline]: Baseline the Child Account"
         id: baseline_child_account
-        uses: gruntwork-io/pipelines-baseline-child-account-action@v2.0.0
+        uses: ./pipelines-actions/.github/actions/pipelines-baseline-child-account-action
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           account_id: ${{ matrix.jobs.ID }}
@@ -147,13 +185,13 @@ jobs:
           job: ${{ toJson(fromJson(needs.detect_changes.outputs.pipelines_jobs)[0]) }}
 
       - name: Update comment
-        uses: gruntwork-io/pipelines-status-update@v0.2.1
+        uses: ./pipelines-actions/.github/actions/pipelines-status-update
         if: always()
         with:
           step_name: Baseline Child Account ${{ matrix.jobs.Name }}
           step_status: ${{ steps.baseline_child_account.conclusion == 'success' && 'success' || 'failed' }}
           step_details: ${{ steps.baseline_child_account.outputs.formatted_plan_output || 'Check the logs for more details.' }}
-          step_details_extended: ${{ steps.baseline_child_account.outputs.execute_stdout }}
+          step_details_extended_log: ${{ steps.baseline_child_account.outputs.execute_stdout_log }}
           pull_request_number: ${{ needs.pipelines_determine.outputs.pr_number }}
 
   pipelines_setup_delegated_repo:
@@ -163,14 +201,23 @@ jobs:
     # GHA can't check for length, so we just check if there is an item in the 0 index
     if: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].NewAccounts[0] != null && needs.pipelines_determine.outputs.delegate_management == 'true' && needs.pipelines_determine.outputs.terragrunt_command == 'run-all apply' }}
     steps:
+      - name: Checkout Pipelines Actions
+        uses: actions/checkout@v4
+        with:
+          path: pipelines-actions
+          repository: gruntwork-io/pipelines-actions
+          ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
+          token: ${{ secrets.PIPELINES_READ_TOKEN }}
+
       - name: Check out repo code
         uses: actions/checkout@v4
         with:
+          path: infra-live-repo
           fetch-depth: 0
 
       - name: Bootstrap Workflow
         id: bootstrap
-        uses: gruntwork-io/pipelines-bootstrap@v2.0.0
+        uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
         with:
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
           change_type: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].ChangeType }}
@@ -188,7 +235,7 @@ jobs:
 
       - name: "Create Access Control PR"
         id: access_control_pr
-        uses: gruntwork-io/pipelines-provision-access-control-action@v1.0.0
+        uses: ./pipelines-actions/.github/actions/pipelines-provision-access-control-action
         with:
           gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -196,7 +243,7 @@ jobs:
 
       - name: "Create and bootstrap delegated Repo"
         id: provision_delegated_repo
-        uses: gruntwork-io/pipelines-provision-repo-action@v1.0.0
+        uses: ./pipelines-actions/.github/actions/pipelines-provision-repo-action
         with:
           gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
           access_control_pull_request_url: ${{ steps.access_control_pr.outputs.pull_request_url }}
