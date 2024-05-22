@@ -11,8 +11,8 @@ on:
         required: false
 
 env:
-  PIPELINES_CLI_VERSION: v0.9.8
-  PIPELINES_ACTIONS_VERSION: v1.1.0
+  PIPELINES_CLI_VERSION: v0.9.9
+  PIPELINES_ACTIONS_VERSION: v1.1.1
 
 jobs:
   detect_changes:
