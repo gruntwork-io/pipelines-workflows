@@ -8,7 +8,7 @@ on:
 
 env:
   PIPELINES_CLI_VERSION: v0.9.8
-  PIPELINES_ACTIONS_VERSION: v1.0.1
+  PIPELINES_ACTIONS_VERSION: v1.1.0
 
 jobs:
   detect_changes:
