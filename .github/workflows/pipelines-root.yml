@@ -12,7 +12,7 @@ on:
 
 env:
   PIPELINES_CLI_VERSION: v0.9.9
-  PIPELINES_ACTIONS_VERSION: v1.1.1
+  PIPELINES_ACTIONS_VERSION: v1.1.2
 
 jobs:
   detect_changes:
