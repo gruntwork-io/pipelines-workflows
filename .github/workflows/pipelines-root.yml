@@ -12,7 +12,7 @@ on:
 
 env:
   PIPELINES_CLI_VERSION: v0.10.1
-  PIPELINES_ACTIONS_VERSION: v1.3.1
+  PIPELINES_ACTIONS_VERSION: fix/adding-mise-version-pin
 
 jobs:
   detect_changes:
