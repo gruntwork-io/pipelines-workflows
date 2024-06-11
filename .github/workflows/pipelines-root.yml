@@ -5,7 +5,7 @@ on:
     inputs:
       runner:
         type: string
-        default: "\"ubuntu-latest\""
+        default: "{group: \"ubuntu-runners\", labels: \"ubuntu-20.04-16core\"}"
     secrets:
       PIPELINES_READ_TOKEN:
         required: true
