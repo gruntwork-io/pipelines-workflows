@@ -21,7 +21,7 @@ env:
 jobs:
   detect_changes:
     name: Detect Infrastructure Changes
-    runs-on: [${{ inputs.runner }}]
+    runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
       - name: Checkout Pipelines Actions
         uses: actions/checkout@v4
@@ -54,7 +54,7 @@ jobs:
   pipelines_determine:
     name: ${{ contains(matrix.jobs.Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
     needs: [detect_changes]
-    runs-on: [${{ inputs.runner }}]
+    runs-on: ${{ fromJSON(inputs.runner) }}
     # GHA can't check for length, so we just check if there is an item in the 0 index
     if: fromJson(needs.detect_changes.outputs.pipelines_jobs)[0] != null
     strategy:
@@ -150,7 +150,7 @@ jobs:
   pipelines_apply_baselines:
     name: Baseline Child Account ${{ contains(matrix.jobs.Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.Name }} (${{ matrix.jobs.ID }})
     needs: [detect_changes, pipelines_determine]
-    runs-on: [${{ inputs.runner }}]
+    runs-on: ${{ fromJSON(inputs.runner) }}
     # GHA can't check for length, so we just check if there is an item in the 0 index
     if: fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].NewAccounts[0] != null
     strategy:
@@ -201,7 +201,7 @@ jobs:
   pipelines_setup_delegated_repo:
     name: "Setup Delegated Repo"
     needs: [detect_changes, pipelines_apply_baselines, pipelines_determine]
-    runs-on: [${{ inputs.runner }}]
+    runs-on: ${{ fromJSON(inputs.runner) }}
     # GHA can't check for length, so we just check if there is an item in the 0 index
     if: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].NewAccounts[0] != null && needs.pipelines_determine.outputs.delegate_management == 'true' && needs.pipelines_determine.outputs.terragrunt_command == 'run-all apply' }}
     steps:
