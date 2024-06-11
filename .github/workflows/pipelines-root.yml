@@ -5,7 +5,7 @@ on:
     inputs:
       runner:
         type: string
-        default: "ubuntu-latest"
+        default: "\"ubuntu-latest\""
     secrets:
       PIPELINES_READ_TOKEN:
         required: true
