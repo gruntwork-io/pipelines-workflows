@@ -2,6 +2,10 @@ name: Pipelines Execute
 run-name: Run Gruntwork Pipelines
 on:
   workflow_call:
+    inputs:
+      runner:
+        type: string
+        default: ${{ toJSON("ubuntu-latest") }}
     secrets:
       PIPELINES_READ_TOKEN:
         required: true
@@ -13,7 +17,7 @@ env:
 jobs:
   detect_changes:
     name: Detect Infrastructure Changes
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
       - name: Checkout Pipelines Actions
         uses: actions/checkout@v4
@@ -46,7 +50,7 @@ jobs:
   pipelines_determine:
     name: ${{ contains(matrix.jobs.Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
     needs: [detect_changes]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(inputs.runner) }}
     # GHA can't check for length, so we just check if there is an item in the 0 index
     if: fromJson(needs.detect_changes.outputs.pipelines_jobs)[0] != null
     strategy:
