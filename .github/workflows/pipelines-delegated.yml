@@ -27,7 +27,7 @@ on:
 
 env:
   PIPELINES_CLI_VERSION: v0.10.1
-  PIPELINES_ACTIONS_VERSION: v1.3.1
+  PIPELINES_ACTIONS_VERSION: v1.3.2
 
 jobs:
   detect_changes:
