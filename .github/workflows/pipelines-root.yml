@@ -123,8 +123,6 @@ jobs:
         id: core_accounts_baselines
         if: steps.bootstrap.outputs.action == 'BASELINE_ACCOUNT'
         # TODO: Rename this as pipelines-apply-core-baselines or something similar
-        # Also, the final Auth to the management account in this action should be done by the pipelines-baseline-child-account-action
-        # instead to prevent the indirection and confusion
         uses: ./pipelines-actions/.github/actions/pipelines-baseline-account-action
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
