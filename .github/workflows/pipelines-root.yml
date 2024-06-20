@@ -30,8 +30,8 @@ on:
         required: false
 
 env:
-  PIPELINES_CLI_VERSION: v0.10.1
-  PIPELINES_ACTIONS_VERSION: v1.3.3
+  PIPELINES_CLI_VERSION: v0.12.0
+  PIPELINES_ACTIONS_VERSION: 2024-06-20_pipelines_tg_auth
   BOILERPLATE_VERSION: v0.5.16
   GRUNTWORK_INSTALLER_VERSION: v0.0.40
 
@@ -131,14 +131,18 @@ jobs:
       - name: "[TerragruntExecute]: Authenticate with AWS and then Invoke Terragrunt"
         id: terragrunt
         if: ${{ steps.bootstrap.outputs.action == 'TERRAGRUNT_EXECUTE' }}
-        uses: ./pipelines-actions/.github/actions/pipelines-aws-execute
+        uses: ./pipelines-actions/.github/actions/pipelines-execute
         with:
-          PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
-          account_id: ${{ steps.bootstrap.outputs.account_id }}
+          token: ${{ secrets.PIPELINES_READ_TOKEN }}
+          tf_binary: ${{ steps.bootstrap.outputs.tf_binary }}
           working_directory: ${{ steps.bootstrap.outputs.working_directory }}
-          account_role_name: ${{ steps.bootstrap.outputs.role_name }}
-          role_session_name: ${{ steps.bootstrap.outputs.role_session_name }}
-          gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
+          terragrunt_command: ${{ steps.bootstrap.outputs.terragrunt_command }}
+          infra_live_repo_branch: ${{ steps.bootstrap.outputs.branch }}
+          gruntwork_config_file: ${{ steps.bootstrap.outputs.gruntwork_config_file }}
+          infra_live_repo: "."
+          infra_live_directory: "."
+          deploy_branch_name: ${{ steps.bootstrap.outputs.deploy_branch_name }}
+          use_pipelines_auth: "true"
 
       - name: Update comment
         uses: ./pipelines-actions/.github/actions/pipelines-status-update
