@@ -133,3 +133,23 @@ jobs:
       terragrunt_command: ${{ steps.bootstrap.outputs.terragrunt_command }}
       additional_data: ${{ steps.bootstrap.outputs.additional_data }}
       child_account_id: ${{ steps.bootstrap.outputs.child_account_id }}
+
+  pipelines_cleanup:
+    name: "Pipelines Matrix Cleanup"
+    needs: [detect_changes, pipelines_determine]
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    steps:
+      - name: Checkout Pipelines Actions
+        uses: actions/checkout@v4
+        with:
+          path: pipelines-actions
+          repository: gruntwork-io/pipelines-actions
+          ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
+          token: ${{ secrets.PIPELINES_READ_TOKEN }}
+
+      - name: Update comment
+      # The idea here is that there is a race condition in the updating of the jobs in the matrix:
+      # if one job is uploading its state artifact WHILST another is downloading, then the downloader
+      # will miss the state update from the uploader, and if the downloader is the last job, there's nobody
+      # to come later and grab the uploader's update.
+        uses: ./pipelines-actions/.github/actions/pipelines-status-update
