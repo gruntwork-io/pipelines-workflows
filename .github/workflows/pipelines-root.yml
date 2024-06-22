@@ -268,3 +268,21 @@ jobs:
           access_control_pull_request_url: ${{ steps.access_control_pr.outputs.pull_request_url }}
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           ORG_REPO_ADMIN_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
+
+  pipelines_cleanup:
+    name: "Pipelines Cleanup"
+    needs: [detect_changes, pipelines_determine, pipelines_apply_baselines]
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    # GHA can't check for length, so we just check if there is an item in the 0 index
+    if: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].NewAccounts[0] != null && needs.pipelines_determine.outputs.delegate_management == 'true' && needs.pipelines_determine.outputs.terragrunt_command == 'run-all apply' }}
+    steps:
+      - name: Checkout Pipelines Actions
+        uses: actions/checkout@v4
+        with:
+          path: pipelines-actions
+          repository: gruntwork-io/pipelines-actions
+          ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
+          token: ${{ secrets.PIPELINES_READ_TOKEN }}
+
+      - name: Update comment
+        uses: ./pipelines-actions/.github/actions/pipelines-status-update
