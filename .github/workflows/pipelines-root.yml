@@ -271,7 +271,7 @@ jobs:
 
   pipelines_cleanup:
     name: "Pipelines Cleanup"
-    needs: [detect_changes, pipelines_determine, pipelines_apply_baselines]
+    needs: [detect_changes, pipelines_determine, pipelines_apply_baselines, pipelines_setup_delegated_repo]
     runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
       - name: Checkout Pipelines Actions
