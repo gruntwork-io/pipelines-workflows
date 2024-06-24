@@ -31,7 +31,7 @@ on:
 
 env:
   PIPELINES_CLI_VERSION: v0.13.2
-  PIPELINES_ACTIONS_VERSION: 2024-06-20_pipelines_tg_auth
+  PIPELINES_ACTIONS_VERSION: v1.3.3
   BOILERPLATE_VERSION: v0.5.16
   GRUNTWORK_INSTALLER_VERSION: v0.0.40
 
@@ -132,6 +132,8 @@ jobs:
         id: terragrunt
         if: ${{ steps.bootstrap.outputs.action == 'TERRAGRUNT_EXECUTE' }}
         uses: ./pipelines-actions/.github/actions/pipelines-execute
+        env:
+          TERRAGRUNT_AUTH_PROVIDER_CMD: 'pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd .'
         with:
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
           tf_binary: ${{ steps.bootstrap.outputs.tf_binary }}
