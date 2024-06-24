@@ -144,7 +144,6 @@ jobs:
           infra_live_repo: "."
           infra_live_directory: "."
           deploy_branch_name: ${{ steps.bootstrap.outputs.deploy_branch_name }}
-          use_pipelines_auth: "true"
 
       - name: Update comment
         uses: ./pipelines-actions/.github/actions/pipelines-status-update
