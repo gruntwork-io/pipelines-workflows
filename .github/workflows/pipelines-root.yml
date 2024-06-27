@@ -270,6 +270,7 @@ jobs:
           account_id: ${{ matrix.jobs.ID }}
           account_name: ${{ matrix.jobs.Name }}
           job: ${{ toJson(fromJson(needs.detect_changes.outputs.pipelines_jobs)[0]) }}
+          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
       - name: Update comment
         uses: ./pipelines-actions/.github/actions/pipelines-status-update
