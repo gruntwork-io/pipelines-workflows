@@ -1,0 +1,16 @@
+name: Pre Baseline Core Accounts Custom Steps
+description: "Custom logic to run prior to baselineing core accounts (management, logs, shared, security)"
+inputs:
+  PIPELINES_READ_TOKEN:
+    description: "The PIPELINES_READ_TOKEN secret"
+    required: true
+  gruntwork_context:
+    description: "Gruntwork Context From the Gruntwork Bootstrap step"
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Custom Logic Goes Here
+      shell: bash
+      run: |
+        echo 'hello world'

@@ -1,0 +1,15 @@
+name: Post Baseline Child Accounts Custom Steps
+description: "Custom logic to run after baselineing new child accounts"
+inputs:
+  PIPELINES_READ_TOKEN:
+    description: "The GitHub token to use for checking out the infrastructure-live repo"
+    required: true
+  account_id:
+    description: "Child Account ID to operate on"
+    required: true
+  account_name:
+    description: "Child Account Name to operate on"
+    required: true
+  job:
+    description: "JSON of pipelines orchestrate job"
+    required: true
