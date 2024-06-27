@@ -111,11 +111,11 @@ jobs:
 
       - name: "[Baseline]: Pre Provision New Account Custom Action"
         uses: ./custom_actions/pre-provision-new-account
-        if: ${{ steps.bootstrap.outputs.action == 'PROVISION_ACCOUNT' }}
+        if: ${{ steps.gruntwork_context.outputs.action == 'PROVISION_ACCOUNT' }}
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           INFRA_ROOT_WRITE_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
-          gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
+          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
       - name: "[ProvisionAccount]: Provision New Account"
         id: provision_new_account
@@ -128,18 +128,18 @@ jobs:
 
       - name: "[Baseline]: Post Provision New Account Custom Action"
         uses: ./custom_actions/post-provision-new-account
-        if: ${{ steps.bootstrap.outputs.action == 'PROVISION_ACCOUNT' }}
+        if: ${{ steps.gruntwork_context.outputs.action == 'PROVISION_ACCOUNT' }}
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           INFRA_ROOT_WRITE_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
-          gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
+          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
       - name: "[Baseline]: Pre Baseline Core Account Action"
         uses: ./custom_actions/pre-baseline-core-accounts
-        if: steps.bootstrap.outputs.action == 'BASELINE_ACCOUNT'
+        if: steps.gruntwork_context.outputs.action == 'BASELINE_ACCOUNT'
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
-          gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
+          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
       # Run the core accounts baselines(shared, logs, security, etc. to ensure the account is setup correctly)
       - name: "Run core accounts baselines"
@@ -153,10 +153,10 @@ jobs:
 
       - name: "[Baseline]: Post Baseline Core Account Action"
         uses: ./custom_actions/post-baseline-core-accounts
-        if: steps.bootstrap.outputs.action == 'BASELINE_ACCOUNT'
+        if: steps.gruntwork_context.outputs.action == 'BASELINE_ACCOUNT'
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
-          gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
+          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
       - name: "[TerragruntExecute]: Authenticate with AWS and then Invoke Terragrunt"
         id: terragrunt
@@ -173,7 +173,7 @@ jobs:
           gruntwork_config_file: ${{ steps.gruntwork_context.outputs.gruntwork_config_file }}
           infra_live_repo: "."
           infra_live_directory: "."
-          deploy_branch_name: ${{ steps.bootstrap.outputs.deploy_branch_name }}
+          deploy_branch_name: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
 
       - name: Update comment
         uses: ./pipelines-actions/.github/actions/pipelines-status-update
