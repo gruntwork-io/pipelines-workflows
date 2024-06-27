@@ -335,3 +335,11 @@ jobs:
           access_control_pull_request_url: ${{ steps.access_control_pr.outputs.pull_request_url }}
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           ORG_REPO_ADMIN_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
+
+      - name: "Post create delegated repo custom actions"
+        uses: ./custom_actions/post-create-delegated-repo
+        with:
+          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
+          access_control_pull_request_url: ${{ steps.access_control_pr.outputs.pull_request_url }}
+          PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          ORG_REPO_ADMIN_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
