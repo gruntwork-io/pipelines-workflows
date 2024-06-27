@@ -13,3 +13,10 @@ inputs:
   job:
     description: "JSON of pipelines orchestrate job"
     required: true
+runs:
+  using: composite
+  steps:
+    - name: Custom Logic Goes Here
+      shell: bash
+      run: |
+        exit 0

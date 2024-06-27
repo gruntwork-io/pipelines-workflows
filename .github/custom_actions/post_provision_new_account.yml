@@ -16,4 +16,4 @@ runs:
     - name: Custom Logic Goes Here
       shell: bash
       run: |
-        echo 'hello world'
+        exit 0
