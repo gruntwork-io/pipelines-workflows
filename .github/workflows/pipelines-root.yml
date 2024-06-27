@@ -343,3 +343,4 @@ jobs:
           access_control_pull_request_url: ${{ steps.access_control_pr.outputs.pull_request_url }}
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           ORG_REPO_ADMIN_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
+          delegated_repo_pull_request_url: ${{ steps.provision_delegated_repo.outputs.pull_request_url }}
