@@ -110,7 +110,7 @@ jobs:
           new_account_name: ${{ matrix.jobs.NewAccounts[0].Name }}
 
       - name: "[ProvisionAccount]: Provision New Account"
-        id: provision_access_control
+        id: provision_new_account
         if: ${{ steps.bootstrap.outputs.action == 'PROVISION_ACCOUNT' }}
         uses: ./pipelines-actions/.github/actions/pipelines-provision-account-action
         with:
@@ -151,7 +151,7 @@ jobs:
         with:
           step_name: ${{ matrix.jobs.ChangeType }}
           step_working_directory: ${{ matrix.jobs.WorkingDirectory }}
-          step_status: ${{ (steps.provision_access_control.conclusion == 'success' || steps.terragrunt.conclusion == 'success' || steps.core_accounts_baselines.conclusion == 'success') && 'success' || 'failed' }}
+          step_status: ${{ (steps.provision_new_account.conclusion == 'success' || steps.terragrunt.conclusion == 'success' || steps.core_accounts_baselines.conclusion == 'success') && 'success' || 'failed' }}
           step_details: ${{ steps.terragrunt.outputs.formatted_plan_output  || 'Check the logs for more details.' }}
           step_details_extended_log: ${{ steps.terragrunt.outputs.execute_stdout_log }}
           pull_request_number: ${{ steps.bootstrap.outputs.pr_number }}
