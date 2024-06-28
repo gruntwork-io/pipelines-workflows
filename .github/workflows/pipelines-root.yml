@@ -133,7 +133,7 @@ jobs:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           INFRA_ROOT_WRITE_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
-          pull_request_url: ${{ steps.provision_new_account.outputs.pull_request_url }}
+          baseline_pull_request_url: ${{ steps.provision_new_account.outputs.pull_request_url }}
 
       - name: "[Baseline]: Pre Baseline Core Account Action"
         uses: ./custom_actions/pre_baseline_core_accounts

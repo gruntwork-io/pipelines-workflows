@@ -10,6 +10,9 @@ inputs:
   gruntwork_context:
     description: "Gruntwork Context From the Gruntwork Bootstrap step"
     required: true
+  baseline_pull_request_url:
+    description: "URL to the pull request for baselining the new account"
+    required: true
 runs:
   using: composite
   steps:
