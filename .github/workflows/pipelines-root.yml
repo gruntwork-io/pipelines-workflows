@@ -94,7 +94,7 @@ jobs:
           fetch-depth: 0
 
       - name: Bootstrap Workflow
-        id: bootstrap
+        id: gruntwork_context
         uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
         with:
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -111,36 +111,36 @@ jobs:
 
       - name: "[ProvisionAccount]: Provision New Account"
         id: provision_new_account
-        if: ${{ steps.bootstrap.outputs.action == 'PROVISION_ACCOUNT' }}
+        if: ${{ steps.gruntwork_context.outputs.action == 'PROVISION_ACCOUNT' }}
         uses: ./pipelines-actions/.github/actions/pipelines-provision-account-action
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           INFRA_ROOT_WRITE_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
-          gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
+          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
       # Run the core accounts baselines(shared, logs, security, etc. to ensure the account is setup correctly)
       - name: "Run core accounts baselines"
         id: core_accounts_baselines
-        if: steps.bootstrap.outputs.action == 'BASELINE_ACCOUNT'
+        if: steps.gruntwork_context.outputs.action == 'BASELINE_ACCOUNT'
         # TODO: Rename this as pipelines-apply-core-baselines or something similar
         uses: ./pipelines-actions/.github/actions/pipelines-baseline-account-action
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
-          gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
+          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
       - name: "[TerragruntExecute]: Authenticate with AWS and then Invoke Terragrunt"
         id: terragrunt
-        if: ${{ steps.bootstrap.outputs.action == 'TERRAGRUNT_EXECUTE' }}
+        if: ${{ steps.gruntwork_context.outputs.action == 'TERRAGRUNT_EXECUTE' }}
         uses: ./pipelines-actions/.github/actions/pipelines-execute
         env:
           TERRAGRUNT_AUTH_PROVIDER_CMD: 'pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd .'
         with:
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
-          tf_binary: ${{ steps.bootstrap.outputs.tf_binary }}
-          working_directory: ${{ steps.bootstrap.outputs.working_directory }}
-          terragrunt_command: ${{ steps.bootstrap.outputs.terragrunt_command }}
-          infra_live_repo_branch: ${{ steps.bootstrap.outputs.branch }}
-          gruntwork_config_file: ${{ steps.bootstrap.outputs.gruntwork_config_file }}
+          tf_binary: ${{ steps.gruntwork_context.outputs.tf_binary }}
+          working_directory: ${{ steps.gruntwork_context.outputs.working_directory }}
+          terragrunt_command: ${{ steps.gruntwork_context.outputs.terragrunt_command }}
+          infra_live_repo_branch: ${{ steps.gruntwork_context.outputs.branch }}
+          gruntwork_config_file: ${{ steps.gruntwork_context.outputs.gruntwork_config_file }}
           infra_live_repo: "."
           infra_live_directory: "."
           deploy_branch_name: ${{ steps.bootstrap.outputs.deploy_branch_name }}
@@ -154,18 +154,18 @@ jobs:
           step_status: ${{ (steps.provision_new_account.conclusion == 'success' || steps.terragrunt.conclusion == 'success' || steps.core_accounts_baselines.conclusion == 'success') && 'success' || 'failed' }}
           step_details: ${{ steps.terragrunt.outputs.formatted_plan_output  || 'Check the logs for more details.' }}
           step_details_extended_log: ${{ steps.terragrunt.outputs.execute_stdout_log }}
-          pull_request_number: ${{ steps.bootstrap.outputs.pr_number }}
+          pull_request_number: ${{ steps.gruntwork_context.outputs.pr_number }}
 
     outputs:
       account_id: ${{ matrix.jobs.AccountId }}
-      branch: ${{ steps.bootstrap.outputs.branch }}
-      action: ${{ steps.bootstrap.outputs.action }}
-      working_directory: ${{ steps.bootstrap.outputs.working_directory }}
-      terragrunt_command: ${{ steps.bootstrap.outputs.terragrunt_command }}
-      additional_data: ${{ steps.bootstrap.outputs.additional_data }}
-      child_account_id: ${{ steps.bootstrap.outputs.child_account_id }}
-      pr_number: ${{ steps.bootstrap.outputs.pr_number }}
-      delegate_management: ${{ steps.bootstrap.outputs.delegate_management }}
+      branch: ${{ steps.gruntwork_context.outputs.branch }}
+      action: ${{ steps.gruntwork_context.outputs.action }}
+      working_directory: ${{ steps.gruntwork_context.outputs.working_directory }}
+      terragrunt_command: ${{ steps.gruntwork_context.outputs.terragrunt_command }}
+      additional_data: ${{ steps.gruntwork_context.outputs.additional_data }}
+      child_account_id: ${{ steps.gruntwork_context.outputs.child_account_id }}
+      pr_number: ${{ steps.gruntwork_context.outputs.pr_number }}
+      delegate_management: ${{ steps.gruntwork_context.outputs.delegate_management }}
 
   pipelines_apply_baselines:
     name: Baseline Child Account ${{ contains(matrix.jobs.Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.Name }} (${{ matrix.jobs.ID }})
@@ -199,6 +199,21 @@ jobs:
           step_status: "in_progress"
           pull_request_number: ${{ needs.pipelines_determine.outputs.pr_number }}
 
+      - name: Bootstrap Workflow
+        id: gruntwork_context
+        uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
+        with:
+          token: ${{ secrets.PIPELINES_READ_TOKEN }}
+          change_type: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].ChangeType }}
+          branch: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].Ref }}
+          working_directory: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].WorkingDirectory }}
+          account_id: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].AccountId }}
+          terragrunt_command: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].Action.Command }} ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].Action.Args }}
+          additional_data: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].AdditionalData }}
+          account_names: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].AdditionalData.AccountNames }}
+          child_account_id: ${{ matrix.jobs.ID }}
+          new_account_name: ${{ matrix.jobs.Name }}
+
       - name: "[Baseline]: Baseline the Child Account"
         id: baseline_child_account
         uses: ./pipelines-actions/.github/actions/pipelines-baseline-child-account-action
@@ -207,6 +222,7 @@ jobs:
           account_id: ${{ matrix.jobs.ID }}
           account_name: ${{ matrix.jobs.Name }}
           job: ${{ toJson(fromJson(needs.detect_changes.outputs.pipelines_jobs)[0]) }}
+          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
       - name: Update comment
         uses: ./pipelines-actions/.github/actions/pipelines-status-update
@@ -240,7 +256,7 @@ jobs:
           fetch-depth: 0
 
       - name: Bootstrap Workflow
-        id: bootstrap
+        id: gruntwork_context
         uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
         with:
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -261,7 +277,7 @@ jobs:
         id: access_control_pr
         uses: ./pipelines-actions/.github/actions/pipelines-provision-access-control-action
         with:
-          gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
+          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           ORG_REPO_ADMIN_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
 
@@ -269,7 +285,7 @@ jobs:
         id: provision_delegated_repo
         uses: ./pipelines-actions/.github/actions/pipelines-provision-repo-action
         with:
-          gruntwork_context: ${{ toJson(steps.bootstrap.outputs) }}
+          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
           access_control_pull_request_url: ${{ steps.access_control_pr.outputs.pull_request_url }}
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           ORG_REPO_ADMIN_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
