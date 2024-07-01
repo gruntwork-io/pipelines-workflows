@@ -31,7 +31,7 @@ on:
 
 env:
   PIPELINES_CLI_VERSION: v0.13.2
-  PIPELINES_ACTIONS_VERSION: v1.3.4
+  PIPELINES_ACTIONS_VERSION: main
   BOILERPLATE_VERSION: v0.5.16
   GRUNTWORK_INSTALLER_VERSION: v0.0.40
 
@@ -110,7 +110,7 @@ jobs:
           new_account_name: ${{ matrix.jobs.NewAccounts[0].Name }}
 
       - name: "[Baseline]: Pre Provision New Account Custom Action"
-        uses: ./custom_actions/pre_provision_new_account
+        uses: ./pipelines-actions/.github/custom-actions/pre-provision-new-account
         if: ${{ steps.gruntwork_context.outputs.action == 'PROVISION_ACCOUNT' }}
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -127,7 +127,7 @@ jobs:
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
       - name: "[Baseline]: Post Provision New Account Custom Action"
-        uses: ./custom_actions/post_provision_new_account
+        uses: ./pipelines-actions/.github/custom-actions/post-provision-new-account
         if: ${{ steps.gruntwork_context.outputs.action == 'PROVISION_ACCOUNT' }}
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -136,7 +136,7 @@ jobs:
           baseline_pull_request_url: ${{ steps.provision_new_account.outputs.pull_request_url }}
 
       - name: "[Baseline]: Pre Baseline Core Account Action"
-        uses: ./custom_actions/pre_baseline_core_accounts
+        uses: ./pipelines-actions/.github/custom-actions/pre-baseline-core-accounts
         if: steps.gruntwork_context.outputs.action == 'BASELINE_ACCOUNT'
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -153,7 +153,7 @@ jobs:
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
       - name: "[Baseline]: Post Baseline Core Account Action"
-        uses: ./custom_actions/post_baseline_core_accounts
+        uses: ./pipelines-actions/.github/custom-actions/post-baseline-core-accounts
         if: steps.gruntwork_context.outputs.action == 'BASELINE_ACCOUNT'
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -246,7 +246,7 @@ jobs:
           new_account_name: ${{ matrix.jobs.Name }}
 
       - name: "[Baseline]: Pre Baseline Child Account Action"
-        uses: ./custom_actions/pre_baseline_child_account
+        uses: ./pipelines-actions/.github/custom-actions/pre-baseline-child-account
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           account_id: ${{ matrix.jobs.ID }}
@@ -265,7 +265,7 @@ jobs:
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
       - name: "[Baseline]: Post Baseline Child Account Action"
-        uses: ./custom_actions/post_baseline_child_account
+        uses: ./pipelines-actions/.github/custom-actions/post-baseline-child-account
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           account_id: ${{ matrix.jobs.ID }}
@@ -340,7 +340,7 @@ jobs:
           ORG_REPO_ADMIN_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
 
       - name: "Post create delegated repo custom actions"
-        uses: ./custom_actions/post_create_delegated_repo
+        uses: ./pipelines-actions/.github/custom-actions/post-create-delegated-repo
         with:
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
           access_control_pull_request_url: ${{ steps.access_control_pr.outputs.pull_request_url }}
