@@ -21,15 +21,6 @@ on:
       runner:
         type: string
         default: "\"ubuntu-latest\""
-      pipelines_workflows_repo:
-        type: string
-        default: "gruntwork-io/pipelines-workflows"
-      pipelines_workflows_ref:
-        type: string
-        default: "fix/adjusting-custom-actions-path"
-      use_pipelines_customizations:
-        type: boolean
-        default: true
     secrets:
       PIPELINES_READ_TOKEN:
         required: true
@@ -96,14 +87,6 @@ jobs:
           ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
 
-      - name: Checkout Any Custom Actions
-        uses: actions/checkout@v4
-        with:
-          path: pipelines-workflows
-          repository: ${{ inputs.pipelines_workflows_repo }}
-          ref: ${{ inputs.pipelines_workflows_ref }}
-          token: ${{ secrets.PIPELINES_READ_TOKEN }}
-
       - name: Check out repo code
         uses: actions/checkout@v4
         with:
@@ -127,7 +110,7 @@ jobs:
           new_account_name: ${{ matrix.jobs.NewAccounts[0].Name }}
 
       - name: "[Baseline]: Pre Provision New Account Custom Action"
-        uses: ./pipelines_workflows/custom_actions/pre_provision_new_account
+        uses: ./pipelines-actions/.github/custom-actions/pre_provision_new_account
         if: ${{ steps.gruntwork_context.outputs.action == 'PROVISION_ACCOUNT' }}
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -144,7 +127,7 @@ jobs:
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
       - name: "[Baseline]: Post Provision New Account Custom Action"
-        uses: ./pipelines_workflows/custom_actions/post_provision_new_account
+        uses: ./pipelines-actions/.github/custom-actions/post_provision_new_account
         if: ${{ steps.gruntwork_context.outputs.action == 'PROVISION_ACCOUNT' }}
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -153,7 +136,7 @@ jobs:
           baseline_pull_request_url: ${{ steps.provision_new_account.outputs.pull_request_url }}
 
       - name: "[Baseline]: Pre Baseline Core Account Action"
-        uses: ./pipelines_workflows/custom_actions/pre_baseline_core_accounts
+        uses: ./pipelines-actions/.github/custom-actions/pre_baseline_core_accounts
         if: steps.gruntwork_context.outputs.action == 'BASELINE_ACCOUNT'
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -170,7 +153,7 @@ jobs:
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
       - name: "[Baseline]: Post Baseline Core Account Action"
-        uses: ./pipelines_workflows/custom_actions/post_baseline_core_accounts
+        uses: ./pipelines-actions/.github/custom-actions/post_baseline_core_accounts
         if: steps.gruntwork_context.outputs.action == 'BASELINE_ACCOUNT'
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -263,7 +246,7 @@ jobs:
           new_account_name: ${{ matrix.jobs.Name }}
 
       - name: "[Baseline]: Pre Baseline Child Account Action"
-        uses: ./pipelines_workflows/custom_actions/pre_baseline_child_account
+        uses: ./pipelines-actions/.github/custom-actions/pre_baseline_child_account
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           account_id: ${{ matrix.jobs.ID }}
@@ -282,7 +265,7 @@ jobs:
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
       - name: "[Baseline]: Post Baseline Child Account Action"
-        uses: ./pipelines_workflows/custom_actions/post_baseline_child_account
+        uses: ./pipelines-actions/.github/custom-actions/post_baseline_child_account
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           account_id: ${{ matrix.jobs.ID }}
@@ -357,7 +340,7 @@ jobs:
           ORG_REPO_ADMIN_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
 
       - name: "Post create delegated repo custom actions"
-        uses: ./pipelines_workflows/custom_actions/post_create_delegated_repo
+        uses: ./pipelines-actions/.github/custom-actions/post_create_delegated_repo
         with:
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
           access_control_pull_request_url: ${{ steps.access_control_pr.outputs.pull_request_url }}
