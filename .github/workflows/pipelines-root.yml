@@ -24,6 +24,12 @@ on:
       pipelines_workflows_repo:
         type: string
         default: "gruntwork-io/pipelines-workflows"
+      pipelines_workflows_ref:
+        type: string
+        default: "fix/adjusting-custom-actions-path"
+      use_pipelines_customizations:
+        type: boolean
+        default: true
     secrets:
       PIPELINES_READ_TOKEN:
         required: true
@@ -95,7 +101,7 @@ jobs:
         with:
           path: pipelines-workflows
           repository: ${{ inputs.pipelines_workflows_repo }}
-          ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
+          ref: ${{ inputs.pipelines_workflows_ref }}
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
 
       - name: Check out repo code
