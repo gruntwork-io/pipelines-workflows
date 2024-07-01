@@ -240,7 +240,7 @@ jobs:
           working_directory: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].WorkingDirectory }}
           account_id: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].AccountId }}
           terragrunt_command: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].Action.Command }} ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].Action.Args }}
-          additional_data: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].AdditionalData }}
+          additional_data: ${{ toJson(fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].AdditionalData) }}
           account_names: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].AdditionalData.AccountNames }}
           child_account_id: ${{ matrix.jobs.ID }}
           new_account_name: ${{ matrix.jobs.Name }}
