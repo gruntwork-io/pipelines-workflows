@@ -109,6 +109,7 @@ jobs:
           # TODO: This should be "first_new_account_name".
           new_account_name: ${{ matrix.jobs.NewAccounts[0].Name }}
 
+      # To learn more about customizing Pipelines see our documentation at https://docs.gruntwork.io/pipelines/maintain/extending/
       - name: "[Baseline]: Pre Provision New Account Custom Action"
         uses: ./pipelines-actions/.github/custom-actions/pre-provision-new-account
         if: ${{ steps.gruntwork_context.outputs.action == 'PROVISION_ACCOUNT' }}
@@ -245,6 +246,7 @@ jobs:
           child_account_id: ${{ matrix.jobs.ID }}
           new_account_name: ${{ matrix.jobs.Name }}
 
+      # To learn more about customizing Pipelines see our documentation at https://docs.gruntwork.io/pipelines/maintain/extending/
       - name: "[Baseline]: Pre Baseline Child Account Action"
         uses: ./pipelines-actions/.github/custom-actions/pre-baseline-child-account
         with:
@@ -339,6 +341,7 @@ jobs:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           ORG_REPO_ADMIN_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
 
+      # To learn more about customizing Pipelines see our documentation at https://docs.gruntwork.io/pipelines/maintain/extending/
       - name: "Post create delegated repo custom actions"
         uses: ./pipelines-actions/.github/custom-actions/post-create-delegated-repo
         with:
