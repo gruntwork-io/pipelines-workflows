@@ -128,7 +128,7 @@ jobs:
           step_status: ${{ steps.terragrunt.conclusion == 'success' && 'success' || 'failed' }}
           step_details: ${{ steps.terragrunt.outputs.formatted_plan_output || 'Check the logs for more details.' }}
           step_details_extended_log: ${{ steps.terragrunt.outputs.execute_stdout_log }}
-          pull_request_number: ${{ steps.bootstrap.outputs.pr_number }}
+          pull_request_number: ${{ steps.gruntwork_context.outputs.pr_number }}
 
     outputs:
       account_id: ${{ matrix.jobs.AccountId }}
