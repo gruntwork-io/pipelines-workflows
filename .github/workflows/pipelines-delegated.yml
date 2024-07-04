@@ -20,7 +20,7 @@ on:
       # - A map: "{group: \"ubuntu-runners\", labels: \"ubuntu-20.04-16core\"}"
       runner:
         type: string
-        default: "\"ubuntu-latest\""
+        default: '"ubuntu-latest"'
     secrets:
       PIPELINES_READ_TOKEN:
         required: true
@@ -90,7 +90,7 @@ jobs:
           fetch-depth: 0
 
       - name: Bootstrap Workflow
-        id: bootstrap
+        id: gruntwork_context
         uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
         with:
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -103,11 +103,11 @@ jobs:
           child_account_id: ${{ matrix.jobs.AdditionalData.ChildAccountId }}
           account_names: ${{ matrix.jobs.AdditionalData.AccountNames }}
 
-      - name: "Run terragrunt ${{ steps.bootstrap.outputs.terragrunt_command }} in ${{ steps.bootstrap.outputs.working_directory }}"
+      - name: "Run terragrunt ${{ steps.gruntwork_context.outputs.terragrunt_command }} in ${{ steps.gruntwork_context.outputs.working_directory }}"
         id: terragrunt
         uses: ./pipelines-actions/.github/actions/pipelines-execute
         env:
-          TERRAGRUNT_AUTH_PROVIDER_CMD: 'pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd .'
+          TERRAGRUNT_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd ."
         with:
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
           tf_binary: ${{ steps.gruntwork_context.outputs.tf_binary }}
@@ -132,9 +132,9 @@ jobs:
 
     outputs:
       account_id: ${{ matrix.jobs.AccountId }}
-      branch: ${{ steps.bootstrap.outputs.branch }}
-      action: ${{ steps.bootstrap.outputs.action }}
-      working_directory: ${{ steps.bootstrap.outputs.working_directory }}
-      terragrunt_command: ${{ steps.bootstrap.outputs.terragrunt_command }}
-      additional_data: ${{ steps.bootstrap.outputs.additional_data }}
-      child_account_id: ${{ steps.bootstrap.outputs.child_account_id }}
+      branch: ${{ steps.gruntwork_context.outputs.branch }}
+      action: ${{ steps.gruntwork_context.outputs.action }}
+      working_directory: ${{ steps.gruntwork_context.outputs.working_directory }}
+      terragrunt_command: ${{ steps.gruntwork_context.outputs.terragrunt_command }}
+      additional_data: ${{ steps.gruntwork_context.outputs.additional_data }}
+      child_account_id: ${{ steps.gruntwork_context.outputs.child_account_id }}
