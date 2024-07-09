@@ -62,7 +62,7 @@ jobs:
           terragrunt_command: apply
           additional_data: ""
           child_account_id: ""
-          account_names: ""
+          account_names: ${{ inputs.account_name }}
           new_account_name: ${{ inputs.account_name }}
 
       # To learn more about customizing Pipelines see our documentation at https://docs.gruntwork.io/pipelines/maintain/extending/
