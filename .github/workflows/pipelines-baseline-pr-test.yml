@@ -6,6 +6,9 @@ on:
       runner:
         type: string
         default: "\"ubuntu-latest\""
+      account_name:
+        type: string
+        required: true
     secrets:
       PIPELINES_READ_TOKEN:
         required: true
@@ -52,7 +55,7 @@ jobs:
         uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
         with:
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
-          change_type: AccountRequested
+          change_type: AccountsRequested
           branch: "main"
           working_directory: "."
           account_id: "123456"
@@ -60,7 +63,7 @@ jobs:
           additional_data: ""
           child_account_id: ""
           account_names: ""
-          new_account_name: "test-account"
+          new_account_name: ${{ inputs.account_name }}
 
       # To learn more about customizing Pipelines see our documentation at https://docs.gruntwork.io/pipelines/maintain/extending/
       - name: "[Baseline]: Pre Provision New Account Custom Action"
