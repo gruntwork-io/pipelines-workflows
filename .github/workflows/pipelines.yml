@@ -30,7 +30,7 @@ env:
   PIPELINES_ACTIONS_VERSION: v1.6.0
 
 jobs:
-  detect_changes:
+  pipelines_orchestrate:
     name: Detect Infrastructure Changes
     runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
@@ -64,14 +64,14 @@ jobs:
 
   pipelines_execute:
     name: ${{ contains(matrix.jobs.Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
-    needs: [detect_changes]
+    needs: [pipelines_orchestrate]
     runs-on: ${{ fromJSON(inputs.runner) }}
     # GHA can't check for length, so we just check if there is an item in the 0 index
-    if: fromJson(needs.detect_changes.outputs.pipelines_jobs)[0] != null
+    if: fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0] != null
     strategy:
       fail-fast: false
       matrix:
-        jobs: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs) }}
+        jobs: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs) }}
     steps:
       - name: Checkout Pipelines Actions
         uses: actions/checkout@v4
