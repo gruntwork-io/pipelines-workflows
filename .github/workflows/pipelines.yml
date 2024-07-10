@@ -26,7 +26,7 @@ on:
         required: true
 
 env:
-  PIPELINES_CLI_VERSION: v0.17.0
+  PIPELINES_CLI_VERSION: v0.17.1
   PIPELINES_ACTIONS_VERSION: v1.6.0
 
 jobs:
