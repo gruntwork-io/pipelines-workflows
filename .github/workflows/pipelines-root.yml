@@ -1,4 +1,4 @@
-name: Pipelines Execute
+name: Pipelines
 run-name: Run Gruntwork Pipelines
 on:
   workflow_call:
@@ -36,7 +36,7 @@ env:
   GRUNTWORK_INSTALLER_VERSION: v0.0.40
 
 jobs:
-  detect_changes:
+  pipelines_orchestrate:
     name: Detect Infrastructure Changes
     runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
@@ -68,16 +68,16 @@ jobs:
     outputs:
       pipelines_jobs: ${{ steps.orchestrate.outputs.jobs }}
 
-  pipelines_determine:
+  pipelines_execute:
     name: ${{ contains(matrix.jobs.Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
-    needs: [detect_changes]
+    needs: [pipelines_orchestrate]
     runs-on: ${{ fromJSON(inputs.runner) }}
     # GHA can't check for length, so we just check if there is an item in the 0 index
-    if: fromJson(needs.detect_changes.outputs.pipelines_jobs)[0] != null
+    if: fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0] != null
     strategy:
       fail-fast: false
       matrix:
-        jobs: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs) }}
+        jobs: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs) }}
     steps:
       - name: Checkout Pipelines Actions
         uses: actions/checkout@v4
@@ -201,14 +201,14 @@ jobs:
 
   pipelines_apply_baselines:
     name: Baseline Child Account ${{ contains(matrix.jobs.Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.Name }} (${{ matrix.jobs.ID }})
-    needs: [detect_changes, pipelines_determine]
+    needs: [pipelines_orchestrate, pipelines_execute]
     runs-on: ${{ fromJSON(inputs.runner) }}
     # GHA can't check for length, so we just check if there is an item in the 0 index
-    if: fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].NewAccounts[0] != null
+    if: fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].NewAccounts[0] != null
     strategy:
       fail-fast: false
       matrix:
-        jobs: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].NewAccounts }}
+        jobs: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].NewAccounts }}
     steps:
       - name: Checkout Pipelines Actions
         uses: actions/checkout@v4
@@ -229,20 +229,20 @@ jobs:
         with:
           step_name: Baseline Child Account ${{ matrix.jobs.Name }}
           step_status: "in_progress"
-          pull_request_number: ${{ needs.pipelines_determine.outputs.pr_number }}
+          pull_request_number: ${{ needs.pipelines_execute.outputs.pr_number }}
 
       - name: Bootstrap Workflow
         id: gruntwork_context
         uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
         with:
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
-          change_type: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].ChangeType }}
-          branch: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].Ref }}
-          working_directory: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].WorkingDirectory }}
-          account_id: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].AccountId }}
-          terragrunt_command: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].Action.Command }} ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].Action.Args }}
-          additional_data: ${{ toJson(fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].AdditionalData) }}
-          account_names: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].AdditionalData.AccountNames }}
+          change_type: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].ChangeType }}
+          branch: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].Ref }}
+          working_directory: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].WorkingDirectory }}
+          account_id: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].AccountId }}
+          terragrunt_command: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].Action.Command }} ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].Action.Args }}
+          additional_data: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].AdditionalData) }}
+          account_names: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].AdditionalData.AccountNames }}
           child_account_id: ${{ matrix.jobs.ID }}
           new_account_name: ${{ matrix.jobs.Name }}
 
@@ -253,7 +253,7 @@ jobs:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           account_id: ${{ matrix.jobs.ID }}
           account_name: ${{ matrix.jobs.Name }}
-          job: ${{ toJson(fromJson(needs.detect_changes.outputs.pipelines_jobs)[0]) }}
+          job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
       - name: "[Baseline]: Baseline the Child Account"
@@ -263,7 +263,7 @@ jobs:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           account_id: ${{ matrix.jobs.ID }}
           account_name: ${{ matrix.jobs.Name }}
-          job: ${{ toJson(fromJson(needs.detect_changes.outputs.pipelines_jobs)[0]) }}
+          job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
       - name: "[Baseline]: Post Baseline Child Account Action"
@@ -272,7 +272,7 @@ jobs:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           account_id: ${{ matrix.jobs.ID }}
           account_name: ${{ matrix.jobs.Name }}
-          job: ${{ toJson(fromJson(needs.detect_changes.outputs.pipelines_jobs)[0]) }}
+          job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
       - name: Update comment
@@ -283,14 +283,14 @@ jobs:
           step_status: ${{ steps.baseline_child_account.conclusion == 'success' && 'success' || 'failed' }}
           step_details: ${{ steps.baseline_child_account.outputs.formatted_plan_output || 'Check the logs for more details.' }}
           step_details_extended_log: ${{ steps.baseline_child_account.outputs.execute_stdout_log }}
-          pull_request_number: ${{ needs.pipelines_determine.outputs.pr_number }}
+          pull_request_number: ${{ needs.pipelines_execute.outputs.pr_number }}
 
   pipelines_setup_delegated_repo:
     name: "Setup Delegated Repo"
-    needs: [detect_changes, pipelines_apply_baselines, pipelines_determine]
+    needs: [pipelines_orchestrate, pipelines_apply_baselines, pipelines_execute]
     runs-on: ${{ fromJSON(inputs.runner) }}
     # GHA can't check for length, so we just check if there is an item in the 0 index
-    if: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].NewAccounts[0] != null && needs.pipelines_determine.outputs.delegate_management == 'true' && needs.pipelines_determine.outputs.terragrunt_command == 'run-all apply' }}
+    if: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].NewAccounts[0] != null && needs.pipelines_execute.outputs.delegate_management == 'true' && needs.pipelines_execute.outputs.terragrunt_command == 'run-all apply' }}
     steps:
       - name: Checkout Pipelines Actions
         uses: actions/checkout@v4
@@ -311,18 +311,18 @@ jobs:
         uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
         with:
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
-          change_type: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].ChangeType }}
-          branch: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].Ref }}
-          working_directory: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].WorkingDirectory }}
-          account_id: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].AccountId }}
-          terragrunt_command: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].Action.Command }} ${{ needs.detect_changes.outputs.pipelines_jobs[0].Action.Args }}
-          additional_data: ${{ toJson(fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].AdditionalData) }}
-          child_account_id: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].AdditionalData.ChildAccountId }}
-          account_names: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].AdditionalData.AccountNames }}
+          change_type: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].ChangeType }}
+          branch: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].Ref }}
+          working_directory: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].WorkingDirectory }}
+          account_id: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].AccountId }}
+          terragrunt_command: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].Action.Command }} ${{ needs.pipelines_orchestrate.outputs.pipelines_jobs[0].Action.Args }}
+          additional_data: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].AdditionalData) }}
+          child_account_id: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].AdditionalData.ChildAccountId }}
+          account_names: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].AdditionalData.AccountNames }}
           # This is just to help bootstrap find one of the (possibly several) new account request files
           # Inside those files is some shared config that we need to setup access control such as
           # the delegated_repo_name (which is the same in all the new request files)
-          new_account_name: ${{ fromJson(needs.detect_changes.outputs.pipelines_jobs)[0].NewAccounts[0].Name }}
+          new_account_name: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].NewAccounts[0].Name }}
 
       - name: "Create Access Control PR"
         id: access_control_pr
