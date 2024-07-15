@@ -27,7 +27,7 @@ on:
 
 env:
   PIPELINES_CLI_VERSION: v0.17.7
-  PIPELINES_ACTIONS_VERSION: v1.6.1
+  PIPELINES_ACTIONS_VERSION: fix/removing-plan-summary-for-applies
 
 jobs:
   pipelines_orchestrate:
