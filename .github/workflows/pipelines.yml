@@ -124,7 +124,7 @@ jobs:
           step_name: ${{ matrix.jobs.ChangeType }}
           step_working_directory: ${{ matrix.jobs.WorkingDirectory }}
           step_status: ${{ steps.terragrunt.conclusion == 'success' && 'success' || 'failed' }}
-          step_details: ${{ steps.terragrunt.outputs.formatted_plan_output || 'Check the logs for more details.' }}
+          step_details: ${{ steps.terragrunt.outputs.formatted_plan_output }}
           step_details_extended_log: ${{ steps.terragrunt.outputs.execute_stdout_log }}
           pull_request_number: ${{ steps.gruntwork_context.outputs.pr_number }}
 
