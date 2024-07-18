@@ -82,4 +82,3 @@ jobs:
           infra_live_repo: "."
           infra_live_directory: "."
           deploy_branch_name: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
-          event_type: push
