@@ -63,6 +63,7 @@ jobs:
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
           working_directory: ${{ inputs.working_directory }}
           terragrunt_command: "force-unlock -lock=${{ inputs.lock_id }}"
+          branch: 'main'
 
       - name: "Run terragrunt force-unlock in ${{ inputs.working_directory }}"
         id: terragrunt
