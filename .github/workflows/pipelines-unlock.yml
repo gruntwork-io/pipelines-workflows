@@ -35,7 +35,7 @@ on:
           required: true
 env:
   PIPELINES_CLI_VERSION: v0.20.0
-  PIPELINES_ACTIONS_VERSION: v1.8.0
+  PIPELINES_ACTIONS_VERSION: event
   GITHUB_EVENT_NAME: push
 
 jobs:
@@ -82,3 +82,4 @@ jobs:
           infra_live_repo: "."
           infra_live_directory: "."
           deploy_branch_name: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
+          event_type: push
