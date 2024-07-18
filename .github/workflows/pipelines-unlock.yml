@@ -37,7 +37,7 @@ env:
   PIPELINES_CLI_VERSION: v0.20.0
   PIPELINES_ACTIONS_VERSION: v1.8.0
   GITHUB_EVENT_NAME: push
-  
+
 jobs:
   unlock:
     name: Unlock TF State
@@ -71,6 +71,7 @@ jobs:
         uses: ./pipelines-actions/.github/actions/pipelines-execute
         env:
           TERRAGRUNT_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd ."
+          GITHUB_EVENT_NAME: push
         with:
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
           tf_binary: ${{ steps.gruntwork_context.outputs.tf_binary }}
