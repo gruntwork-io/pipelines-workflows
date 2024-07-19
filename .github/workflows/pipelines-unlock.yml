@@ -36,7 +36,6 @@ on:
 env:
   PIPELINES_CLI_VERSION: v0.20.0
   PIPELINES_ACTIONS_VERSION: event
-  GITHUB_EVENT_NAME: push
 
 jobs:
   unlock:
