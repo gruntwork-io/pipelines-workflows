@@ -194,6 +194,14 @@ jobs:
           echo github.job ${{ github.job }}
           echo strategy.job-index ${{ strategy.job-index }}
 
+      - name: Get step_url
+        shell: bash
+        env:
+          RUN_ID: "${{ github.run_id }}"
+        run: |
+          JOB_ID="$(gh api /repos/$REPO_OWNER/$REPO/actions/runs/$RUN_ID/jobs | jq '.jobs | .[] | select(.name|endswith(\"$RUN_ID\"))'"
+          echo $JOB_ID
+
       - name: Update comment
         uses: ./pipelines-actions/.github/actions/pipelines-status-update
         if: always()
