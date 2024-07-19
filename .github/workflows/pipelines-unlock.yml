@@ -1,5 +1,5 @@
 name: Pipelines
-run-name: Run Gruntwork Pipelines
+run-name: Unlock Gruntwork Pipelines
 on:
   workflow_call:
     inputs:
