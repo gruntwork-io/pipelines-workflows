@@ -185,6 +185,12 @@ jobs:
           infra_live_directory: "."
           deploy_branch_name: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
 
+      - name: Debug Job Context
+        shell: bash
+        run: |
+          echo ${{ github.job }}
+          echo ${{ strategy.job_index }}
+
       - name: Update comment
         uses: ./pipelines-actions/.github/actions/pipelines-status-update
         if: always()
