@@ -188,8 +188,9 @@ jobs:
       - name: Debug Job Context
         shell: bash
         run: |
-          echo ${{ github.job }}
-          echo ${{ strategy.job-index }}
+          echo github.run_id ${{ github.run_id }}
+          echo github.job ${{ github.job }}
+          echo strategy.job-index ${{ strategy.job-index }}
 
       - name: Update comment
         uses: ./pipelines-actions/.github/actions/pipelines-status-update
