@@ -77,6 +77,8 @@ jobs:
       pipelines_jobs: ${{ steps.orchestrate.outputs.jobs }}
 
   pipelines_execute:
+    # permissions:
+    #   actions: read
     env:
       JOB_NAME: ${{ contains(matrix.jobs.Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
     name: ${{ contains(matrix.jobs.Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
@@ -199,7 +201,7 @@ jobs:
         env:
           RUN_ID: "${{ github.run_id }}"
         run: |
-          JOB_ID="$(gh api /repos/$REPO_OWNER/$REPO/actions/runs/$RUN_ID/jobs | jq '.jobs | .[] | select(.name|endswith(\"$RUN_ID\"))'"
+          JOB_ID="$(gh api /repos/$REPO_OWNER/$REPO/actions/runs/$RUN_ID/jobs | jq '.jobs | .[] | select(.name|endswith(\"$RUN_ID\"))')"
           echo $JOB_ID
 
       - name: Update comment
