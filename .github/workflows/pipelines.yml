@@ -27,7 +27,7 @@ on:
 
 env:
   PIPELINES_CLI_VERSION: v0.21.0
-  PIPELINES_ACTIONS_VERSION: v1.8.0
+  PIPELINES_ACTIONS_VERSION: yousif/dev-433-enable-terragrunt-debug-mode-when-debug-checkbox-for-github
 
 jobs:
   pipelines_orchestrate:
