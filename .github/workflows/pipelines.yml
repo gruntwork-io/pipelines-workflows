@@ -27,7 +27,7 @@ on:
 
 env:
   PIPELINES_CLI_VERSION: v0.21.2
-  PIPELINES_ACTIONS_VERSION: v1.8.0
+  PIPELINES_ACTIONS_VERSION: DEV-441-fix-empty-bootstrap
 
 jobs:
   pipelines_orchestrate:
