@@ -77,8 +77,8 @@ jobs:
       pipelines_jobs: ${{ steps.orchestrate.outputs.jobs }}
 
   pipelines_execute:
-    # permissions:
-    #   actions: read
+    permissions:
+      actions: read
     env:
       JOB_NAME: ${{ contains(matrix.jobs.Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
     name: ${{ contains(matrix.jobs.Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
@@ -192,8 +192,6 @@ jobs:
       - name: Get Logs URL
         uses: ./pipelines-actions/.github/actions/pipelines-get-job-logs-url
         if: always()
-        permissions:
-          actions: read
         with:
           job_name: ${{ env.JOB_NAME }}
           step_name_prefix: "[TerragruntExecute]"
