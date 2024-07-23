@@ -189,21 +189,12 @@ jobs:
           infra_live_directory: "."
           deploy_branch_name: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
 
-      - name: Debug Job Context
-        shell: bash
-        run: |
-          echo github.run_id ${{ github.run_id }}
-          echo github.job ${{ github.job }}
-          echo strategy.job-index ${{ strategy.job-index }}
-
       - name: Get step_url
-        shell: bash
-        env:
-          RUN_ID: "${{ github.run_id }}"
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          JOB_ID="$(gh api /repos/$REPO_OWNER/$REPO/actions/runs/$RUN_ID/jobs | jq '.jobs | .[] | select(.name|endswith(\"$JOB_NAME\"))')"
-          echo $JOB_ID
+        uses: ./pipelines-actions/.github/actions/pipelines-get-job-logs-url
+        if: always()
+        with:
+          job_name: ${{ env.JOB_NAME }}
+          step_name_prefix: "[TerragruntExecute]"
 
       - name: Update comment
         uses: ./pipelines-actions/.github/actions/pipelines-status-update
