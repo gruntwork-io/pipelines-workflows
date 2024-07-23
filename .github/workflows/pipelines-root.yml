@@ -205,7 +205,7 @@ jobs:
           step_details: ${{ steps.terragrunt.outputs.formatted_plan_output }}
           step_details_extended_log: ${{ steps.terragrunt.outputs.execute_stdout_log }}
           pull_request_number: ${{ steps.gruntwork_context.outputs.pr_number }}
-          step_logs_url: ${{ steps.get_logs_url.step_logs_url }}
+          step_logs_url: ${{ steps.get_logs_url.outputs.step_logs_url }}
 
     outputs:
       account_id: ${{ matrix.jobs.AccountId }}
