@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       lock_id:
-        description: "The ID of the lock, usually a GUID"
+        description: "The ID of the lock, usually a GUID. This is generally found in the console output when Terraform/OpenTofu command fails due to a timeout waiting to acquire a lock."
         required: true
         type: string
       working_directory:
