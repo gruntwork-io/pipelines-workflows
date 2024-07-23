@@ -189,9 +189,11 @@ jobs:
           infra_live_directory: "."
           deploy_branch_name: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
 
-      - name: Get step_url
+      - name: Get Logs URL
         uses: ./pipelines-actions/.github/actions/pipelines-get-job-logs-url
         if: always()
+        permissions:
+          actions: read
         with:
           job_name: ${{ env.JOB_NAME }}
           step_name_prefix: "[TerragruntExecute]"
