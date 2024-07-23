@@ -190,6 +190,7 @@ jobs:
           deploy_branch_name: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
 
       - name: Get Logs URL
+        id: get_logs_url
         uses: ./pipelines-actions/.github/actions/pipelines-get-job-logs-url
         if: always()
         with:
@@ -206,6 +207,7 @@ jobs:
           step_details: ${{ steps.terragrunt.outputs.formatted_plan_output }}
           step_details_extended_log: ${{ steps.terragrunt.outputs.execute_stdout_log }}
           pull_request_number: ${{ steps.gruntwork_context.outputs.pr_number }}
+          step_logs_url: ${{ steps.get_logs_url.step_logs_url }}
 
     outputs:
       account_id: ${{ matrix.jobs.AccountId }}
