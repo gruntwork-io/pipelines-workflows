@@ -219,6 +219,8 @@ jobs:
       delegate_management: ${{ steps.gruntwork_context.outputs.delegate_management }}
 
   pipelines_apply_baselines:
+    env:
+      JOB_NAME: Baseline Child Account ${{ contains(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.Name }} (${{ matrix.jobs.ID }})
     name: Baseline Child Account ${{ contains(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.Name }} (${{ matrix.jobs.ID }})
     needs: [pipelines_orchestrate, pipelines_execute]
     runs-on: ${{ fromJSON(inputs.runner) }}
@@ -294,6 +296,14 @@ jobs:
           job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
+      - name: Get Logs URL
+        id: get_logs_url
+        uses: ./pipelines-actions/.github/actions/pipelines-get-job-logs-url
+        if: always()
+        with:
+          job_name: ${{ env.JOB_NAME }}
+          step_name_prefix: "[Baseline]: Baseline the Child Account"
+
       - name: Update comment
         uses: ./pipelines-actions/.github/actions/pipelines-status-update
         if: always()
@@ -303,6 +313,7 @@ jobs:
           step_details: ${{ steps.baseline_child_account.outputs.formatted_plan_output || 'Check the logs for more details.' }}
           step_details_extended_log: ${{ steps.baseline_child_account.outputs.execute_stdout_log }}
           pull_request_number: ${{ needs.pipelines_execute.outputs.pr_number }}
+          step_logs_url: ${{ steps.get_logs_url.outputs.step_logs_url }}
 
   pipelines_setup_delegated_repo:
     name: "Setup Delegated Repo"

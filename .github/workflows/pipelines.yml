@@ -63,6 +63,8 @@ jobs:
       pipelines_jobs: ${{ steps.orchestrate.outputs.jobs }}
 
   pipelines_execute:
+    env:
+      JOB_NAME:  ${{ contains(matrix.jobs.Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
     name: ${{ contains(matrix.jobs.Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
     needs: [pipelines_orchestrate]
     runs-on: ${{ fromJSON(inputs.runner) }}
@@ -117,6 +119,14 @@ jobs:
           infra_live_directory: "."
           deploy_branch_name: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
 
+      - name: Get Logs URL
+        id: get_logs_url
+        uses: ./pipelines-actions/.github/actions/pipelines-get-job-logs-url
+        if: always()
+        with:
+          job_name: ${{ env.JOB_NAME }}
+          step_name_prefix: "Run terragrunt"
+
       - name: Update comment
         if: always()
         uses: ./pipelines-actions/.github/actions/pipelines-status-update
@@ -127,6 +137,7 @@ jobs:
           step_details: ${{ steps.terragrunt.outputs.formatted_plan_output }}
           step_details_extended_log: ${{ steps.terragrunt.outputs.execute_stdout_log }}
           pull_request_number: ${{ steps.gruntwork_context.outputs.pr_number }}
+          step_logs_url: ${{ steps.get_logs_url.outputs.step_logs_url }}
 
     outputs:
       account_id: ${{ matrix.jobs.AccountId }}
