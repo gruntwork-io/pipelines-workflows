@@ -193,7 +193,7 @@ jobs:
         if: always()
         with:
           job_name: ${{ env.JOB_NAME }}
-          step_name_prefix: ${{ steps.gruntwork_context.outputs.action == 'TERRAGRUNT_EXECUTE' && '[TerragruntExecute]: Authenticate with AWS and then Invoke Terragrunt' || 'blah' }}
+          step_name_prefix: ${{ steps.gruntwork_context.outputs.action == 'TERRAGRUNT_EXECUTE' && 'a' || 'b' }}
 
       - name: Update comment
         uses: ./pipelines-actions/.github/actions/pipelines-status-update
