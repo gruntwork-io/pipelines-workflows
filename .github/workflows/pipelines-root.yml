@@ -132,8 +132,17 @@ jobs:
           INFRA_ROOT_WRITE_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
-      - name: "[Baseline]: Post Provision New Account Custom Action"
+      - name: "[ProvisionAccount]: Post Provision New Account Custom Action"
         uses: ./pipelines-actions/.github/custom-actions/post-provision-new-account
+        if: ${{ steps.gruntwork_context.outputs.action == 'PROVISION_ACCOUNT' }}
+        with:
+          PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          INFRA_ROOT_WRITE_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
+          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
+          baseline_pull_request_url: ${{ steps.provision_new_account.outputs.pull_request_url }}
+
+      - name: "[ProvisionAccount]: Create New Account Pull Request Action"
+        uses: ./pipelines-actions/.github/actions/pipelines-new-account-pr-action
         if: ${{ steps.gruntwork_context.outputs.action == 'PROVISION_ACCOUNT' }}
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
