@@ -38,7 +38,7 @@ env:
   # Disables all executions of terragrunt. This is useful for debugging
   # specifics of pipelines actions/workflows and bypassing the (usually time consuming)
   # actual IaC execution.
-  SKIP_TERRAGRUNT: true
+  SKIP_TERRAGRUNT: false
 
 jobs:
   pipelines_orchestrate:
