@@ -139,14 +139,18 @@ jobs:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           INFRA_ROOT_WRITE_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
-          baseline_pull_request_url: ${{ steps.provision_new_account.outputs.pull_request_url }}
 
       - name: "[ProvisionAccount]: Create New Account Pull Request Action"
-        uses: ./pipelines-actions/.github/actions/pipelines-new-account-pr-action
+        uses: ./pipelines-actions/.github/actions/pipelines-new-pr-action
         if: ${{ steps.gruntwork_context.outputs.action == 'PROVISION_ACCOUNT' }}
         with:
-          PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
-          INFRA_ROOT_WRITE_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
+          GH_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
+          path: ${{ steps.provision_new_account.outputs.baseline_path }}
+          new_branch_name: ${{ steps.provision_new_account.outputs.new_branch_name }}
+          commit_message: ${{ steps.provision_new_account.outputs.commit_message }}
+          pr_body: ${{ steps.provision_new_account.outputs.pr_body }}
+          requesting_pr_number: ${{ steps.provision_new_account.outputs.requesting_pr_number }}
+          step_summary_content: ${{ steps.provision_new_account.outputs.step_summary_content }}
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
           baseline_pull_request_url: ${{ steps.provision_new_account.outputs.pull_request_url }}
 
@@ -156,6 +160,7 @@ jobs:
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
+          baseline_pull_request_url: ${{ steps.provision_new_account.outputs.pull_request_url }}
 
       # Run the core accounts baselines(shared, logs, security, etc. to ensure the account is setup correctly)
       - name: "Run core accounts baselines"
@@ -364,3 +369,11 @@ jobs:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           ORG_REPO_ADMIN_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
           delegated_repo_pull_request_url: ${{ steps.provision_delegated_repo.outputs.pull_request_url }}
+
+      - name: "Create Delegated Repo PR"
+        uses: ./pipelines-actions/.github/actions/pipelines-new-pr-action
+        with:
+          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
+          access_control_pull_request_url: ${{ steps.access_control_pr.outputs.pull_request_url }}
+          PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          ORG_REPO_ADMIN_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
