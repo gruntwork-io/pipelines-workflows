@@ -35,6 +35,11 @@ env:
   BOILERPLATE_VERSION: v0.5.16
   GRUNTWORK_INSTALLER_VERSION: v0.0.40
 
+  # Disables all executions of terragrunt. This is useful for debugging
+  # specifics of pipeliens actions/workflows and bypassing the (usually time consuming)
+  # actual IaC execution.
+  SKIP_TERRAGRUNT: true
+
 jobs:
   pipelines_orchestrate:
     name: Detect Infrastructure Changes
