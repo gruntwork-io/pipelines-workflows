@@ -374,6 +374,10 @@ jobs:
         uses: ./pipelines-actions/.github/actions/pipelines-new-pr-action
         with:
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
-          access_control_pull_request_url: ${{ steps.access_control_pr.outputs.pull_request_url }}
-          PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
-          ORG_REPO_ADMIN_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
+          GH_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
+          path: ${{ steps.provision_delegated_repo.outputs.path }}
+          new_branch_name: ${{ steps.provision_delegated_repo.outputs.new_branch_name }}
+          commit_message: ${{ steps.provision_delegated_repo.outputs.commit_message }}
+          pr_body: ${{ steps.provision_delegated_repo.outputs.pr_body }}
+          requesting_pr_number: ${{ steps.provision_delegated_repo.outputs.requesting_pr_number }}
+          step_summary_content: ${{ steps.provision_delegated_repo.outputs.step_summary_content }}
