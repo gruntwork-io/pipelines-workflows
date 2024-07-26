@@ -62,7 +62,10 @@ jobs:
       - name: Preflight Checks
         uses: ./pipelines-actions/.github/actions/pipelines-preflight-action
         with:
+          IS_ROOT: 'true'
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          INFRA_ROOT_WRITE_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
+          ORG_REPO_ADMIN_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
 
       - name: Pipelines Orchestrate
         id: orchestrate
