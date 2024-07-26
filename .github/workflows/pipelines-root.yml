@@ -20,7 +20,7 @@ on:
       # - A map: "{group: \"ubuntu-runners\", labels: \"ubuntu-20.04-16core\"}"
       runner:
         type: string
-        default: "\"ubuntu-latest\""
+        default: '"ubuntu-latest"'
     secrets:
       PIPELINES_READ_TOKEN:
         required: true
@@ -173,7 +173,7 @@ jobs:
         if: ${{ steps.gruntwork_context.outputs.action == 'TERRAGRUNT_EXECUTE' }}
         uses: ./pipelines-actions/.github/actions/pipelines-execute
         env:
-          TERRAGRUNT_AUTH_PROVIDER_CMD: 'pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd .'
+          TERRAGRUNT_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd ."
         with:
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
           tf_binary: ${{ steps.gruntwork_context.outputs.tf_binary }}
