@@ -142,6 +142,7 @@ jobs:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           INFRA_ROOT_WRITE_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
+          baseline_path: ${{ steps.provision_new_account.outputs.baseline_path }}
 
       - name: "[ProvisionAccount]: Create New Account Pull Request Action"
         uses: ./pipelines-actions/.github/actions/pipelines-new-pr-action
@@ -162,7 +163,6 @@ jobs:
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
-          baseline_pull_request_url: ${{ steps.provision_new_account.outputs.pull_request_url }}
 
       # Run the core accounts baselines(shared, logs, security, etc. to ensure the account is setup correctly)
       - name: "Run core accounts baselines"
