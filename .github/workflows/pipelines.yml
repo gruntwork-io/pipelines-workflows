@@ -27,7 +27,7 @@ on:
 
 env:
   PIPELINES_CLI_VERSION: v0.21.2
-  PIPELINES_ACTIONS_VERSION: v1.8.0
+  PIPELINES_ACTIONS_VERSION: main
 
 jobs:
   pipelines_orchestrate:
