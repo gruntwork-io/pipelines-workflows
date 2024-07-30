@@ -35,7 +35,7 @@ on:
           required: true
 env:
   PIPELINES_CLI_VERSION: v0.20.0
-  PIPELINES_ACTIONS_VERSION: v1.9.0
+  PIPELINES_ACTIONS_VERSION: main
 
 jobs:
   unlock:
