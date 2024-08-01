@@ -35,7 +35,7 @@ on:
           required: true
 env:
   PIPELINES_CLI_VERSION: v0.23.1
-  PIPELINES_ACTIONS_VERSION: main
+  PIPELINES_ACTIONS_VERSION: feat/adding-ability-to-enable-provider-cache
 
 jobs:
   unlock:
