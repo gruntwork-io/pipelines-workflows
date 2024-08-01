@@ -35,6 +35,8 @@ env:
   BOILERPLATE_VERSION: v0.5.16
   GRUNTWORK_INSTALLER_VERSION: v0.0.40
 
+  TERRAGRUNT_PROVIDER_CACHE: 1
+
   # Disables all executions of terragrunt. This is useful for debugging
   # specifics of pipelines actions/workflows and bypassing the (usually time consuming)
   # actual IaC execution.
