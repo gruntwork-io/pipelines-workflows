@@ -165,6 +165,7 @@ jobs:
           # Recursively find every terragrunt hcl
           COMPLETED_ACCOUNTS=()
           NEEDS_INIT_FOLDERS=$(mktemp)
+
           find . -name "terragrunt.hcl" -print0 | while read -d $'\0' unit
           do
             working_dir=$(dirname "$unit")
@@ -207,13 +208,11 @@ jobs:
           done
 
           # Convert bash array of strings to a JSOn array
-          echo "folders:"
-          cat $NEEDS_INIT_FOLDERS
-          cat $NEEDS_INIT_FOLDERS | jq -R .
-          cat $NEEDS_INIT_FOLDERS | jq -R . | jq -s .
           JSON=$(cat $NEEDS_INIT_FOLDERS | jq -R . | jq -s .)
           echo $JSON
-          echo "unlock_folders=$JSON" >> "$GITHUB_OUTPUT"
+          echo "unlock_folders<<EOF" >> "$GITHUB_OUTPUT"
+          echo $JSON >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
     outputs:
       unlock_folders: ${{ steps.unlock_tables.outputs.unlock_folders }}
 
