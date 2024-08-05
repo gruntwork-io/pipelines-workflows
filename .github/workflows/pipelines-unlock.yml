@@ -115,10 +115,11 @@ jobs:
           branch: 'main'
       - name: Setup Mise Toml
         id: mise-toml
+        working-directory: ./infra-live-repo
         shell: bash
         env:
           GENERATE_MISE_TOML: false
-          INFRA_LIVE_DIRECTORY: "./infra-live-repo"
+          INFRA_LIVE_DIRECTORY: "."
         run: |
           if [[ "$GENERATE_MISE_TOML" == "true" ]] || [[ ! -f "$INFRA_LIVE_DIRECTORY/.mise.toml" ]]; then
             if [[ ! -f "$INFRA_LIVE_DIRECTORY/.mise.toml" ]]; then
