@@ -52,7 +52,7 @@ jobs:
         uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
         with:
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
-          working_directory: ./infra-live-repo
+          working_directory: "."
           terragrunt_command: "run-all plan"
           branch: "main"
       
