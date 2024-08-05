@@ -113,6 +113,7 @@ jobs:
           working_directory: ${{ inputs.working_directory }}
           terragrunt_command: "init"
           branch: 'main'
+
       - name: Setup Mise Toml
         id: mise-toml
         working-directory: ./infra-live-repo
@@ -147,7 +148,7 @@ jobs:
         shell: bash
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          GH_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
         run: |
           containsElement () {
             local e match="$1"
@@ -195,7 +196,7 @@ jobs:
               aws dynamodb delete-table --table-name terraform-locks || true # Ignore failures if no table already exists
             fi
             echo "Lock removed, re-running tg init"
-            GH_TOKEN=$PIPELINES_READ_TOKEN terragrunt init
+            terragrunt init
             COMPLETED_ACCOUNTS+=($ACCOUNTID)
             cd -
           done
