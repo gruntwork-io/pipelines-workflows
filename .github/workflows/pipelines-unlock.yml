@@ -146,7 +146,7 @@ jobs:
       - name: Wipe all dynamodb terraform lock tables
         shell: bash
         env:
-          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
         run: |
           containsElement () {
@@ -166,7 +166,7 @@ jobs:
           do
             dir=$(dirname "$unit")
             cd $dir
-            pipelinesConfigAuth=$(pipelines config auth)
+            pipelinesConfigAuth=$(GH_TOKEN=$GITHUB_TOKEN pipelines config auth)
             ACCOUNTID=$(echo $pipelinesConfigAuth | jq -r ".Authentication.AWSOIDC.AccountID")
             echo ACCOUNTID="$ACCOUNTID"
 
@@ -181,7 +181,7 @@ jobs:
             REGION=$(echo $pipelinesConfigAuth | jq -r ".Authentication.AWSOIDC.Region")
             echo REGION="$REGION"
 
-            auth=$(pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd .)
+            auth=$(GH_TOKEN=$GITHUB_TOKEN pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd .)
             export AWS_DEFAULT_REGION=$REGION
             export AWS_ACCESS_KEY_ID=$(echo $auth | jq -r '.awsCredentials.ACCESS_KEY_ID')
             export AWS_SECRET_ACCESS_KEY=$(echo $auth | jq -r '.awsCredentials.SECRET_ACCESS_KEY')
@@ -199,19 +199,3 @@ jobs:
             COMPLETED_ACCOUNTS+=($ACCOUNTID)
             cd -
           done
-
-      - name: "Run terragrunt force-unlock in ${{ inputs.working_directory }}"
-        id: terragrunt
-        uses: ./pipelines-actions/.github/actions/pipelines-execute
-        env:
-          TERRAGRUNT_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd ."
-        with:
-          token: ${{ secrets.PIPELINES_READ_TOKEN }}
-          tf_binary: ${{ steps.gruntwork_context.outputs.tf_binary }}
-          working_directory: ${{ steps.gruntwork_context.outputs.working_directory }}
-          terragrunt_command: ${{ steps.gruntwork_context.outputs.terragrunt_command }}
-          infra_live_repo_branch: ${{ steps.gruntwork_context.outputs.branch }}
-          gruntwork_config_file: ${{ steps.gruntwork_context.outputs.gruntwork_config_file }}
-          infra_live_repo: "."
-          infra_live_directory: "."
-          deploy_branch_name: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
