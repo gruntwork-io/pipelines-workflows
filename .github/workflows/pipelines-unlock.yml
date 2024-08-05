@@ -184,6 +184,8 @@ jobs:
               return
             else
               echo "Unlocking state in $ACCOUNTID in `pwd`"
+              echo $working_dir >> $NEEDS_INIT_FOLDERS
+              echo $ACCOUNTID >> $COMPLETED_ACCOUNTS_FILE
             fi
 
             REGION=$(echo $pipelinesConfigAuth | jq -r ".Authentication.AWSOIDC.Region")
@@ -202,9 +204,6 @@ jobs:
               aws dynamodb delete-table --table-name terraform-locks || true # Ignore failures if no table already exists
             fi
             echo "Lock removed, adding $working_dir to list of folders needing a rerun of terragrunt init" || true
-
-            echo $working_dir >> $NEEDS_INIT_FOLDERS
-            echo $ACCOUNTID >> $COMPLETED_ACCOUNTS_FILE
           }
 
           find . -name "terragrunt.hcl" -print0 | while read -d $'\0' unit
