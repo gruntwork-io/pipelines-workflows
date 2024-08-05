@@ -126,9 +126,8 @@ jobs:
 
           echo "Wiping all dynamodb terraform lock tables"
           # Recursively find every terragrunt hcl
-          UNITS=$(find . -name "terragrunt.hcl")
           COMPLETED_ACCOUNTS=()
-          for unit in "$UNITS";
+          find . -name "terragrunt.hcl" -print0 | while read -d $'\0' unit
           do
             dir=$(dirname "$unit")
             cd $dir
