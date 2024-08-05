@@ -147,6 +147,7 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
         run: |
           containsElement () {
             local e match="$1"
@@ -192,7 +193,7 @@ jobs:
               aws dynamodb delete-table --table-name terraform-locks || true # Ignore failures if no table already exists
             fi
             echo "Lock removed, re-running tg init"
-            terragrunt init
+            GH_TOKEN=$PIPELINES_READ_TOKEN terragrunt init
             COMPLETED_ACCOUNTS+=($ACCOUNTID)
             cd -
           done
