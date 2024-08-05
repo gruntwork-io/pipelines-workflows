@@ -164,7 +164,7 @@ jobs:
           echo "Wiping all dynamodb terraform lock tables"
           # Recursively find every terragrunt hcl
           COMPLETED_ACCOUNTS=()
-          NEEDS_INIT_FOLDERS=()
+          NEEDS_INIT_FOLDERS=$(mktemp)
           find . -name "terragrunt.hcl" -print0 | while read -d $'\0' unit
           do
             working_dir=$(dirname "$unit")
@@ -199,20 +199,19 @@ jobs:
               aws dynamodb delete-table --table-name terraform-locks || true # Ignore failures if no table already exists
             fi
             echo "Lock removed, adding $working_dir to list of folders needing a rerun of terragrunt init"
-            NEEDS_INIT_FOLDERS+=("$working_dir")
+            echo $working_dir >> $NEEDS_INIT_FOLDERS
             echo "Needs init folders inside loop:"
-            echo ${NEEDS_INIT_FOLDERS[@]}
+            cat $NEEDS_INIT_FOLDERS
             COMPLETED_ACCOUNTS+=($ACCOUNTID)
             cd -
           done
 
           # Convert bash array of strings to a JSOn array
           echo "folders:"
-          echo ${NEEDS_INIT_FOLDERS[@]}
-          printf "%s\n" ${NEEDS_INIT_FOLDERS[@]}
-          printf "%s\n" ${NEEDS_INIT_FOLDERS[@]} | jq -R .
-          printf "%s\n" ${NEEDS_INIT_FOLDERS[@]} | jq -R . | jq -s .
-          JSON=$(printf "%s\n" ${NEEDS_INIT_FOLDERS[@]} | jq -R . | jq -s .)
+          cat $NEEDS_INIT_FOLDERS
+          cat $NEEDS_INIT_FOLDERS | jq -R .
+          cat $NEEDS_INIT_FOLDERS | jq -R . | jq -s .
+          JSON=$(cat $NEEDS_INIT_FOLDERS | jq -R . | jq -s .)
           echo $JSON
           echo "unlock_folders=$JSON" >> "$GITHUB_OUTPUT"
     outputs:
