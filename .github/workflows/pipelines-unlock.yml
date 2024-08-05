@@ -188,6 +188,7 @@ jobs:
             if [[ "$TABLE_STATUS" == "ACTIVE" ]]; then
               aws dynamodb delete-table --table-name terraform-locks || true # Ignore failures if no table already exists
             fi
+            echo "Lock removed, re-running tg init"
             terragrunt init
             COMPLETED_ACCOUNTS+=($ACCOUNTID)
             cd -
