@@ -205,6 +205,7 @@ jobs:
           done
 
           # Convert bash array of strings to a JSOn array
+          echo ${NEEDS_INIT_FOLDERS[@]}
           JSON=$(printf "%s\n" ${NEEDS_INIT_FOLDERS[@]} | jq -R . | jq -s .)
           echo $JSON
           echo "unlock_folders=$JSON" >> "$GITHUB_OUTPUT"
