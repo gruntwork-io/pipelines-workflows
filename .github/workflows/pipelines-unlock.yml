@@ -206,11 +206,11 @@ jobs:
           # Convert bash array of strings to a JSOn array
           JSON=$(printf "%s\n" ${NEEDS_INIT_FOLDERS[@]} | jq -R . | jq -s .)
           echo "unlock_folders=$JSON" >> "$GITHUB_OUTPUT"
-      outputs:
-        unlock_folders: ${{ steps.unlock_tables.outputs.jobs }}
+    outputs:
+      unlock_folders: ${{ steps.unlock_tables.outputs.jobs }}
 
   pipelines_reinit:
-    name: "Rerun init in ${{ matrix.jobs.WorkingDirectory }}"
+    name: "Rerun init in ${{ matrix.working_directory }}"
     needs: [unlock_all]
     runs-on: ${{ fromJSON(inputs.runner) }}
     if: ${{ inputs.unlock_all }}
