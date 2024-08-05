@@ -166,27 +166,22 @@ jobs:
 
           echo "Wiping all dynamodb terraform lock tables"
           # Recursively find every terragrunt hcl
-          COMPLETED_ACCOUNTS=()
+          COMPLETED_ACCOUNTS_FILE=$(mktemp)
           NEEDS_INIT_FOLDERS=$(mktemp)
 
           cd infra-live-repo/
 
-          find . -name "terragrunt.hcl" -print0 | while read -d $'\0' unit
-          do
-            working_dir=$(dirname "$unit")
-            if [[ $working_dir == "." ]]; then
-              echo "Skipping root folder"
-              continue
-            fi
+          unlock_folder () {
+            working_dir="$1"
             cd $working_dir
+
             pipelinesConfigAuth=$(GH_TOKEN=$GITHUB_TOKEN pipelines config auth)
             ACCOUNTID=$(echo $pipelinesConfigAuth | jq -r ".Authentication.AWSOIDC.AccountID")
-            echo ACCOUNTID="$ACCOUNTID"
 
-            if containsElement $ACCOUNTID "${COMPLETED_ACCOUNTS[@]}"; then
+            grep $ACCOUNTID $COMPLETED_ACCOUNTS_FILE > /dev/null
+            if [[ $? == 0 ]]; then
               echo "Skipping $ACCOUNTID as it has already been processed"
-              cd -
-              continue
+              return
             else
               echo "Unlocking state in $ACCOUNTID in `pwd`"
             fi
@@ -208,10 +203,22 @@ jobs:
             fi
             echo "Lock removed, adding $working_dir to list of folders needing a rerun of terragrunt init"
 
-            echo $working_dir  >> $NEEDS_INIT_FOLDERS
-            COMPLETED_ACCOUNTS+=($ACCOUNTID)
-            cd -
+            echo $working_dir >> $NEEDS_INIT_FOLDERS
+            echo $ACCOUNTID >> $COMPLETED_ACCOUNTS_FILE
+          }
+
+          find . -name "terragrunt.hcl" -print0 | while read -d $'\0' unit
+          do
+            working_dir=$(dirname "$unit")
+            if [[ $working_dir == "." ]]; then
+              echo "Skipping root folder"
+              continue
+            fi
+
+            unlock_folder $working_dir &
           done
+
+          wait
 
           # Convert bash array of strings to a JSOn array
           JSON=$(cat $NEEDS_INIT_FOLDERS | jq -R . | jq -s .)
