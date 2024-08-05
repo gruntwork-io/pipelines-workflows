@@ -53,7 +53,7 @@ jobs:
         with:
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
           working_directory: "."
-          terragrunt_command: "run-all plan"
+          terragrunt_command: "run-all plan --terragrunt-exclude-dir=."
           branch: "main"
       
       - name: "Run terragrunt run-all plan"
