@@ -176,7 +176,8 @@ jobs:
             if containsElement $ACCOUNTID "${COMPLETED_ACCOUNTS[@]}"; then
               echo "Skipping $ACCOUNTID as it has already been processed"
               cd -
-              continue
+              #continue
+              break
             else
               echo "Unlocking state in $ACCOUNTID in `pwd`"
             fi
@@ -207,7 +208,7 @@ jobs:
           JSON=$(printf "%s\n" ${NEEDS_INIT_FOLDERS[@]} | jq -R . | jq -s .)
           echo "unlock_folders=$JSON" >> "$GITHUB_OUTPUT"
     outputs:
-      unlock_folders: ${{ steps.unlock_tables.outputs.jobs }}
+      unlock_folders: ${{ steps.unlock_tables.outputs.unlock_folders }}
 
   pipelines_reinit:
     name: "Rerun init in ${{ matrix.working_directory }}"
