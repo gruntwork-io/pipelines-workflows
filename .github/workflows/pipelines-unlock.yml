@@ -169,8 +169,6 @@ jobs:
             pipelinesConfigAuth=$(pipelines config auth)
             ACCOUNTID=$(echo $pipelinesConfigAuth | jq -r ".Authentication.AWSOIDC.AccountID")
             echo ACCOUNTID="$ACCOUNTID"
-            REGION=$(echo $pipelinesConfigAuth | jq -r ".Authentication.AWSOIDC.Region")
-            echo REGION="$REGION"
 
             if containsElement $ACCOUNTID "${COMPLETED_ACCOUNTS[@]}"; then
               echo "Skipping $ACCOUNTID as it has already been processed"
@@ -179,6 +177,9 @@ jobs:
             else
               echo "Unlocking state in $ACCOUNTID in `pwd`"
             fi
+
+            REGION=$(echo $pipelinesConfigAuth | jq -r ".Authentication.AWSOIDC.Region")
+            echo REGION="$REGION"
 
             auth=$(pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd .)
             export AWS_DEFAULT_REGION=$REGION
