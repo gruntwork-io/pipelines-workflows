@@ -116,6 +116,8 @@ jobs:
 
       - name: Wipe all dynamodb terraform lock tables
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           containsElement () {
             local e match="$1"
