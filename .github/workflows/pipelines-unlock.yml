@@ -111,8 +111,36 @@ jobs:
         with:
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
           working_directory: ${{ inputs.working_directory }}
-          terragrunt_command: "force-unlock -force ${{ inputs.lock_id }}"
+          terragrunt_command: "init"
           branch: 'main'
+      - name: Setup Mise Toml
+        id: mise-toml
+        shell: bash
+        env:
+          GENERATE_MISE_TOML: false
+          INFRA_LIVE_DIRECTORY: "./infra-live-repo"
+        run: |
+          if [[ "$GENERATE_MISE_TOML" == "true" ]] || [[ ! -f "$INFRA_LIVE_DIRECTORY/.mise.toml" ]]; then
+            if [[ ! -f "$INFRA_LIVE_DIRECTORY/.mise.toml" ]]; then
+              echo 'User does not have a `.mise.toml` file, generating one to avoid failure'
+            fi
+            echo 'TOML<<EOF' >> "$GITHUB_OUTPUT"
+            echo '[tools]' >> "$GITHUB_OUTPUT"
+            echo "$TF_BINARY = \"$TF_VERSION\"" >> "$GITHUB_OUTPUT"
+            echo "terragrunt = \"$TG_VERSION\"" >> "$GITHUB_OUTPUT"
+            echo 'EOF' >> "$GITHUB_OUTPUT"
+          else
+            echo 'TOML<<EOF' >> "$GITHUB_OUTPUT"
+            cat $INFRA_LIVE_DIRECTORY/.mise.toml >> "$GITHUB_OUTPUT"
+            echo '' >> "$GITHUB_OUTPUT"
+            echo 'EOF' >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: jdx/mise-action@v2
+        with:
+          install: true
+          cache: true
+          mise_toml: "${{ steps.mise-toml.outputs.TOML }}"
 
       - name: Wipe all dynamodb terraform lock tables
         shell: bash
