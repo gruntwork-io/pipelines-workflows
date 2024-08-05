@@ -200,9 +200,8 @@ jobs:
               aws dynamodb delete-table --table-name terraform-locks || true # Ignore failures if no table already exists
             fi
             echo "Lock removed, adding $working_dir to list of folders needing a rerun of terragrunt init"
-            echo $working_dir >> $NEEDS_INIT_FOLDERS
-            echo "Needs init folders inside loop:"
-            cat $NEEDS_INIT_FOLDERS
+            # Remove the first folder "infra-live-repo" from what we add to the list
+            echo ${working_dir#*/*/}  >> $NEEDS_INIT_FOLDERS
             COMPLETED_ACCOUNTS+=($ACCOUNTID)
             cd -
           done
