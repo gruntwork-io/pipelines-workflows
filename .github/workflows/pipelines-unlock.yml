@@ -125,6 +125,9 @@ jobs:
             for e; do [[ "$e" == "$match" ]] && return 0; done
             return 1
           }
+          if [[ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]]; then
+            export GITHUB_EVENT_NAME=push
+          fi
 
           echo "Wiping all dynamodb terraform lock tables"
           # Recursively find every terragrunt hcl
