@@ -217,11 +217,20 @@ jobs:
             unlock_folder $working_dir &
           done
 
+          jobs
+          jobs | wc
+
           # Give the jobs a second to spin up
           sleep 3
 
+          jobs
+          jobs | wc
+
           # Wait for all jobs to finish
           wait < <(jobs -p)
+
+          jobs
+          jobs | wc
 
           # Convert bash array of strings to a JSOn array
           JSON=$(cat $NEEDS_INIT_FOLDERS | jq -R . | jq -s .)
