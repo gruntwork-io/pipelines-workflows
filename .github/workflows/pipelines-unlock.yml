@@ -11,6 +11,10 @@ on:
         description: "Path to the terragrunt.hcl file where the lock is held"
         required: true
         type: string
+      unlock_all:
+        description: "Forcibly reset all locks by deleting the dynamodb table"
+        required: false
+        type: boolean
 
       # This field can be overriden to customize the runner used for pipelines
       # workflows.
@@ -38,8 +42,9 @@ env:
   PIPELINES_ACTIONS_VERSION: main
 
 jobs:
-  unlock:
-    name: Unlock TF State
+  unlock_one:
+    name: Unlock a single TF State
+    if: ${{ !inputs.unlock_all }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
       - name: Checkout Pipelines Actions
@@ -64,6 +69,85 @@ jobs:
           working_directory: ${{ inputs.working_directory }}
           terragrunt_command: "force-unlock -force ${{ inputs.lock_id }}"
           branch: 'main'
+
+      - name: "Run terragrunt force-unlock in ${{ inputs.working_directory }}"
+        id: terragrunt
+        uses: ./pipelines-actions/.github/actions/pipelines-execute
+        env:
+          TERRAGRUNT_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd ."
+        with:
+          token: ${{ secrets.PIPELINES_READ_TOKEN }}
+          tf_binary: ${{ steps.gruntwork_context.outputs.tf_binary }}
+          working_directory: ${{ steps.gruntwork_context.outputs.working_directory }}
+          terragrunt_command: ${{ steps.gruntwork_context.outputs.terragrunt_command }}
+          infra_live_repo_branch: ${{ steps.gruntwork_context.outputs.branch }}
+          gruntwork_config_file: ${{ steps.gruntwork_context.outputs.gruntwork_config_file }}
+          infra_live_repo: "."
+          infra_live_directory: "."
+          deploy_branch_name: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
+
+  unlock_all:
+    name: Unlock all TF State files
+    if: ${{ inputs.unlock_all }}
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    steps:
+      - name: Checkout Pipelines Actions
+        uses: actions/checkout@v4
+        with:
+          path: pipelines-actions
+          repository: gruntwork-io/pipelines-actions
+          ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
+          token: ${{ secrets.PIPELINES_READ_TOKEN }}
+
+      - name: Check out repo code
+        uses: actions/checkout@v4
+        with:
+          path: infra-live-repo
+          fetch-depth: 0
+
+      - name: Bootstrap Workflow
+        id: gruntwork_context
+        uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
+        with:
+          token: ${{ secrets.PIPELINES_READ_TOKEN }}
+          working_directory: ${{ inputs.working_directory }}
+          terragrunt_command: "force-unlock -force ${{ inputs.lock_id }}"
+          branch: 'main'
+
+      - name: Wipe all dynamodb terraform lock tables
+        shell: bash
+        run: |
+          containsElement () {
+            local e match="$1"
+            shift
+            for e; do [[ "$e" == "$match" ]] && return 0; done
+            return 1
+          }
+
+          echo "Wiping all dynamodb terraform lock tables"
+          # Recursively find every terragrunt hcl
+          UNITS=$(find . -name "terragrunt.hcl")
+          COMPLETED_ACCOUNTS=()
+          for unit in "$UNITS";
+          do
+            dir=$(dirname "$unit")
+            cd $dir
+            ACCOUNTID=$(pipelines config | jq -r ".Authentication.AWSOIDC.AccountID")
+
+            if containsElement $ACCOUNTID "${COMPLETED_ACCOUNTS[@]}"; then
+              echo "Skipping $ACCOUNTID as it has already been processed"
+              continue
+            fi
+
+            auth=$(pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd .)
+            export AWS_ACCESS_KEY_ID=$(echo $auth | jq -r '.awsCredentials.ACCESS_KEY_ID')
+            export AWS_SECRET_ACCESS_KEY=$(echo $auth | jq -r '.awsCredentials.SECRET_ACCESS_KEY')
+            export AWS_SESSION_TOKEN=$(echo $auth | jq -r '.awsCredentials.SESSION_TOKEN')
+            aws dynamodb delete-table --table-name terraform-locks
+            terragrunt init
+            COMPLETED_ACCOUNTS+=($ACCOUNTID)
+            cd -
+          done
 
       - name: "Run terragrunt force-unlock in ${{ inputs.working_directory }}"
         id: terragrunt
