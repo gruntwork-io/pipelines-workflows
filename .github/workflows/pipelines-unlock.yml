@@ -139,14 +139,15 @@ jobs:
             pipelinesConfig=$(pipelines config)
             ACCOUNTID=$(echo $pipelinesConfig | jq -r ".Authentication.AWSOIDC.AccountID")
             REGION=$(echo $pipelinesConfig | jq -r ".Authentication.AWSOIDC.Region")
-
+            echo REGION="$REGION"
+  
             if containsElement $ACCOUNTID "${COMPLETED_ACCOUNTS[@]}"; then
               echo "Skipping $ACCOUNTID as it has already been processed"
               continue
             fi
             
             auth=$(pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd .)
-            export AWS_DEFAULT_REGION="$REGION"
+            export AWS_DEFAULT_REGION=$REGION
             export AWS_ACCESS_KEY_ID=$(echo $auth | jq -r '.awsCredentials.ACCESS_KEY_ID')
             export AWS_SECRET_ACCESS_KEY=$(echo $auth | jq -r '.awsCredentials.SECRET_ACCESS_KEY')
             export AWS_SESSION_TOKEN=$(echo $auth | jq -r '.awsCredentials.SESSION_TOKEN')
