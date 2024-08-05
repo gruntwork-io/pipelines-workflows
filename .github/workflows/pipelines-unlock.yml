@@ -4,12 +4,12 @@ on:
   workflow_call:
     inputs:
       lock_id:
-        description: "The ID of the lock, usually a GUID. This is generally found in the console output when Terraform/OpenTofu command fails due to a timeout waiting to acquire a lock."
-        required: true
+        description: "The ID of the lock, usually a GUID. This is generally found in the console output when Terraform/OpenTofu command fails due to a timeout waiting to acquire a lock. (required if not running unlock_all)"
+        required: false
         type: string
       working_directory:
-        description: "Path to the terragrunt.hcl file where the lock is held"
-        required: true
+        description: "Path to the terragrunt.hcl file where the lock is held (required if not running unlock_all)"
+        required: false
         type: string
       unlock_all:
         description: "Forcibly reset all locks by deleting the dynamodb table"
