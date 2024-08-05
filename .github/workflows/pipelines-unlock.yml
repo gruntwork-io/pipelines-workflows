@@ -177,8 +177,7 @@ jobs:
             if containsElement $ACCOUNTID "${COMPLETED_ACCOUNTS[@]}"; then
               echo "Skipping $ACCOUNTID as it has already been processed"
               cd -
-              #continue
-              break
+              continue
             else
               echo "Unlocking state in $ACCOUNTID in `pwd`"
             fi
