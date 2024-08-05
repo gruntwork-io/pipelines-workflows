@@ -183,8 +183,10 @@ jobs:
             export AWS_ACCESS_KEY_ID=$(echo $auth | jq -r '.awsCredentials.ACCESS_KEY_ID')
             export AWS_SECRET_ACCESS_KEY=$(echo $auth | jq -r '.awsCredentials.SECRET_ACCESS_KEY')
             export AWS_SESSION_TOKEN=$(echo $auth | jq -r '.awsCredentials.SESSION_TOKEN')
+            set +x
+            set +e
             echo "Fetching table status..."
-            TABLE_STATUS=$(aws dynamodb describe-table --table-name "terraform-locks" --query "Table.TableStatus" --output text 2>&1)
+            TABLE_STATUS=$(aws dynamodb describe-table --table-name "terraform-locks" --query "Table.TableStatus" --output text 2>&1 || true)
             echo $TABLE_STATUS
             if [[ "$TABLE_STATUS" == "ACTIVE" ]]; then
               aws dynamodb delete-table --table-name terraform-locks || true # Ignore failures if no table already exists
