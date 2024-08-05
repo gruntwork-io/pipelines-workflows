@@ -136,10 +136,9 @@ jobs:
           do
             dir=$(dirname "$unit")
             cd $dir
-            pipelinesConfig=$(pipelines config)
-            ACCOUNTID=$(echo $pipelinesConfig | jq -r ".Authentication.AWSOIDC.AccountID")
+            ACCOUNTID=$(pipelines config | jq -r ".Authentication.AWSOIDC.AccountID")
             echo ACCOUNTID="$ACCOUNTID"
-            REGION=$(echo $pipelinesConfig | jq -r ".Authentication.AWSOIDC.Region")
+            REGION=$(pipelines config | jq -r ".Authentication.AWSOIDC.Region")
             echo REGION="$REGION"
   
             if containsElement $ACCOUNTID "${COMPLETED_ACCOUNTS[@]}"; then
