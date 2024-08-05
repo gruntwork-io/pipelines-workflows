@@ -86,7 +86,6 @@ jobs:
       - name: "Create PR"
         id: propose-infra-change
         shell: bash
-        if: ${{ steps.tfplan.outputs. }}
         env:
           WORKING_DIRECTORY: ${{ steps.gruntwork_context.outputs.working_directory }}
           BRANCH_NAME: "drift-detection"
