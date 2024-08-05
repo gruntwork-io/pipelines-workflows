@@ -154,7 +154,11 @@ jobs:
             export AWS_ACCESS_KEY_ID=$(echo $auth | jq -r '.awsCredentials.ACCESS_KEY_ID')
             export AWS_SECRET_ACCESS_KEY=$(echo $auth | jq -r '.awsCredentials.SECRET_ACCESS_KEY')
             export AWS_SESSION_TOKEN=$(echo $auth | jq -r '.awsCredentials.SESSION_TOKEN')
-            aws dynamodb delete-table --table-name terraform-locks || true # Ignore failures if no table already exists
+            TABLE_STATUS=$(aws dynamodb describe-table --table-name "terraform-locks" --query "Table.TableStatus" --output text 2>&1)
+            echo $TABLE_STATUS
+            if [[ "$TABLE_STATUS" == "ACTIVE" ]]; then
+              aws dynamodb delete-table --table-name terraform-locks || true # Ignore failures if no table already exists
+            fi
             terragrunt init
             COMPLETED_ACCOUNTS+=($ACCOUNTID)
             cd -
