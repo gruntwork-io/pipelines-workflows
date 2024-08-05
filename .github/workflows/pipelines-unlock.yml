@@ -136,9 +136,10 @@ jobs:
           do
             dir=$(dirname "$unit")
             cd $dir
-            ACCOUNTID=$(pipelines config | jq -r ".Authentication.AWSOIDC.AccountID")
+            pipelinesConfigAuth=$(pipelines config auth)
+            ACCOUNTID=$(echo $pipelinesConfigAuth | jq -r ".Authentication.AWSOIDC.AccountID")
             echo ACCOUNTID="$ACCOUNTID"
-            REGION=$(pipelines config | jq -r ".Authentication.AWSOIDC.Region")
+            REGION=$(echo $pipelinesConfigAuth | jq -r ".Authentication.AWSOIDC.Region")
             echo REGION="$REGION"
   
             if containsElement $ACCOUNTID "${COMPLETED_ACCOUNTS[@]}"; then
@@ -147,7 +148,7 @@ jobs:
             fi
             
             auth=$(pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd .)
-            export AWS_DEFAULT_REGION=us-east-1
+            export AWS_DEFAULT_REGION=$REGION
             export AWS_ACCESS_KEY_ID=$(echo $auth | jq -r '.awsCredentials.ACCESS_KEY_ID')
             export AWS_SECRET_ACCESS_KEY=$(echo $auth | jq -r '.awsCredentials.SECRET_ACCESS_KEY')
             export AWS_SESSION_TOKEN=$(echo $auth | jq -r '.awsCredentials.SESSION_TOKEN')
