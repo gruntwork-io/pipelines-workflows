@@ -175,7 +175,7 @@ jobs:
               echo "Skipping $ACCOUNTID as it has already been processed"
               continue
             else
-              echo "Unlocking state in $ACCOUNTID"
+              echo "Unlocking state in $ACCOUNTID in `pwd`"
             fi
 
             auth=$(pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd .)
