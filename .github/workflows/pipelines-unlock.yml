@@ -207,7 +207,7 @@ jobs:
           }
 
 
-          while IFS= read -rd '' file <&3; do
+          while IFS= read -rd '' unit <&3; do
             working_dir=$(dirname "$unit")
             if [[ $working_dir == "." ]]; then
               echo "Skipping root folder"
