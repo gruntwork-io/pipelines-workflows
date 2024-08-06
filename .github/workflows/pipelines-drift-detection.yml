@@ -25,7 +25,7 @@ on:
         PIPELINES_READ_TOKEN:
           required: true
 env:
-  PIPELINES_CLI_VERSION: v0.26.0-rc1
+  PIPELINES_CLI_VERSION: v0.26.0-rc4
   PIPELINES_ACTIONS_VERSION: main
 
 jobs:
@@ -71,7 +71,6 @@ jobs:
           infra_live_repo: "."
           infra_live_directory: "."
           deploy_branch_name: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
-          tg_execution_parallelism_limit: 6
       
       - name: "Parse plans"
         id: tfplan
