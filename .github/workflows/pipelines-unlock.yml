@@ -122,21 +122,10 @@ jobs:
           GENERATE_MISE_TOML: false
           INFRA_LIVE_DIRECTORY: "."
         run: |
-          if [[ "$GENERATE_MISE_TOML" == "true" ]] || [[ ! -f "$INFRA_LIVE_DIRECTORY/.mise.toml" ]]; then
-            if [[ ! -f "$INFRA_LIVE_DIRECTORY/.mise.toml" ]]; then
-              echo 'User does not have a `.mise.toml` file, generating one to avoid failure'
-            fi
-            echo 'TOML<<EOF' >> "$GITHUB_OUTPUT"
-            echo '[tools]' >> "$GITHUB_OUTPUT"
-            echo "$TF_BINARY = \"$TF_VERSION\"" >> "$GITHUB_OUTPUT"
-            echo "terragrunt = \"$TG_VERSION\"" >> "$GITHUB_OUTPUT"
-            echo 'EOF' >> "$GITHUB_OUTPUT"
-          else
-            echo 'TOML<<EOF' >> "$GITHUB_OUTPUT"
-            cat $INFRA_LIVE_DIRECTORY/.mise.toml >> "$GITHUB_OUTPUT"
-            echo '' >> "$GITHUB_OUTPUT"
-            echo 'EOF' >> "$GITHUB_OUTPUT"
-          fi
+          echo 'TOML<<EOF' >> "$GITHUB_OUTPUT"
+          cat $INFRA_LIVE_DIRECTORY/.mise.toml >> "$GITHUB_OUTPUT"
+          echo '' >> "$GITHUB_OUTPUT"
+          echo 'EOF' >> "$GITHUB_OUTPUT"
 
       - uses: jdx/mise-action@v2
         with:
