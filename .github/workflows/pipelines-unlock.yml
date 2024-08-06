@@ -154,17 +154,12 @@ jobs:
           set +x
           set +e
 
-          containsElement () {
-            local e match="$1"
-            shift
-            for e; do [[ "$e" == "$match" ]] && return 0; done
-            return 1
-          }
           if [[ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]]; then
             export GITHUB_EVENT_NAME=push
           fi
 
           echo "Wiping all dynamodb terraform lock tables"
+
           # Recursively find every terragrunt hcl
           COMPLETED_ACCOUNTS_FILE=$(mktemp)
           NEEDS_INIT_FOLDERS=$(mktemp)
@@ -177,7 +172,7 @@ jobs:
 
             pipelinesConfigAuth=$(GH_TOKEN=$GITHUB_TOKEN pipelines config auth)
             ACCOUNTID=$(echo $pipelinesConfigAuth | jq -r ".Authentication.AWSOIDC.AccountID")
-            echo ACCOUNTID="$ACCOUNTID"
+
             grep $ACCOUNTID $COMPLETED_ACCOUNTS_FILE > /dev/null
             if [[ $? == 0 ]]; then
               echo "Skipping $ACCOUNTID as it has already been processed"
@@ -189,7 +184,6 @@ jobs:
             fi
 
             REGION=$(echo $pipelinesConfigAuth | jq -r ".Authentication.AWSOIDC.Region")
-            echo REGION="$REGION"
 
             auth=$(GH_TOKEN=$GITHUB_TOKEN pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd .)
             export AWS_DEFAULT_REGION=$REGION
