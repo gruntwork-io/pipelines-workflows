@@ -183,9 +183,10 @@ jobs:
             REGIONS=$(aws ec2 describe-regions --query "Regions[].RegionName" --output text)
 
             for region in $REGIONS; do
-              aws dynamodb delete-table --table-name terraform-locks --region $region || true # Ignore failures if no table already exists
+              aws dynamodb delete-table --table-name terraform-locks --region $region || true & # Ignore failures if no table already exists
             done
 
+            wait
             echo "Lock removed for $ACCOUNTID"
           }
 
