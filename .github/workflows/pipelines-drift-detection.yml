@@ -102,7 +102,7 @@ jobs:
           
         run: |
           git_changes=$(git status --porcelain)
-          if [[ $git_changes ]]; then
+          if [[ -n $git_changes ]]; then
             pipelines scm propose-infra-change \
               --working-directory "$WORKING_DIRECTORY" \
               --change-request-branch-name "$BRANCH_NAME" \
