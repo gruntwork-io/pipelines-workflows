@@ -60,7 +60,7 @@ jobs:
         id: terragrunt
         uses: ./pipelines-actions/.github/actions/pipelines-execute
         env:
-          TERRAGRUNT_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd ."
+          TERRAGRUNT_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd . --event-type pr-synched-created"
         with:
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
           tf_binary: ${{ steps.gruntwork_context.outputs.tf_binary }}
