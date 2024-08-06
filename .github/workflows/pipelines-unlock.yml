@@ -206,8 +206,8 @@ jobs:
             echo "Lock removed, adding $working_dir to list of folders needing a rerun of terragrunt init" || true
           }
 
-          find . -name "terragrunt.hcl" -print0 | while read -d $'\0' unit
-          do
+
+          while IFS= read -rd '' file <&3; do
             working_dir=$(dirname "$unit")
             if [[ $working_dir == "." ]]; then
               echo "Skipping root folder"
@@ -215,22 +215,10 @@ jobs:
             fi
 
             unlock_folder $working_dir &
-          done
-
-          jobs
-          jobs | wc
-
-          # Give the jobs a second to spin up
-          sleep 3
-
-          jobs
-          jobs | wc
+          done 3< <(find . -name "terragrunt.hcl" -print0)
 
           # Wait for all jobs to finish
-          wait < <(jobs -p)
-
-          jobs
-          jobs | wc
+          wait
 
           # Convert bash array of strings to a JSOn array
           JSON=$(cat $NEEDS_INIT_FOLDERS | jq -R . | jq -s .)
