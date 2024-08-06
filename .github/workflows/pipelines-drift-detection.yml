@@ -96,6 +96,7 @@ jobs:
         working-directory: ./infra-live-repo
         shell: bash
         env:
+          GH_TOKEN: ${{ github.token }}
           WORKING_DIRECTORY: ${{ steps.gruntwork_context.outputs.working_directory }}
           BRANCH_NAME: "drift-detection"
           
