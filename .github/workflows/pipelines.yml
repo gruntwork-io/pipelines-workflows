@@ -48,6 +48,14 @@ jobs:
           path: infra-live-repo
           fetch-depth: 0
 
+      - name: Cache Providers
+        id: cache-providers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/terragrunt/providers
+          key: ${{ runner.os }}-terragrunt-providers
+
+
       - name: Preflight Checks
         uses: ./pipelines-actions/.github/actions/pipelines-preflight-action
         with:
