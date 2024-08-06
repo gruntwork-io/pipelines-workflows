@@ -183,6 +183,7 @@ jobs:
             export AWS_SESSION_TOKEN=$(jq -r '.awsCredentials.SESSION_TOKEN' <<< $auth)
 
             for region in ${REGIONS[@]}; do
+              echo "Deleting table terraform-locks in $region for $ACCOUNTID"
               aws dynamodb delete-table --table-name terraform-locks --region $region || true & # Ignore failures if no table already exists
             done
 
