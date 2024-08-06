@@ -99,6 +99,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           WORKING_DIRECTORY: ${{ steps.gruntwork_context.outputs.working_directory }}
           BRANCH_NAME: "drift-detection"
+          AUTHOR_NAME: ${{ github.actor }}
+          AUTHOR_EMAIL: ${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com
           
         run: |
           git_changes=$(git status --porcelain)
@@ -108,6 +110,8 @@ jobs:
               --change-request-branch-name "$BRANCH_NAME" \
               --commit-message "Drift Detected" \
               --title "Drift Detected" \
+              --author-name "$AUTHOR_NAME" \
+              --author-email "$AUTHOR_EMAIL" \
               --force true
           fi
 
