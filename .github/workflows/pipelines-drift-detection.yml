@@ -91,13 +91,13 @@ jobs:
           BRANCH_NAME: "drift-detection"
           
         run: |
-          git_changes=$(git status --porcelein)
-          if [[ git_changes ]]; then
+          git_changes=$(git status --porcelain)
+          if [[ $git_changes ]]; then
             pipelines scm propose-infra-change \
               --working-directory "$WORKING_DIRECTORY" \
               --change-request-branch-name "$BRANCH_NAME" \ 
-              --commit-message "Drift Detected"
-              --title "Drift Detected"
+              --commit-message "Drift Detected" \
+              --title "Drift Detected" \
               --force true
           fi
 
