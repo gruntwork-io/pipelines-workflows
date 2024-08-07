@@ -29,6 +29,10 @@ env:
   PIPELINES_CLI_VERSION: v0.24.0
   PIPELINES_ACTIONS_VERSION: main
 
+  # GitHub Actions tends to hit resource exhaustion and kill running jobs
+  # if we leave parallelism unbounded, so we set the max to 10 for a sane default.
+  TERRAGRUNT_PARALLELISM: 10
+
 jobs:
   pipelines_orchestrate:
     name: Detect Infrastructure Changes
