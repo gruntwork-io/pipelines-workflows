@@ -27,6 +27,7 @@ on:
 env:
   PIPELINES_CLI_VERSION: v0.26.2-rc1
   PIPELINES_ACTIONS_VERSION: main
+  TERRAGRUNT_PROVIDER_CACHE: 1
 
 jobs:
   pipelines_drift_detection:
@@ -62,7 +63,7 @@ jobs:
           working_directory: "."
           terragrunt_command: "run-all plan --terragrunt-exclude-dir=."
           branch: "main"
-      
+
       - name: "Run terragrunt run-all plan"
         id: terragrunt
         uses: ./pipelines-actions/.github/actions/pipelines-execute
@@ -78,7 +79,7 @@ jobs:
           infra_live_repo: "."
           infra_live_directory: "."
           deploy_branch_name: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
-      
+
       - name: "Parse plans"
         id: tfplan
         working-directory: ./infra-live-repo
@@ -90,7 +91,7 @@ jobs:
         run: |
           pipelines tfplan detect-drift --working-directory "$WORKING_DIRECTORY" "$PLAN_FOLDER"
 
-      
+
       - name: "Create PR"
         id: propose-infra-change
         working-directory: ./infra-live-repo
@@ -101,7 +102,7 @@ jobs:
           BRANCH_NAME: "drift-detection"
           AUTHOR_NAME: ${{ github.actor }}
           AUTHOR_EMAIL: ${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com
-          
+
         run: |
           git_changes=$(git status --porcelain)
           if [[ -n $git_changes ]]; then
