@@ -98,6 +98,7 @@ jobs:
         id: terragrunt
         working-directory: ./infra-live-repo
         env:
+          GH_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           TERRAGRUNT_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd . --event-type pr-synched-created"
           TF_BINARY: ${{ steps.gruntwork_context.outputs.tf_binary }}
           INFRA_LIVE_REPO_BRANCH: ${{ steps.gruntwork_context.outputs.branch }}
