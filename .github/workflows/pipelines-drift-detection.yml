@@ -119,7 +119,7 @@ jobs:
           mapfile -t paths < <(find . -mindepth 2 -name "terragrunt.hcl" -exec dirname "{}" \;)
           for path in "${paths[@]}"; do
             echo "Running plan for $path"
-            terragrunt_command="terragrunt run-all plan --terragrunt-exclude-dir=. --terragrunt-include-dir=$path"
+            terragrunt_command="run-all plan --terragrunt-exclude-dir=. --terragrunt-include-dir=$path"
             pipelines execute terragrunt \
               --working-directory . \
               --infra-live-repo . \
