@@ -54,30 +54,90 @@ jobs:
           path: ~/.cache/terragrunt/providers
           key: ${{ runner.os }}-terragrunt-providers
 
-      - name: Bootstrap Workflow
+      - name: Setup Mise Toml
+        id: mise-toml
+        working-directory: ./infra-live-repo
+        shell: bash
+        env:
+          GENERATE_MISE_TOML: ${{ inputs.generate_mise_toml }}
+          INFRA_LIVE_DIRECTORY: ${{ inputs.infra_live_directory }}
+          TF_VERSION: ${{ inputs.tf_version }}
+          TG_VERSION: ${{ inputs.tg_version }}
+          TF_BINARY: ${{ inputs.tf_binary }}
+        run: |
+          if [[ ! -f ".mise.toml" ]]; then
+            echo '::error::.mise.toml not found'
+          else
+            echo 'TOML<<EOF' >> "$GITHUB_OUTPUT"
+            cat .mise.toml >> "$GITHUB_OUTPUT"
+            echo '' >> "$GITHUB_OUTPUT"
+            echo 'EOF' >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: jdx/mise-action@v2
+        with:
+          install: true
+          cache: true
+          mise_toml: "${{ steps.mise-toml.outputs.TOML }}"
+
+      - name: Test Terraform, OpenTofu and Terragrunt
+        shell: bash
+        run: |
+          tofu --version || true
+          terraform --version || true
+          terragrunt --version
+
+      - name: "Read in Gruntwork context"
         id: gruntwork_context
         uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
         with:
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
-          working_directory: "."
-          terragrunt_command: "run-all plan --terragrunt-exclude-dir=."
-          branch: "main"
-      
-      - name: "Run terragrunt run-all plan"
+          branch: main
+
+      - name: "Run terragrunt plan for all units"
         id: terragrunt
-        uses: ./pipelines-actions/.github/actions/pipelines-execute
+        working-directory: ./infra-live-repo
         env:
           TERRAGRUNT_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd . --event-type pr-synched-created"
-        with:
-          token: ${{ secrets.PIPELINES_READ_TOKEN }}
-          tf_binary: ${{ steps.gruntwork_context.outputs.tf_binary }}
-          working_directory: ${{ steps.gruntwork_context.outputs.working_directory }}
-          terragrunt_command: ${{ steps.gruntwork_context.outputs.terragrunt_command }}
-          infra_live_repo_branch: ${{ steps.gruntwork_context.outputs.branch }}
-          gruntwork_config_file: ${{ steps.gruntwork_context.outputs.gruntwork_config_file }}
-          infra_live_repo: "."
-          infra_live_directory: "."
-          deploy_branch_name: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
+          TF_BINARY: ${{ steps.gruntwork_context.outputs.tf_binary }}
+          INFRA_LIVE_REPO_BRANCH: ${{ steps.gruntwork_context.outputs.branch }}
+          DEPLOY_BRANCH_NAME: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
+          GRUNTWORK_CONFIG_FILE: ${{ steps.gruntwork_context.outputs.gruntwork_config_file }}
+        shell: bash
+        run: |
+          if [ "$TF_BINARY" == "terraform" ]
+          then
+            export TERRAGRUNT_TFPATH=terraform
+          else
+            export TERRAGRUNT_TFPATH=tofu
+          fi
+
+          plan_folder="$(mktemp -d)"
+          echo "plan_folder=$plan_folder" >> $GITHUB_OUTPUT
+
+          # Find all units
+          mapfile -t paths < <(find . -mindepth 2 -name "terragrunt.hcl" -exec dirname "{}" \;)
+          for path in "${paths[@]}"; do
+            echo "Running plan for $path"
+            terragrunt_command="terragrunt run-all plan --terragrunt-exclude-dir=. --terragrunt-include-dir=$path"
+            pipelines execute terragrunt \
+              --working-directory . \
+              --infra-live-repo . \
+              --infra-live-repo-branch "$INFRA_LIVE_REPO_BRANCH" \
+              --deployment-branch "$DEPLOY_BRANCH_NAME" \
+              --gruntwork-config-file "$GRUNTWORK_CONFIG_FILE" \
+              --out-dir "$plan_folder" \
+              --command "$terragrunt_command"
+          done
+
+      - name: Clean repo
+        id: clean-repo
+        working-directory: ./infra-live-repo
+        shell: bash
+        run: |
+          # Remove any unwanted files created during planning
+          git clean -f -f -d -x
+          git reset --hard
       
       - name: "Parse plans"
         id: tfplan
@@ -89,7 +149,6 @@ jobs:
           PLAN_FOLDER: ${{ steps.terragrunt.outputs.plan_folder}}
         run: |
           pipelines tfplan detect-drift --working-directory "$WORKING_DIRECTORY" "$PLAN_FOLDER"
-
       
       - name: "Create PR"
         id: propose-infra-change
