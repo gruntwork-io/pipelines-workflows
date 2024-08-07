@@ -27,7 +27,7 @@ on:
 env:
   PIPELINES_CLI_VERSION: v0.26.2-rc1
   PIPELINES_ACTIONS_VERSION: main
-  TERRAGRUNT_PROVIDER_CACHE: 1
+  TERRAGRUNT_PARALLELISM: 10
 
 jobs:
   pipelines_drift_detection:
