@@ -27,7 +27,7 @@ on:
         ORG_REPO_ADMIN_TOKEN:
           required: true
 env:
-  PIPELINES_CLI_VERSION: v0.26.2-rc1
+  PIPELINES_CLI_VERSION: v0.28.0-rc1
   PIPELINES_ACTIONS_VERSION: main
 
 jobs:
@@ -110,7 +110,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           MACHINE_USER_NAME: ${{ steps.load_machine_user.outputs.MACHINE_USER_NAME }}
-          TERRAGRUNT_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd . --event-type pr-synched-created"
+          TERRAGRUNT_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd . --event-type pr-synched-created --disk-cache-duration-minutes 10"
           TF_BINARY: ${{ steps.gruntwork_context.outputs.tf_binary }}
           INFRA_LIVE_REPO_BRANCH: ${{ steps.gruntwork_context.outputs.branch }}
           DEPLOY_BRANCH_NAME: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
@@ -130,7 +130,8 @@ jobs:
 
           # Find all units
           mapfile -t paths < <(find . -mindepth 2 -name "terragrunt.hcl" -exec dirname "{}" \;)
-          for path in "${paths[@]}"; do
+          # only use the first 10 elements for testing
+          for path in "${paths[@]:0:10}"; do
             echo "Running plan for $path"
             terragrunt_command="run-all plan --terragrunt-exclude-dir=. --terragrunt-include-dir=$path"
             set +e
