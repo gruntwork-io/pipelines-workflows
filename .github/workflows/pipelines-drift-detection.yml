@@ -125,16 +125,15 @@ jobs:
             export TERRAGRUNT_TFPATH=tofu
           fi
 
-          plan_folder="$(mktemp -d)"
-          echo "plan_folder=$plan_folder" >> $GITHUB_OUTPUT
+          root_plan_folder="$(mktemp -d)"
+          echo "root_plan_folder=$root_plan_folder" >> $GITHUB_OUTPUT
 
           # Find all units
           mapfile -t paths < <(find . -mindepth 2 -name "terragrunt.hcl" -exec dirname "{}" \;)
-          # only use the first 10 elements for testing
-          for path in "${paths[@]:0:10}"; do
+          for path in "${paths[@]}"; do
             echo "Running plan for $path"
             terragrunt_command="plan"
-            plan_folder="$plan_folder/${path#./}"
+            plan_folder="$root_plan_folder/${path#./}"
             mkdir -p "$plan_folder"
             set +e
             pipelines execute terragrunt \
