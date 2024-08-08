@@ -24,6 +24,8 @@ on:
     secrets:
         PIPELINES_READ_TOKEN:
           required: true
+        ORG_REPO_ADMIN_TOKEN:
+          required: true
 env:
   PIPELINES_CLI_VERSION: v0.26.2-rc1
   PIPELINES_ACTIONS_VERSION: main
