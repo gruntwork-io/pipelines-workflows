@@ -174,7 +174,7 @@ jobs:
         shell: bash
         env:
           WORKING_DIRECTORY: ${{ steps.gruntwork_context.outputs.working_directory }}
-          PLAN_FOLDER: ${{ steps.terragrunt.outputs.plan_folder}}
+          PLAN_FOLDER: ${{ steps.terragrunt.outputs.root_plan_folder}}
         run: |
           pipelines tfplan detect-drift --working-directory "$WORKING_DIRECTORY" "$PLAN_FOLDER"
       
