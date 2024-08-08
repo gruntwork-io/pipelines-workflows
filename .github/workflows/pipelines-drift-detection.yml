@@ -133,15 +133,15 @@ jobs:
           # only use the first 10 elements for testing
           for path in "${paths[@]:0:10}"; do
             echo "Running plan for $path"
-            terragrunt_command="run-all plan --terragrunt-exclude-dir=. --terragrunt-include-dir=$path"
+            terragrunt_command="plan"
             set +e
             pipelines execute terragrunt \
-              --working-directory . \
+              --working-directory "$path" \
               --infra-live-repo . \
               --infra-live-repo-branch "$INFRA_LIVE_REPO_BRANCH" \
               --deployment-branch "$DEPLOY_BRANCH_NAME" \
               --gruntwork-config-file "$GRUNTWORK_CONFIG_FILE" \
-              --out-dir "$plan_folder" \
+              --out-dir "$plan_folder/${path#./}" \
               --command "$terragrunt_command"
             pipelines_exit_code=$?
             set -e
