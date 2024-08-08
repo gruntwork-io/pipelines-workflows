@@ -27,7 +27,7 @@ on:
         ORG_REPO_ADMIN_TOKEN:
           required: true
 env:
-  PIPELINES_CLI_VERSION: v0.28.0-rc2
+  PIPELINES_CLI_VERSION: v0.28.0-rc3
   PIPELINES_ACTIONS_VERSION: main
 
 jobs:
