@@ -146,7 +146,7 @@ jobs:
           INFRA_LIVE_REPO_BRANCH: ${{ steps.gruntwork_context.outputs.branch }}
           DEPLOY_BRANCH_NAME: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
           GRUNTWORK_CONFIG_FILE: ${{ steps.gruntwork_context.outputs.gruntwork_config_file }}
-          PATH: ${{ matrix.unit.path }}
+          UNIT_PATH: ${{ matrix.unit.path }}
         shell: bash
         run: |
           which mktemp
@@ -161,13 +161,13 @@ jobs:
           root_plan_folder="$(mktemp -d)"
           echo "root_plan_folder=$root_plan_folder" >> $GITHUB_OUTPUT
 
-          echo "Running plan for $PATH"
+          echo "Running plan for $UNIT_PATH"
           terragrunt_command="plan"
-          plan_folder="$root_plan_folder/${PATH#./}"
+          plan_folder="$root_plan_folder/${UNIT_PATH#./}"
           mkdir -p "$plan_folder"
           set +e
           pipelines execute terragrunt \
-            --working-directory "$PATH" \
+            --working-directory "$UNIT_PATH" \
             --infra-live-repo . \
             --infra-live-repo-branch "$INFRA_LIVE_REPO_BRANCH" \
             --deployment-branch "$DEPLOY_BRANCH_NAME" \
@@ -178,7 +178,7 @@ jobs:
           set -e
           echo "pipelines_exit_code=$pipelines_exit_code" >> $GITHUB_OUTPUT 
           if [[ $pipelines_exit_code -ne 0 ]]; then
-            echo "::error::Error running plan for $PATH"
+            echo "::error::Error running plan for $UNIT_PATH"
           fi
 
       - name: "Parse plans"
@@ -198,15 +198,15 @@ jobs:
         shell: bash
         env:
           PIPELINES_EXIT_CODE: ${{ steps.terragrunt.outputs.pipelines_exit_code }}
-          PATH: ${{ matrix.unit.path }}
+          UNIT_PATH: ${{ matrix.unit.path }}
           ID: ${{ matrix.unit.id }}
         run: |
-          cd "$PATH"
+          cd "$UNIT_PATH"
           if [[ $PIPELINES_EXIT_CODE -ne 0 ]]; then
-            echo "{path: \"$path\", error: true}" >> result-"$ID".json
+            echo "{path: \"$UNIT_PATH\", error: true}" >> result-"$ID".json
           elif git status --porcelain | grep -q ".drift-history.json"; then
             last_line=$(tail -n 1 .drift-history.json)
-            echo "{path: \"$path\", drift: \"$last_line\"}" >> result-"$ID".json
+            echo "{path: \"$UNIT_PATH\", drift: \"$last_line\"}" >> result-"$ID".json
           fi
 
       - name: "Upload result"
