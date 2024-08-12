@@ -321,6 +321,8 @@ jobs:
             body+="$DRIFTED_PATHS_MARKDOWN\n"
             body+="$ERRORED_PATHS_MARKDOWN\n"
 
+            echo "$body"
+
             pipelines scm propose-infra-change \
               --working-directory "$WORKING_DIRECTORY" \
               --change-request-branch-name "$BRANCH_NAME" \
