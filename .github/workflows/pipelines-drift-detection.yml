@@ -222,6 +222,14 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
     needs: pipelines_drift_detection
     steps:
+      - name: Checkout Pipelines Actions
+        uses: actions/checkout@v4
+        with:
+          path: pipelines-actions
+          repository: gruntwork-io/pipelines-actions
+          ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
+          token: ${{ secrets.PIPELINES_READ_TOKEN }}
+
       - name: Check out repo code
         uses: actions/checkout@v4
         with:
