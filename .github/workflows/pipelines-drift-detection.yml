@@ -48,6 +48,7 @@ jobs:
         working-directory: ./infra-live-repo
         shell: bash
         run: |
+          which mktemp
           mapfile -t paths < <(find . -mindepth 2 -name "terragrunt.hcl" -exec dirname "{}" \;)
           echo "units<<EOF" >> "$GITHUB_OUTPUT"
           # Initialize the JSON array
@@ -148,6 +149,7 @@ jobs:
           PATH: ${{ matrix.unit.path }}
         shell: bash
         run: |
+          which mktemp
           set -euo pipefail
           if [ "$TF_BINARY" == "terraform" ]
           then
