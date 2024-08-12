@@ -65,7 +65,7 @@ jobs:
           GITHUB_ORG: ${{ github.repository }}
         shell: bash
         run: |
-          msg="Failed to checkout Pipelines Actions repository. Please check to ensure PIPELINES_READ_TOKEN is valid and unexpired.  LINK TO DOCS"
+          msg="Failed to checkout Pipelines Actions repository. Please check to ensure PIPELINES_READ_TOKEN is valid and unexpired. More info at https://docs.gruntwork.io/pipelines/security/machine-users#ci-read-only-user"
           echo "::error:: $msg"
           echo $msg >> "$GITHUB_STEP_SUMMARY"
           pull_number=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
