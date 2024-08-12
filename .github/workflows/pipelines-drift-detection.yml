@@ -275,7 +275,7 @@ jobs:
           if [ ${#drifted_paths[@]} -ne 0 ]; then
             drifted_paths_markdown+="## ${#drifted_paths[@]} Drifted Units:\n"
             for path in "${drifted_paths[@]}"; do
-              drifted_paths_markdown+="- `$path`\n"
+              drifted_paths_markdown+="- <code>$path</code>\n"
             done
             drifted_paths_markdown+="\n"
 
