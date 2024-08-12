@@ -60,9 +60,12 @@ jobs:
 
       - name: Validate PIPELINES_READ_TOKEN
         if: always() && steps.checkout_actions.conclusion != 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           msg="Failed to checkout Pipelines Actions repository. Please check to ensure PIPELINES_READ_TOKEN is valid and unexpired.  LINK TO DOCS"
+          echo "::error $msg"
           echo $msg >> "$GITHUB_SUMMARY"
           gh pr comment -b "$msg" || true
           exit 1
