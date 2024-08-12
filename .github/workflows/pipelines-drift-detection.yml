@@ -31,9 +31,46 @@ env:
   PIPELINES_ACTIONS_VERSION: main
 
 jobs:
-  pipelines_drift_detection:
+  determine_units:
     name: Detect Infrastructure Drift
     runs-on: ${{ fromJSON(inputs.runner) }}
+    outputs:
+      units: ${{ steps.determine-units.outputs.units }}
+    steps:
+      - name: Check out repo code
+        uses: actions/checkout@v4
+        with:
+          path: infra-live-repo
+          fetch-depth: 0
+
+      - name: Determine Units
+        id: determine-units
+        working-directory: ./infra-live-repo
+        shell: bash
+        run: |
+          mapfile -t paths < <(find . -mindepth 2 -name "terragrunt.hcl" -exec dirname "{}" \;)
+          echo "units<<EOF" >>> "$GITHUB_OUTPUT"
+          # Initialize the JSON array
+          json="["
+
+          # Loop through the paths array and construct JSON objects
+          for i in "${!paths[@]}"; do
+              json+="{\"id\": $i, \"path\": \"${paths[$i]}\"},"
+          done
+
+          # Remove the trailing comma and close the JSON array
+          json="${json%,}]"
+
+          echo "$json" >> "$GITHUB_OUTPUT"
+          echo "" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+  pipelines_drift_detection:
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    needs: determine_units
+    strategy:
+      matrix:
+        unit: ${{ fromJSON(needs.determine_units.outputs.units) }}
     steps:
       - name: Checkout Pipelines Actions
         uses: actions/checkout@v4
@@ -48,13 +85,6 @@ jobs:
         with:
           path: infra-live-repo
           fetch-depth: 0
-
-      - name: Cache Providers Restore
-        id: cache-providers-restore
-        uses: actions/cache/restore@v4
-        with:
-          path: ~/.cache/terragrunt/providers
-          key: ${{ runner.os }}-terragrunt-providers
 
       - name: Setup Mise Toml
         id: mise-toml
@@ -104,7 +134,7 @@ jobs:
         run: |
           echo "MACHINE_USER_NAME=$(gh api /user | jq .login)" >> "$GITHUB_OUTPUT"
 
-      - name: "Run terragrunt plan for all units"
+      - name: "Run terragrunt plan"
         id: terragrunt
         working-directory: ./infra-live-repo
         env:
@@ -115,6 +145,7 @@ jobs:
           INFRA_LIVE_REPO_BRANCH: ${{ steps.gruntwork_context.outputs.branch }}
           DEPLOY_BRANCH_NAME: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
           GRUNTWORK_CONFIG_FILE: ${{ steps.gruntwork_context.outputs.gruntwork_config_file }}
+          PATH: ${{ matrix.unit.path }}
         shell: bash
         run: |
           set -euo pipefail
@@ -128,48 +159,29 @@ jobs:
           root_plan_folder="$(mktemp -d)"
           echo "root_plan_folder=$root_plan_folder" >> $GITHUB_OUTPUT
 
-          # Find all units
-          mapfile -t paths < <(find . -mindepth 2 -name "terragrunt.hcl" -exec dirname "{}" \;)
-          for path in "${paths[@]}"; do
-            echo "Running plan for $path"
-            terragrunt_command="plan"
-            plan_folder="$root_plan_folder/${path#./}"
-            mkdir -p "$plan_folder"
-            set +e
-            pipelines execute terragrunt \
-              --working-directory "$path" \
-              --infra-live-repo . \
-              --infra-live-repo-branch "$INFRA_LIVE_REPO_BRANCH" \
-              --deployment-branch "$DEPLOY_BRANCH_NAME" \
-              --gruntwork-config-file "$GRUNTWORK_CONFIG_FILE" \
-              --out-dir "$plan_folder"  \
-              --command "$terragrunt_command"
-            pipelines_exit_code=$?
-            set -e
-            if [[ $pipelines_exit_code -ne 0 ]]; then
-              echo "::error::Error running plan for $path"
-            fi
-          done
+          echo "Running plan for $path"
+          terragrunt_command="plan"
+          plan_folder="$root_plan_folder/${path#./}"
+          mkdir -p "$plan_folder"
+          set +e
+          pipelines execute terragrunt \
+            --working-directory "$path" \
+            --infra-live-repo . \
+            --infra-live-repo-branch "$INFRA_LIVE_REPO_BRANCH" \
+            --deployment-branch "$DEPLOY_BRANCH_NAME" \
+            --gruntwork-config-file "$GRUNTWORK_CONFIG_FILE" \
+            --out-dir "$plan_folder"  \
+            --command "$terragrunt_command"
+          pipelines_exit_code=$?
+          set -e
+          echo "pipelines_exit_code=$pipelines_exit_code" >> $GITHUB_OUTPUT 
+          if [[ $pipelines_exit_code -ne 0 ]]; then
+            echo "::error::Error running plan for $path"
+          fi
 
-      - name: Cache Providers Save
-        id: cache-providers-save
-        uses: actions/cache/save@v4
-        if: always()
-        with:
-          path: ~/.cache/terragrunt/providers
-          key: ${{ steps.cache-providers-restore.outputs.cache-primary-key }}
-
-      - name: Clean repo
-        id: clean-repo
-        working-directory: ./infra-live-repo
-        shell: bash
-        run: |
-          # Remove any unwanted files created during planning
-          git clean -f -f -d -x
-          git reset --hard
-      
       - name: "Parse plans"
         id: tfplan
+        if: steps.terragrunt.outputs.pipelines_exit_code == 0
         working-directory: ./infra-live-repo
         shell: bash
         env:
@@ -178,27 +190,71 @@ jobs:
         run: |
           pipelines tfplan detect-drift --working-directory "$WORKING_DIRECTORY" "$PLAN_FOLDER"
       
-      - name: "Create PR"
-        id: propose-infra-change
+      - name: "Capture output"
+        id: capture-result
         working-directory: ./infra-live-repo
         shell: bash
         env:
-          GH_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
-          WORKING_DIRECTORY: ${{ steps.gruntwork_context.outputs.working_directory }}
-          BRANCH_NAME: "drift-detection"
-          AUTHOR_NAME: ${{ github.actor }}
-          AUTHOR_EMAIL: ${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com
-          
+          PIPELINES_EXIT_CODE: ${{ steps.terragrunt.outputs.pipelines_exit_code }}
+          PATH: ${{ matrix.unit.path }}
+          ID: ${{ matrix.unit.id }}
         run: |
-          git_changes=$(git status --porcelain)
-          if [[ -n $git_changes ]]; then
-            pipelines scm propose-infra-change \
-              --working-directory "$WORKING_DIRECTORY" \
-              --change-request-branch-name "$BRANCH_NAME" \
-              --commit-message "Drift Detected" \
-              --title "Drift Detected" \
-              --author-name "$AUTHOR_NAME" \
-              --author-email "$AUTHOR_EMAIL" \
-              --force true
+          cd "$PATH"
+          if [[ $PIPELINES_EXIT_CODE -ne 0 ]]; then
+            echo "{path: \"$path\", error: true}" >> result-"$ID".json
+          elif git status --porcelain | grep -q ".drift-history.json"; then
+            last_line=$(tail -n 1 .drift-history.json)
+            echo "{path: \"$path\", drift: \"$last_line\"}" >> result-"$ID".json
           fi
 
+      - name: "Upload result"
+        working-directory: ./infra-live-repo
+        shell: bash
+        env:
+          PATH: ${{ matrix.unit.path }}
+          ID: ${{ matrix.unit.id }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: result-${{ matrix.unit.id }}
+          path: ${{ matrix.unit.path }}/result-${{ matrix.unit.id }}.json
+          if-no-files-found: ignore
+          retention-days: 1
+          overwrite: true
+
+  consolidate_jobs:
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    needs: pipelines_drift_detection
+    steps:
+      - name: Check out repo code
+        uses: actions/checkout@v4
+        with:
+          path: infra-live-repo
+          fetch-depth: 0
+
+      - name: "Download results"
+        uses: actions/download-artifact@v4
+        with:
+          pattern: result-*
+          path: results
+          merge-multiple: true
+
+      - name: "Extract results"
+        shell: bash
+        run: |
+          ls -R results
+          error_paths=()
+          for result in results/*.json; do
+            path=$(jq -r '.path' "$result")
+            has_error=$(jq -r '.error' "$result")
+             if [ "$has_error" = "true" ]; then
+              # Add the path to the array of error paths
+              error_paths+=("$path")
+            else
+              # Extract the 'drift' value
+              drift=$(jq -r '.drift' "$result")
+              # Append the drift to the .drift-history.json file at the specified path
+              echo "$drift" >> "./infra-live-repo/$path/.drift-history.json"
+            fi
+          done
+          ls -R infra-live-repo
+          cd infra-live-repo && git status
