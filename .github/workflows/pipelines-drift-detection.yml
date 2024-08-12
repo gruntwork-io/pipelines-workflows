@@ -49,7 +49,7 @@ jobs:
         shell: bash
         run: |
           mapfile -t paths < <(find . -mindepth 2 -name "terragrunt.hcl" -exec dirname "{}" \;)
-          echo "units<<EOF" >>> "$GITHUB_OUTPUT"
+          echo "units<<EOF" >> "$GITHUB_OUTPUT"
           # Initialize the JSON array
           json="["
 
