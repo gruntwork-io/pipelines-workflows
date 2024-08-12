@@ -228,6 +228,12 @@ jobs:
           path: infra-live-repo
           fetch-depth: 0
 
+      - name: Install Pipelines CLI
+        uses: ./pipelines-actions/.github/actions/pipelines-install
+        with:
+          version: ${{ env.PIPELINES_CLI_VERSION }}
+          token: ${{ secrets.PIPELINES_READ_TOKEN }}
+
       - name: "Download results"
         uses: actions/download-artifact@v4
         with:
@@ -236,22 +242,84 @@ jobs:
           merge-multiple: true
 
       - name: "Extract results"
+        id: extract-results
         shell: bash
         run: |
           ls -R results
+          drifted_paths=()
           error_paths=()
           for result in results/*.json; do
             path=$(jq -r '.path' "$result")
             has_error=$(jq -r '.error' "$result")
-             if [ "$has_error" = "true" ]; then
+            if [ "$has_error" = "true" ]; then
               # Add the path to the array of error paths
               error_paths+=("$path")
             else
+              drifted_paths+=("$path")
               # Extract the 'drift' value
               drift=$(jq -r '.drift' "$result")
               # Append the drift to the .drift-history.json file at the specified path
               echo "$drift" >> "./infra-live-repo/$path/.drift-history.json"
             fi
           done
-          ls -R infra-live-repo
-          cd infra-live-repo && git status
+
+          drifted_paths_markdown=""
+          if [ ${#drifted_paths[@]} -ne 0 ]; then
+            drifted_paths_markdown+="## ${#drifted_paths[@]} Drifted Units:\n"
+            for path in "${drifted_paths[@]}"; do
+              drifted_paths_markdown+="- `$path`\n"
+            done
+            drifted_paths_markdown+="\n"
+
+            drifted_paths_markdown+="1. Gruntwork Pipelines will automatically run a `plan` showing all changes needed to resolve the drift.\n"
+            drifted_paths_markdown+="1. Optionally push commits to this branch to bring your IaC into alignment with currently deployed resources.\n"
+            drifted_paths_markdown+="3. Merge this pull request to `apply` the changes and resolve the drift.\n"
+
+            echo "drifted_paths_markdown=$drifted_paths_markdown" >> "$GITHUB_OUTPUT"
+          fi
+
+          errored_paths_markdown=""
+          if [ ${#error_paths[@]} -ne 0 ]; then
+            errored_paths_markdown+="## :warning: ${#error_paths[@]} Unscanned Units:\n"
+            errored_paths_markdown+="Drift detection was not performed for these units because the plans failed:\n"
+            for path in "${error_paths[@]}"; do
+              errored_paths_markdown+="<details>\n"
+              errored_paths_markdown+="  <summary><code>$path</code></summary>\n"
+              # TODO: Extract error from terragrunt run and output here
+              # TODO: Logs link goes here
+              errored_paths_markdown+="</details>\n"
+            done
+            echo "errored_paths_markdown=$errored_paths_markdown" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: "Create PR"
+        id: propose-infra-change
+        working-directory: ./infra-live-repo
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
+          WORKING_DIRECTORY: .
+          BRANCH_NAME: "drift-detection-test"
+          AUTHOR_NAME: ${{ github.actor }}
+          AUTHOR_EMAIL: ${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com
+          DRIFTED_PATHS_MARKDOWN: ${{ steps.extract-results.outputs.drifted_paths_markdown }}
+          ERRORED_PATHS_MARKDOWN: ${{ steps.extract-results.outputs.errored_paths_markdown }}
+        run: |
+          git_changes=$(git status --porcelain)
+          if [[ -n $git_changes ]]; then
+            body="# :left_right_arrow: Drift Detected\n"
+            body+="This pull request remediates detected drift between IaC in this repository and cloud resources in AWS.\n"
+            body+="\n"
+            body+="$DRIFTED_PATHS_MARKDOWN\n"
+            body+="$ERRORED_PATHS_MARKDOWN\n"
+
+            pipelines scm propose-infra-change \
+              --working-directory "$WORKING_DIRECTORY" \
+              --change-request-branch-name "$BRANCH_NAME" \
+              --commit-message "Drift Detected" \
+              --title "Drift Detected" \
+              --author-name "$AUTHOR_NAME" \
+              --author-email "$AUTHOR_EMAIL" \
+              --force true \
+              --body "$body"
+          fi
