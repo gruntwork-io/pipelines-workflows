@@ -28,7 +28,7 @@ on:
           required: true
 env:
   PIPELINES_CLI_VERSION: v0.28.0-rc5
-  PIPELINES_ACTIONS_VERSION: main
+  PIPELINES_ACTIONS_VERSION: ore/dev-474-reflect-drift-appropriately-in-comment-title-for-prs
 
 jobs:
   determine_units:
