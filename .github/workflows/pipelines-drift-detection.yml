@@ -161,13 +161,13 @@ jobs:
           root_plan_folder="$(mktemp -d)"
           echo "root_plan_folder=$root_plan_folder" >> $GITHUB_OUTPUT
 
-          echo "Running plan for $path"
+          echo "Running plan for $PATH"
           terragrunt_command="plan"
-          plan_folder="$root_plan_folder/${path#./}"
+          plan_folder="$root_plan_folder/${PATH#./}"
           mkdir -p "$plan_folder"
           set +e
           pipelines execute terragrunt \
-            --working-directory "$path" \
+            --working-directory "$PATH" \
             --infra-live-repo . \
             --infra-live-repo-branch "$INFRA_LIVE_REPO_BRANCH" \
             --deployment-branch "$DEPLOY_BRANCH_NAME" \
@@ -178,7 +178,7 @@ jobs:
           set -e
           echo "pipelines_exit_code=$pipelines_exit_code" >> $GITHUB_OUTPUT 
           if [[ $pipelines_exit_code -ne 0 ]]; then
-            echo "::error::Error running plan for $path"
+            echo "::error::Error running plan for $PATH"
           fi
 
       - name: "Parse plans"
