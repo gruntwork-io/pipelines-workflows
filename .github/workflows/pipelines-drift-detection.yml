@@ -203,10 +203,10 @@ jobs:
         run: |
           cd "$UNIT_PATH"
           if [[ $PIPELINES_EXIT_CODE -ne 0 ]]; then
-            echo "{path: \"$UNIT_PATH\", error: true}" >> result-"$ID".json
+            echo "{\"path\": \"$UNIT_PATH\", \"error\": true}" >> result-"$ID".json
           elif git status --porcelain | grep -q ".drift-history.json"; then
             last_line=$(tail -n 1 .drift-history.json | jq -R '.')
-            echo "{path: \"$UNIT_PATH\", drift: $last_line}" >> result-"$ID".json
+            echo "{\"path\": \"$UNIT_PATH\", \"drift\": $last_line}" >> result-"$ID".json
           fi
 
       - name: "Upload result"
