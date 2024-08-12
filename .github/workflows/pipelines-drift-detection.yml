@@ -48,7 +48,6 @@ jobs:
         working-directory: ./infra-live-repo
         shell: bash
         run: |
-          which mktemp
           mapfile -t paths < <(find . -mindepth 2 -name "terragrunt.hcl" -exec dirname "{}" \;)
           echo "units<<EOF" >> "$GITHUB_OUTPUT"
           # Initialize the JSON array
@@ -56,7 +55,7 @@ jobs:
 
           # Loop through the paths array and construct JSON objects
           for i in "${!paths[@]}"; do
-              json+="{\"id\": $i, \"path\": \"${paths[$i]}\"},"
+              json+="{\"id\": $i, \"path\": \"${paths[$i]#./}\"},"
           done
 
           # Remove the trailing comma and close the JSON array
@@ -149,7 +148,6 @@ jobs:
           UNIT_PATH: ${{ matrix.unit.path }}
         shell: bash
         run: |
-          which mktemp
           set -euo pipefail
           if [ "$TF_BINARY" == "terraform" ]
           then
@@ -163,7 +161,7 @@ jobs:
 
           echo "Running plan for $UNIT_PATH"
           terragrunt_command="plan"
-          plan_folder="$root_plan_folder/${UNIT_PATH#./}"
+          plan_folder="$root_plan_folder/${UNIT_PATH}"
           mkdir -p "$plan_folder"
           set +e
           pipelines execute terragrunt \
@@ -213,7 +211,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: result-${{ matrix.unit.id }}
-          path: ./infra-live-repo/${{ matrix.unit.path }}/result-${{ matrix.unit.id }}.json
+          path: infra-live-repo/${{ matrix.unit.path }}/result-${{ matrix.unit.id }}.json
           if-no-files-found: ignore
           retention-days: 1
           overwrite: true
