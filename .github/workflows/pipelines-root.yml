@@ -68,7 +68,8 @@ jobs:
           msg="Failed to checkout Pipelines Actions repository. Please check to ensure PIPELINES_READ_TOKEN is valid and unexpired.  LINK TO DOCS"
           echo "::error:: $msg"
           echo $msg >> "$GITHUB_STEP_SUMMARY"
-          gh pr comment -b "$msg" -R $GITHUB_ORG || true
+          pull_number=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
+          gh pr comment $pull_number -b "$msg" -R $GITHUB_ORG  || true
 
       - name: Check out repo code
         uses: actions/checkout@v4
