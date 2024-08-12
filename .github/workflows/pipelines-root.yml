@@ -50,12 +50,23 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
       - name: Checkout Pipelines Actions
+        id: checkout_actions
         uses: actions/checkout@v4
         with:
           path: pipelines-actions
           repository: gruntwork-io/pipelines-actions
           ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
+
+      - name: Validate PIPELINES_READ_TOKEN
+        if: always() && steps.checkout_actions.conclusion != 'success'
+        shell: bash
+        run: |
+          msg="Failed to checkout Pipelines Actions repository. Please check to ensure PIPELINES_READ_TOKEN is valid and unexpired.  LINK TO DOCS"
+          echo $msg >> "$GITHUB_SUMMARY"
+          gh pr comment -b "$msg" || true
+          exit 1
+
 
       - name: Check out repo code
         uses: actions/checkout@v4
