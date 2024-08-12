@@ -208,7 +208,6 @@ jobs:
           fi
 
       - name: "Upload result"
-        working-directory: ./infra-live-repo
         shell: bash
         env:
           PATH: ${{ matrix.unit.path }}
@@ -216,7 +215,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: result-${{ matrix.unit.id }}
-          path: ${{ matrix.unit.path }}/result-${{ matrix.unit.id }}.json
+          path: ./infra-live-repo/${{ matrix.unit.path }}/result-${{ matrix.unit.id }}.json
           if-no-files-found: ignore
           retention-days: 1
           overwrite: true
