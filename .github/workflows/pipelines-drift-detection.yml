@@ -351,8 +351,9 @@ jobs:
         run: |
           git_changes=$(git status --porcelain)
           if [[ -n $git_changes ]]; then
+            logs_url="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
             body="# :left_right_arrow: Drift Detected\n"
-            body+="This pull request remediates detected drift between IaC in this repository and cloud resources in AWS.\n"
+            body+="This pull request remediates [detected drift]($logs_url) between IaC in this repository and cloud resources in AWS.\n"
             body+="\n"
             body+="$DRIFTED_PATHS_MARKDOWN\n"
             body+="$ERRORED_PATHS_MARKDOWN\n"
