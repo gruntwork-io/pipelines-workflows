@@ -324,24 +324,15 @@ jobs:
               path="${paths[$i]}"
               logs_url="${error_urls[$i]}"
               error_excerpt="${error_excerpts[$i]}"
-              details="$(
-              cat <<-EOF
-          <details><summary><code>$path</code></summary>
-
-          \`\`\`terraform
-          $error_excerpt
-          \`\`\`
-          [View logs]($logs_url)
-          </details>
-          EOF
-
-              )"
-              errored_paths_markdown+=$details
+              errored_paths_markdown+="<details><summary><code>$path</code></summary>\n"
+              errored_paths_markdown+="\\\`\\\`\\\`terraform\n"
+              errored_paths_markdown+=$error_excerpt
+              errored_paths_markdown+="\n"
+              errored_paths_markdown+="\\\`\\\`\\\`\n"
+              errored_paths_markdown+="[View logs]($logs_url)\n"
+              errored_paths_markdown+="</details>\n"
             done
-            echo 'errored_paths_markdown<<EOF' >> "$GITHUB_OUTPUT"
-            echo $errored_paths_markdown >> "$GITHUB_OUTPUT"
-            echo '' >> "$GITHUB_OUTPUT"
-            echo 'EOF' >> "$GITHUB_OUTPUT"
+            echo "errored_paths_markdown=$errored_paths_markdown" >> "$GITHUB_OUTPUT"
           fi
 
       - name: "Create PR"
