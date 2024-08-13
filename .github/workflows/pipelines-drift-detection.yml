@@ -325,7 +325,7 @@ jobs:
               logs_url="${error_urls[$i]}"
               error_excerpt="${error_excerpts[$i]}"
               details="$(
-              cat << -EOF
+              cat <<-EOF
           <details><summary><code>$path</code></summary>
 
           \`\`\`terraform
