@@ -186,10 +186,8 @@ jobs:
           error_excerpt=$(cat "$stderr_log" | awk 'BEGIN {IGNORECASE=1} /error/{print; found=1} found && NR<=10 {print; next}')
           # Strip ANSI color codes
           cleaned_error_excerpt=$(echo "$error_excerpt" | sed 's/\x1b\[[0-9;]*m//g')
-          escaped_error_excerpt=$(echo "$cleaned_error_excerpt" | jq -R '.')
-          echo $escaped_error_excerpt
           echo 'error_excerpt<<EOF' >> "$GITHUB_OUTPUT"
-          echo "$escaped_error_excerpt" >> $GITHUB_OUTPUT
+          echo "$cleaned_error_excerpt" >> $GITHUB_OUTPUT
           echo '' >> "$GITHUB_OUTPUT"
           echo 'EOF' >> "$GITHUB_OUTPUT"
 
@@ -229,7 +227,8 @@ jobs:
         run: |
           cd "$UNIT_PATH"
           if [[ $PIPELINES_EXIT_CODE -ne 0 ]]; then
-            echo "{\"path\": \"$UNIT_PATH\", \"error\": true, \"logs_url\": \"$LOGS_URL\", \"error_excerpt\": \"$ERROR_EXCERPT\"}" >> result-"$ID".json
+            $(jq -n --arg path "$UNIT_PATH" --arg logs_url "$LOGS_URL" --arg error_excerpt "$ERROR_EXCERPT" '{"path": $path, "error": true, "logs_url": $logs_url, "error_excerpt": $error_excerpt}') >> result-"$ID".json
+            # echo "{\"path\": \"$UNIT_PATH\", \"error\": true, \"logs_url\": \"$LOGS_URL\", \"error_excerpt\": \"$ERROR_EXCERPT\"}" >> result-"$ID".json
           elif git status --porcelain | grep -q ".drift-history.json"; then
             last_line=$(tail -n 1 .drift-history.json | jq -R '.')
             echo "{\"path\": \"$UNIT_PATH\", \"drift\": $last_line}" >> result-"$ID".json
@@ -327,7 +326,7 @@ jobs:
               path="${error_paths[$i]}"
               logs_url="${error_urls[$i]}"
               error_excerpt="${error_excerpts[$i]}"
-              errored_paths_markdown+="<details><summary><code>$path</code></summary>\n"
+              errored_paths_markdown+="<details><summary><code>$path</code></summary>\n\n"
               errored_paths_markdown+="\`\`\`terraform\n"
               errored_paths_markdown+=$error_excerpt
               errored_paths_markdown+="\n"
