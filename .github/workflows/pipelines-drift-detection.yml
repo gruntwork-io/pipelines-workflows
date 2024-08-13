@@ -187,6 +187,7 @@ jobs:
           # Strip ANSI color codes
           cleaned_error_excerpt=$(echo "$error_excerpt" | sed 's/\x1b\[[0-9;]*m//g')
           escaped_error_excerpt=$(echo "$cleaned_error_excerpt" | jq -R '.')
+          echo $escaped_error_excerpt
           echo 'error_excerpt<<EOF' >> "$GITHUB_OUTPUT"
           echo "$escaped_error_excerpt" >> $GITHUB_OUTPUT
           echo '' >> "$GITHUB_OUTPUT"
@@ -327,10 +328,10 @@ jobs:
               logs_url="${error_urls[$i]}"
               error_excerpt="${error_excerpts[$i]}"
               errored_paths_markdown+="<details><summary><code>$path</code></summary>\n"
-              errored_paths_markdown+="\\\`\\\`\\\`terraform\n"
+              errored_paths_markdown+="\`\`\`terraform\n"
               errored_paths_markdown+=$error_excerpt
               errored_paths_markdown+="\n"
-              errored_paths_markdown+="\\\`\\\`\\\`\n"
+              errored_paths_markdown+="\`\`\`\n"
               errored_paths_markdown+="[View logs]($logs_url)\n"
               errored_paths_markdown+="</details>\n"
             done
