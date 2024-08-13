@@ -52,9 +52,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_ORG: ${{ github.repository }}
-          ACTION_PATH: ${{ github.action_path }}
         shell: bash
-        run: "$ACTION_PATH/scripts/invalid-token-update.sh"
+        run: "./.github/workflows/scripts/invalid-token-update.sh"
 
 
       - name: Check out repo code
