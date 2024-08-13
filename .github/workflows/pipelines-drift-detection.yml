@@ -327,7 +327,7 @@ jobs:
               error_excerpt="${error_excerpts[$i]}"
               errored_paths_markdown+="<details><summary><code>$path</code></summary>\n\n"
               errored_paths_markdown+="\`\`\`terraform\n"
-              errored_paths_markdown+=$error_excerpt
+              errored_paths_markdown+=${error_excerpt//$'\n'/\\n}
               errored_paths_markdown+="\n"
               errored_paths_markdown+="\`\`\`\n"
               errored_paths_markdown+="[View logs]($logs_url)\n"
