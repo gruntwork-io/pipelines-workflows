@@ -320,13 +320,16 @@ jobs:
             body+="\n"
             body+="$DRIFTED_PATHS_MARKDOWN\n"
             body+="$ERRORED_PATHS_MARKDOWN\n"
+            escaped_body=$(echo -e "$body")
+
+            echo "$escaped_body"
 
             pipelines scm propose-infra-change \
               --working-directory "$WORKING_DIRECTORY" \
               --change-request-branch-name "$BRANCH_NAME" \
               --commit-message "Drift Detected" \
               --title "Drift Detected" \
-              --body "${body//$'\n'/\\n}" \
+              --body "$escaped_body" \
               --author-name "$AUTHOR_NAME" \
               --author-email "$AUTHOR_EMAIL" \
               --force true
