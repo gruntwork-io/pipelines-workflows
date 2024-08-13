@@ -328,8 +328,8 @@ jobs:
               --change-request-branch-name "$BRANCH_NAME" \
               --commit-message "Drift Detected" \
               --title "Drift Detected" \
+              --body "$body" \
               --author-name "$AUTHOR_NAME" \
               --author-email "$AUTHOR_EMAIL" \
-              --force true \
-              --body "$body"
+              --force true
           fi
