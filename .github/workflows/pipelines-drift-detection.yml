@@ -338,7 +338,10 @@ jobs:
               )"
               errored_paths_markdown+=$details
             done
-            echo "errored_paths_markdown=$errored_paths_markdown" >> "$GITHUB_OUTPUT"
+            echo 'errored_paths_markdown<<EOF' >> "$GITHUB_OUTPUT"
+            echo $errored_paths_markdown >> "$GITHUB_OUTPUT"
+            echo '' >> "$GITHUB_OUTPUT"
+            echo 'EOF' >> "$GITHUB_OUTPUT"
           fi
 
       - name: "Create PR"
