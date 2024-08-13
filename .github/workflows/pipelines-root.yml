@@ -64,7 +64,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GITHUB_ORG: ${{ github.repository }}
         shell: bash
-        run: "./.github/workflows/scripts/invalid-token-update.sh"
+        run: "${GITHUB_WORKSPACE}/.github/workflows/scripts/invalid-token-update.sh"
 
       - name: Check out repo code
         uses: actions/checkout@v4
