@@ -28,7 +28,7 @@ on:
           required: true
 env:
   PIPELINES_CLI_VERSION: v0.28.0-rc5
-  PIPELINES_ACTIONS_VERSION: main
+  PIPELINES_ACTIONS_VERSION: 2024-07-19_get-job-id
 
 jobs:
   determine_units:
@@ -166,16 +166,26 @@ jobs:
           plan_folder="$root_plan_folder/${UNIT_PATH}"
           mkdir -p "$plan_folder"
           set +e
-          pipelines execute terragrunt \
+          output=$(pipelines execute terragrunt \
             --working-directory "$UNIT_PATH" \
             --infra-live-repo . \
             --infra-live-repo-branch "$INFRA_LIVE_REPO_BRANCH" \
             --deployment-branch "$DEPLOY_BRANCH_NAME" \
             --gruntwork-config-file "$GRUNTWORK_CONFIG_FILE" \
             --out-dir "$plan_folder"  \
-            --command "$terragrunt_command"
+            --command "$terragrunt_command" 2>&1 | tee /dev/tty)
           pipelines_exit_code=$?
           set -e
+
+          error_excerpt=$(echo "$output" | awk 'BEGIN {IGNORECASE=1} /error/{print; found=1} found && NR<=10 {print; next}')
+          # Strip ANSI color codes
+          cleaned_error_excerpt=$(echo "$error_excerpt" | sed 's/\x1b\[[0-9;]*m//g')
+          escaped_error_excerpt=$(echo "$cleaned_error_excerpt" | jq -R '.')
+          echo 'error_excerpt<<EOF' >> "$GITHUB_OUTPUT"
+          echo "$escaped_error_excerpt" >> $GITHUB_OUTPUT
+          echo '' >> "$GITHUB_OUTPUT"
+          echo 'EOF' >> "$GITHUB_OUTPUT"
+
           echo "pipelines_exit_code=$pipelines_exit_code" >> $GITHUB_OUTPUT 
           if [[ $pipelines_exit_code -ne 0 ]]; then
             echo "::error::Error running plan for $UNIT_PATH"
@@ -192,6 +202,14 @@ jobs:
         run: |
           pipelines tfplan detect-drift --working-directory "$WORKING_DIRECTORY" "$PLAN_FOLDER"
       
+      - name: Get Logs URL
+        id: get_logs_url
+        uses: ./pipelines-actions/.github/actions/pipelines-get-job-logs-url
+        if: always()
+        with:
+          job_name: pipelines_drift_detection
+          step_name_prefix: "Run terragrunt plan"
+
       - name: "Capture output"
         id: capture-result
         working-directory: ./infra-live-repo
@@ -200,10 +218,12 @@ jobs:
           PIPELINES_EXIT_CODE: ${{ steps.terragrunt.outputs.pipelines_exit_code }}
           UNIT_PATH: ${{ matrix.unit.path }}
           ID: ${{ matrix.unit.id }}
+          LOGS_URL: ${{ steps.get_logs_url.outputs.step_logs_url }}
+          ERROR_EXCERPT": ${{ steps.terragrunt.outputs.error_excerpt }}
         run: |
           cd "$UNIT_PATH"
           if [[ $PIPELINES_EXIT_CODE -ne 0 ]]; then
-            echo "{\"path\": \"$UNIT_PATH\", \"error\": true}" >> result-"$ID".json
+            echo "{\"path\": \"$UNIT_PATH\", \"error\": true, \"logs_url\": \"$LOGS_URL\", \"error_excerpt\": \"$ERROR_EXCERPT\"}" >> result-"$ID".json
           elif git status --porcelain | grep -q ".drift-history.json"; then
             last_line=$(tail -n 1 .drift-history.json | jq -R '.')
             echo "{\"path\": \"$UNIT_PATH\", \"drift\": $last_line}" >> result-"$ID".json
@@ -256,12 +276,18 @@ jobs:
           ls -R results
           drifted_paths=()
           error_paths=()
+          error_urls=()
+          error_excerpts=()
           for result in results/*.json; do
             path=$(jq -r '.path' "$result")
             has_error=$(jq -r '.error' "$result")
+            logs_url=$(jq -r '.logs_url' "$result")
+            error_excerpt=$(jq -r '.error_excerpt' "$result")
             if [ "$has_error" = "true" ]; then
               # Add the path to the array of error paths
               error_paths+=("$path")
+              error_urls+=("$logs_url")
+              error_excerpts+=("$error_excerpt")
             else
               drifted_paths+=("$path")
               # Extract the 'drift' value
@@ -291,12 +317,23 @@ jobs:
           if [ ${#error_paths[@]} -ne 0 ]; then
             errored_paths_markdown+="## :warning: ${#error_paths[@]} Unscanned Units:\n"
             errored_paths_markdown+="Drift detection was not performed for these units because the plans failed:\n"
-            for path in "${error_paths[@]}"; do
-              errored_paths_markdown+="<details>\n"
-              errored_paths_markdown+="  <summary><code>$path</code></summary>\n"
-              # TODO: Extract error from terragrunt run and output here
-              # TODO: Logs link goes here
-              errored_paths_markdown+="</details>\n"
+            for i in "${!error_paths[@]}"; do
+              path="${paths[$i]}"
+              logs_url="${error_urls[$i]}"
+              error_excerpt="${error_excerpts[$i]}"
+              details="$(
+              cat << -EOF
+          <details><summary><code>$path</code></summary>
+
+          \`\`\`terraform
+          $error_excerpt
+          \`\`\`
+          [View logs]($logs_url)
+          </details>
+          EOF
+
+              )"
+              errored_paths_markdown+=$details
             done
             echo "errored_paths_markdown=$errored_paths_markdown" >> "$GITHUB_OUTPUT"
           fi
@@ -308,7 +345,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
           WORKING_DIRECTORY: .
-          BRANCH_NAME: "drift-detection"
+          BRANCH_NAME: "drift-detection-test"
           AUTHOR_NAME: ${{ github.actor }}
           AUTHOR_EMAIL: ${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com
           DRIFTED_PATHS_MARKDOWN: ${{ steps.extract-results.outputs.drifted_paths_markdown }}
