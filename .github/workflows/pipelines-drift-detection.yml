@@ -321,14 +321,12 @@ jobs:
             body+="$DRIFTED_PATHS_MARKDOWN\n"
             body+="$ERRORED_PATHS_MARKDOWN\n"
 
-            echo "$body"
-
             pipelines scm propose-infra-change \
               --working-directory "$WORKING_DIRECTORY" \
               --change-request-branch-name "$BRANCH_NAME" \
               --commit-message "Drift Detected" \
               --title "Drift Detected" \
-              --body "$body" \
+              --body "${body//$'\n'/\\n}" \
               --author-name "$AUTHOR_NAME" \
               --author-email "$AUTHOR_EMAIL" \
               --force true
