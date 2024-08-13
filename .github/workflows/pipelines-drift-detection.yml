@@ -223,18 +223,14 @@ jobs:
           UNIT_PATH: ${{ matrix.unit.path }}
           ID: ${{ matrix.unit.id }}
           LOGS_URL: ${{ steps.get_logs_url.outputs.step_logs_url }}
-          ERROR_EXCERPT": ${{ steps.terragrunt.outputs.error_excerpt }}
+          ERROR_EXCERPT: ${{ steps.terragrunt.outputs.error_excerpt }}
         run: |
           cd "$UNIT_PATH"
           if [[ $PIPELINES_EXIT_CODE -ne 0 ]]; then
-            escaped_error_excerpt=$(echo "$ERROR_EXCERPT" | jq -R .)
-            echo "$escaped_error_excerpt"
-            jq -n --arg path "$UNIT_PATH" --arg logs_url "$LOGS_URL" --arg error_excerpt "$escaped_error_excerpt" '{"path": $path, "error": true, "logs_url": $logs_url, "error_excerpt": $error_excerpt}' > result-"$ID".json
-            cat result-"$ID".json
-            # echo "{\"path\": \"$UNIT_PATH\", \"error\": true, \"logs_url\": \"$LOGS_URL\", \"error_excerpt\": \"$ERROR_EXCERPT\"}" >> result-"$ID".json
+            jq -n --arg path "$UNIT_PATH" --arg logs_url "$LOGS_URL" --arg error_excerpt "$ERROR_EXCERPT" '{"path": $path, "error": true, "logs_url": $logs_url, "error_excerpt": $error_excerpt}' > result-"$ID".json
           elif git status --porcelain | grep -q ".drift-history.json"; then
             last_line=$(tail -n 1 .drift-history.json | jq -R '.')
-            echo "{\"path\": \"$UNIT_PATH\", \"drift\": $last_line}" >> result-"$ID".json
+            jq -n --arg path "$UNIT_PATH" --arg drift "$last_line" '{"path": $path, "drift": $drift}' > result-"$ID".json
           fi
 
       - name: "Upload result"
