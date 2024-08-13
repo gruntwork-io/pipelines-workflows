@@ -60,7 +60,7 @@ jobs:
           echo "::error:: $msg"
           echo "$msg" >> "$GITHUB_STEP_SUMMARY"
           pull_number=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
-          gh pr comment $pull_number -b "$msg" -R $GITHUB_ORG  || true
+          gh pr comment $pull_number -b "$msg" -R $GITHUB_ORG || true # || true incase this fails on a non-PR run
 
 
       - name: Check out repo code
