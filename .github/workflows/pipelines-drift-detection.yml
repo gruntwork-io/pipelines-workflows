@@ -73,6 +73,9 @@ jobs:
     strategy:
       matrix:
         unit: ${{ fromJSON(needs.determine_units.outputs.units) }}
+    env:
+      JOB_NAME: Detect Drift in ${{ matrix.unit.path }}
+    name: Detect Drift in ${{ matrix.unit.path }}
     steps:
       - name: Checkout Pipelines Actions
         uses: actions/checkout@v4
@@ -208,9 +211,8 @@ jobs:
       - name: Get Logs URL
         id: get_logs_url
         uses: ./pipelines-actions/.github/actions/pipelines-get-job-logs-url
-        if: always()
         with:
-          job_name: pipelines_drift_detection
+          job_name: ${{ env.JOB_NAME }}
           step_name_prefix: "Run terragrunt plan"
 
       - name: "Capture output"
@@ -321,7 +323,7 @@ jobs:
             errored_paths_markdown+="## :warning: ${#error_paths[@]} Unscanned Units:\n"
             errored_paths_markdown+="Drift detection was not performed for these units because the plans failed:\n"
             for i in "${!error_paths[@]}"; do
-              path="${paths[$i]}"
+              path="${error_paths[$i]}"
               logs_url="${error_urls[$i]}"
               error_excerpt="${error_excerpts[$i]}"
               errored_paths_markdown+="<details><summary><code>$path</code></summary>\n"
