@@ -56,7 +56,7 @@ jobs:
         shell: bash
         run: |
           logs_url="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-          msg=$(printf "<h2>❌ Plan for $PR_HEAD_SHA</h2>❌ Gruntwork Pipelines was unable to checkout the pipelines-actions repository. Please check to ensure \`PIPELINES_READ_TOKEN\` is valid and unexpired. <a href=\"https://docs.gruntwork.io/pipelines/security/machine-users#ci-read-only-user\">Learn More</a>".<br><br><br>[View full logs]($logs_url)")
+          msg=$(printf "<h2>❌ Plan for $PR_HEAD_SHA</h2>❌ Gruntwork Pipelines was unable to checkout the pipelines-actions repository. Please check to ensure \`PIPELINES_READ_TOKEN\` is valid and unexpired. <a href=\"https://docs.gruntwork.io/pipelines/security/machine-users#ci-read-only-user\">Learn More</a>.<br><br><br>[View full logs]($logs_url)")
           echo "::error:: $msg"
           echo "$msg" >> "$GITHUB_STEP_SUMMARY"
           pull_number=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
