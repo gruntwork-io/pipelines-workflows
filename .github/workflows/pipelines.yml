@@ -39,12 +39,29 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
       - name: Checkout Pipelines Actions
+        id: checkout_actions
         uses: actions/checkout@v4
         with:
           path: pipelines-actions
           repository: gruntwork-io/pipelines-actions
           ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
+
+      - name: Validate PIPELINES_READ_TOKEN
+        if: always() && steps.checkout_actions.conclusion != 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_ORG: ${{ github.repository }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          logs_url="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          msg=$(printf "<h2>❌ Plan for $PR_HEAD_SHA</h2>❌ Gruntwork Pipelines was unable to checkout the <code>pipelines-actions</code> repository. Please ensure the <code>PIPELINES_READ_TOKEN</code> is valid and unexpired. <a href=\"https://docs.gruntwork.io/pipelines/security/machine-users#ci-read-only-user\">Learn More</a><br><br><br><a href=\"$logs_url\">View full logs</a>")
+          echo "::error:: $msg"
+          echo "$msg" >> "$GITHUB_STEP_SUMMARY"
+          pull_number=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
+          gh pr comment $pull_number -b "$msg" -R $GITHUB_ORG || true # || true incase this fails on a non-PR run
+
 
       - name: Check out repo code
         uses: actions/checkout@v4
