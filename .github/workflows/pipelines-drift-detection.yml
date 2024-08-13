@@ -280,7 +280,8 @@ jobs:
             drifted_paths_markdown+="\n"
 
             drifted_paths_markdown+="1. Gruntwork Pipelines will automatically run a <code>plan</code> showing all changes needed to resolve the drift.\n"
-            drifted_paths_markdown+="1. Optionally push commits to this branch to bring your IaC into alignment with currently deployed resources.\n"
+            branch_link="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/tree/drift-detection"
+            drifted_paths_markdown+="1. Optionally push commits to [this branch]($branch_link) to bring your IaC into alignment with currently deployed resources.\n"
             drifted_paths_markdown+="3. Merge this pull request to <code>apply</code> the changes and resolve the drift.\n"
 
             echo "drifted_paths_markdown=$drifted_paths_markdown" >> "$GITHUB_OUTPUT"
@@ -307,7 +308,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
           WORKING_DIRECTORY: .
-          BRANCH_NAME: "drift-detection-test"
+          BRANCH_NAME: "drift-detection"
           AUTHOR_NAME: ${{ github.actor }}
           AUTHOR_EMAIL: ${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com
           DRIFTED_PATHS_MARKDOWN: ${{ steps.extract-results.outputs.drifted_paths_markdown }}
