@@ -49,8 +49,6 @@ jobs:
         shell: bash
         run: |
           mapfile -t paths < <(find . -mindepth 2 -name "terragrunt.hcl" -exec dirname "{}" \;)
-          # debug limit to 10
-          paths=("${paths[@]:0:10}")
           echo "units<<EOF" >> "$GITHUB_OUTPUT"
           # Initialize the JSON array
           json="["
