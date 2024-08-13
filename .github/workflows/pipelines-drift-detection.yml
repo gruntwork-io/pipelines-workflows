@@ -165,19 +165,22 @@ jobs:
           terragrunt_command="plan"
           plan_folder="$root_plan_folder/${UNIT_PATH}"
           mkdir -p "$plan_folder"
+
+          stderr_log='/tmp/pipelines-stderr.log'
+
           set +e
-          output=$(pipelines execute terragrunt \
+          pipelines execute terragrunt \
             --working-directory "$UNIT_PATH" \
             --infra-live-repo . \
             --infra-live-repo-branch "$INFRA_LIVE_REPO_BRANCH" \
             --deployment-branch "$DEPLOY_BRANCH_NAME" \
             --gruntwork-config-file "$GRUNTWORK_CONFIG_FILE" \
             --out-dir "$plan_folder"  \
-            --command "$terragrunt_command" 2>&1 | tee /dev/tty)
+            --command "$terragrunt_command" 2>&1 | tee "$stderr_log"
           pipelines_exit_code=$?
           set -e
 
-          error_excerpt=$(echo "$output" | awk 'BEGIN {IGNORECASE=1} /error/{print; found=1} found && NR<=10 {print; next}')
+          error_excerpt=$(cat "$stderr_log" | awk 'BEGIN {IGNORECASE=1} /error/{print; found=1} found && NR<=10 {print; next}')
           # Strip ANSI color codes
           cleaned_error_excerpt=$(echo "$error_excerpt" | sed 's/\x1b\[[0-9;]*m//g')
           escaped_error_excerpt=$(echo "$cleaned_error_excerpt" | jq -R '.')
