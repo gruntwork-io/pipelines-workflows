@@ -297,7 +297,7 @@ jobs:
               # Extract the 'drift' value
               drift=$(jq -r '.drift' "$result")
               # Append the drift to the .drift-history.json file at the specified path
-              echo "$drift" >> "./infra-live-repo/$path/.drift-history.json"
+              echo "$drift" | jq -c '. | fromjson' >> "./infra-live-repo/$path/.drift-history.json"
             fi
           done
 
