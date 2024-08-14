@@ -145,7 +145,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           MACHINE_USER_NAME: ${{ steps.load_machine_user.outputs.MACHINE_USER_NAME }}
-          TERRAGRUNT_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd . --event-type pr-synched-created --disk-cache-duration-minutes 10"
+          TERRAGRUNT_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd . --event-type pr-synched-created"
           TF_BINARY: ${{ steps.gruntwork_context.outputs.tf_binary }}
           INFRA_LIVE_REPO_BRANCH: ${{ steps.gruntwork_context.outputs.branch }}
           DEPLOY_BRANCH_NAME: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
