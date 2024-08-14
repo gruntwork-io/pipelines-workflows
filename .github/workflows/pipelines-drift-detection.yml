@@ -49,6 +49,8 @@ jobs:
         shell: bash
         run: |
           mapfile -t paths < <(find . -mindepth 2 -name "terragrunt.hcl" -exec dirname "{}" \;)
+          # debug - limit to first 10
+          paths=("${paths[@]:0:10}")
           echo "units<<EOF" >> "$GITHUB_OUTPUT"
           # Initialize the JSON array
           json="["
@@ -341,7 +343,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
           WORKING_DIRECTORY: .
-          BRANCH_NAME: "drift-detection-test"
+          BRANCH_NAME: "drift-detection"
           AUTHOR_NAME: ${{ github.actor }}
           AUTHOR_EMAIL: ${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com
           DRIFTED_PATHS_MARKDOWN: ${{ steps.extract-results.outputs.drifted_paths_markdown }}
@@ -369,3 +371,12 @@ jobs:
               --author-email "$AUTHOR_EMAIL" \
               --force true
           fi
+
+      - name: "Show Pull Request URL in Summary"
+        shell: bash
+        if: ${{ steps.propose-infra-change.outputs.pipelines_change_request_url }}
+        env:
+          PR_URL: ${{ steps.propose-infra-change.outputs.pipelines_change_request_url }}
+        run: |
+          echo "### ↔️ Drift Detected" >> "$GITHUB_STEP_SUMMARY"
+          echo "[Link to Drift Remediation Pull Request]($PR_URL)" >> "$GITHUB_STEP_SUMMARY"
