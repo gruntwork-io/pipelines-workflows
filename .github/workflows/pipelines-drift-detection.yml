@@ -185,9 +185,9 @@ jobs:
 
           error_excerpt=$(cat "$stderr_log" | awk 'BEGIN {IGNORECASE=1} /error/{print; found=1} found && NR<=10 {print; next}')
           # Strip ANSI color codes
-          cleaned_error_excerpt=$(echo "$error_excerpt" | sed 's/\x1b\[[0-9;]*m//g')
+          # cleaned_error_excerpt=$(echo "$error_excerpt" | sed 's/\x1b\[[0-9;]*m//g')
           echo 'error_excerpt<<EOF' >> "$GITHUB_OUTPUT"
-          echo "$cleaned_error_excerpt" >> $GITHUB_OUTPUT
+          echo "$error_excerpt" >> $GITHUB_OUTPUT
           echo '' >> "$GITHUB_OUTPUT"
           echo 'EOF' >> "$GITHUB_OUTPUT"
 
@@ -303,7 +303,7 @@ jobs:
 
           drifted_paths_markdown=""
           if [ ${#drifted_paths[@]} -ne 0 ]; then
-            drifted_paths_markdown+="## ${#drifted_paths[@]} Drifted Units:\n"
+            drifted_paths_markdown+="## ${#drifted_paths[@]} Drifted Units\n"
             for path in "${drifted_paths[@]}"; do
               drifted_paths_markdown+="- <code>$path</code>\n"
             done
@@ -319,7 +319,7 @@ jobs:
 
           errored_paths_markdown=""
           if [ ${#error_paths[@]} -ne 0 ]; then
-            errored_paths_markdown+="## :warning: ${#error_paths[@]} Unscanned Units:\n"
+            errored_paths_markdown+="## :warning: ${#error_paths[@]} Unscanned Units\n"
             errored_paths_markdown+="Drift detection was not performed for these units because the plans failed:\n"
             for i in "${!error_paths[@]}"; do
               path="${error_paths[$i]}"
