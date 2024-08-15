@@ -185,16 +185,13 @@ jobs:
 
           error_excerpt=$(cat "$stderr_log" | awk 'BEGIN {IGNORECASE=1} /error/{print; found=1} found && NR<=10 {print; next}')
           # Strip ANSI color codes
-          # cleaned_error_excerpt=$(echo "$error_excerpt" | sed 's/\x1b\[[0-9;]*m//g')
+          cleaned_error_excerpt=$(echo "$error_excerpt" | sed 's/\x1b\[[0-9;]*m//g')
           echo 'error_excerpt<<EOF' >> "$GITHUB_OUTPUT"
-          echo "$error_excerpt" >> $GITHUB_OUTPUT
+          echo "$cleaned_error_excerpt" >> $GITHUB_OUTPUT
           echo '' >> "$GITHUB_OUTPUT"
           echo 'EOF' >> "$GITHUB_OUTPUT"
 
           echo "pipelines_exit_code=$pipelines_exit_code" >> $GITHUB_OUTPUT 
-          if [[ $pipelines_exit_code -ne 0 ]]; then
-            echo "::error::Error running plan for $UNIT_PATH"
-          fi
 
       - name: "Parse plans"
         id: tfplan
@@ -358,8 +355,6 @@ jobs:
             body+="$DRIFTED_PATHS_MARKDOWN\n"
             body+="$ERRORED_PATHS_MARKDOWN\n"
             escaped_body=$(echo -e "$body")
-
-            echo "$escaped_body"
 
             pipelines scm propose-infra-change \
               --working-directory "$WORKING_DIRECTORY" \
