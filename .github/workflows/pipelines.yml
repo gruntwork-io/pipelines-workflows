@@ -26,7 +26,7 @@ on:
         required: true
 
 env:
-  PIPELINES_CLI_VERSION: main
+  PIPELINES_CLI_VERSION: v0.24.0
   PIPELINES_ACTIONS_VERSION: main
 
 jobs:
@@ -47,14 +47,6 @@ jobs:
         with:
           path: infra-live-repo
           fetch-depth: 0
-
-      - name: Cache Providers
-        id: cache-providers
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/terragrunt/providers
-          key: ${{ runner.os }}-terragrunt-providers
-
 
       - name: Preflight Checks
         uses: ./pipelines-actions/.github/actions/pipelines-preflight-action

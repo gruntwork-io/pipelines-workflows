@@ -30,7 +30,7 @@ on:
         required: false
 
 env:
-  PIPELINES_CLI_VERSION: v0.28.0-rc5
+  PIPELINES_CLI_VERSION: v0.24.0
   PIPELINES_ACTIONS_VERSION: main
   BOILERPLATE_VERSION: v0.5.16
   GRUNTWORK_INSTALLER_VERSION: v0.0.40
@@ -100,13 +100,6 @@ jobs:
         with:
           path: infra-live-repo
           fetch-depth: 0
-
-      - name: Cache Providers
-        id: cache-providers
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/terragrunt/providers
-          key: ${{ runner.os }}-terragrunt-providers
 
       - name: Bootstrap Workflow
         id: gruntwork_context
