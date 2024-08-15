@@ -37,6 +37,14 @@ jobs:
     outputs:
       units: ${{ steps.determine-units.outputs.units }}
     steps:
+      - name: Checkout Pipelines Actions
+        uses: actions/checkout@v4
+        with:
+          path: pipelines-actions
+          repository: gruntwork-io/pipelines-actions
+          ref: 2024-08-15_drift_detection_determine_units
+          token: ${{ secrets.PIPELINES_READ_TOKEN }}
+
       - name: Check out repo code
         uses: actions/checkout@v4
         with:
@@ -45,25 +53,7 @@ jobs:
 
       - name: Determine Units
         id: determine-units
-        working-directory: ./infra-live-repo
-        shell: bash
-        run: |
-          mapfile -t paths < <(find . -mindepth 2 -name "terragrunt.hcl" -exec dirname "{}" \;)
-          echo "units<<EOF" >> "$GITHUB_OUTPUT"
-          # Initialize the JSON array
-          json="["
-
-          # Loop through the paths array and construct JSON objects
-          for i in "${!paths[@]}"; do
-              json+="{\"id\": $i, \"path\": \"${paths[$i]#./}\"},"
-          done
-
-          # Remove the trailing comma and close the JSON array
-          json="${json%,}]"
-
-          echo "$json" >> "$GITHUB_OUTPUT"
-          echo "" >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
+        uses: ./pipelines-actions/.github/actions/pipelines-drift-detection-determine-units
 
   pipelines_drift_detection:
     runs-on: ${{ fromJSON(inputs.runner) }}
