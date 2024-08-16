@@ -87,6 +87,8 @@ jobs:
           unit_id: ${{ matrix.unit.id }}
           unit_path: ${{ matrix.unit.path }}
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          JOB_NAME: ${{ env.JOB_NAME }}
+          STEP_NAME: "Execute Drift Detection"
 
   consolidate_jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
