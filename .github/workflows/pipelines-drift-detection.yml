@@ -59,6 +59,7 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
     needs: determine_units
     strategy:
+      fail-fast: false
       matrix:
         unit: ${{ fromJSON(needs.determine_units.outputs.units) }}
     env:
@@ -70,7 +71,7 @@ jobs:
         with:
           path: pipelines-actions
           repository: gruntwork-io/pipelines-actions
-          ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
+          ref: 2024-08-15_drift_detection_determine_drift
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
 
       - name: Check out repo code
@@ -79,153 +80,9 @@ jobs:
           path: infra-live-repo
           fetch-depth: 0
 
-      - name: Setup Mise Toml
-        id: mise-toml
-        working-directory: ./infra-live-repo
-        shell: bash
-        env:
-          GENERATE_MISE_TOML: ${{ inputs.generate_mise_toml }}
-          INFRA_LIVE_DIRECTORY: ${{ inputs.infra_live_directory }}
-          TF_VERSION: ${{ inputs.tf_version }}
-          TG_VERSION: ${{ inputs.tg_version }}
-          TF_BINARY: ${{ inputs.tf_binary }}
-        run: |
-          if [[ ! -f ".mise.toml" ]]; then
-            echo '::error::.mise.toml not found'
-          else
-            echo 'TOML<<EOF' >> "$GITHUB_OUTPUT"
-            cat .mise.toml >> "$GITHUB_OUTPUT"
-            echo '' >> "$GITHUB_OUTPUT"
-            echo 'EOF' >> "$GITHUB_OUTPUT"
-          fi
-
-      - uses: jdx/mise-action@v2
-        with:
-          install: true
-          cache: true
-          mise_toml: "${{ steps.mise-toml.outputs.TOML }}"
-
-      - name: Test Terraform, OpenTofu and Terragrunt
-        shell: bash
-        run: |
-          tofu --version || true
-          terraform --version || true
-          terragrunt --version
-
-      - name: "Read in Gruntwork context"
-        id: gruntwork_context
-        uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
-        with:
-          token: ${{ secrets.PIPELINES_READ_TOKEN }}
-          branch: main
-
-      - name: Load Machine User Name
-        id: load_machine_user
-        env:
-          GH_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
-        shell: bash
-        run: |
-          echo "MACHINE_USER_NAME=$(gh api /user | jq .login)" >> "$GITHUB_OUTPUT"
-
-      - name: "Run terragrunt plan"
-        id: terragrunt
-        working-directory: ./infra-live-repo
-        env:
-          GH_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
-          MACHINE_USER_NAME: ${{ steps.load_machine_user.outputs.MACHINE_USER_NAME }}
-          TERRAGRUNT_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd . --event-type pr-synched-created"
-          TF_BINARY: ${{ steps.gruntwork_context.outputs.tf_binary }}
-          INFRA_LIVE_REPO_BRANCH: ${{ steps.gruntwork_context.outputs.branch }}
-          DEPLOY_BRANCH_NAME: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
-          GRUNTWORK_CONFIG_FILE: ${{ steps.gruntwork_context.outputs.gruntwork_config_file }}
-          UNIT_PATH: ${{ matrix.unit.path }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ "$TF_BINARY" == "terraform" ]
-          then
-            export TERRAGRUNT_TFPATH=terraform
-          else
-            export TERRAGRUNT_TFPATH=tofu
-          fi
-
-          root_plan_folder="$(mktemp -d)"
-          echo "root_plan_folder=$root_plan_folder" >> $GITHUB_OUTPUT
-
-          echo "Running plan for $UNIT_PATH"
-          terragrunt_command="plan"
-          plan_folder="$root_plan_folder/${UNIT_PATH}"
-          mkdir -p "$plan_folder"
-
-          stderr_log='/tmp/pipelines-stderr.log'
-
-          set +e
-          pipelines execute terragrunt \
-            --working-directory "$UNIT_PATH" \
-            --infra-live-repo . \
-            --infra-live-repo-branch "$INFRA_LIVE_REPO_BRANCH" \
-            --deployment-branch "$DEPLOY_BRANCH_NAME" \
-            --gruntwork-config-file "$GRUNTWORK_CONFIG_FILE" \
-            --out-dir "$plan_folder"  \
-            --command "$terragrunt_command" 2>&1 | tee "$stderr_log"
-          pipelines_exit_code=$?
-          set -e
-
-          error_excerpt=$(cat "$stderr_log" | awk 'BEGIN {IGNORECASE=1} /error/{print; found=1} found && NR<=10 {print; next}')
-          # Strip ANSI color codes
-          cleaned_error_excerpt=$(echo "$error_excerpt" | sed 's/\x1b\[[0-9;]*m//g')
-          echo 'error_excerpt<<EOF' >> "$GITHUB_OUTPUT"
-          echo "$cleaned_error_excerpt" >> $GITHUB_OUTPUT
-          echo '' >> "$GITHUB_OUTPUT"
-          echo 'EOF' >> "$GITHUB_OUTPUT"
-
-          echo "pipelines_exit_code=$pipelines_exit_code" >> $GITHUB_OUTPUT 
-
-      - name: "Parse plans"
-        id: tfplan
-        if: steps.terragrunt.outputs.pipelines_exit_code == 0
-        working-directory: ./infra-live-repo
-        shell: bash
-        env:
-          WORKING_DIRECTORY: ${{ steps.gruntwork_context.outputs.working_directory }}
-          PLAN_FOLDER: ${{ steps.terragrunt.outputs.root_plan_folder}}
-        run: |
-          pipelines tfplan detect-drift --working-directory "$WORKING_DIRECTORY" "$PLAN_FOLDER"
-      
-      - name: Get Logs URL
-        id: get_logs_url
-        uses: ./pipelines-actions/.github/actions/pipelines-get-job-logs-url
-        with:
-          job_name: ${{ env.JOB_NAME }}
-          step_name_prefix: "Run terragrunt plan"
-
-      - name: "Capture output"
-        id: capture-result
-        working-directory: ./infra-live-repo
-        shell: bash
-        env:
-          PIPELINES_EXIT_CODE: ${{ steps.terragrunt.outputs.pipelines_exit_code }}
-          UNIT_PATH: ${{ matrix.unit.path }}
-          ID: ${{ matrix.unit.id }}
-          LOGS_URL: ${{ steps.get_logs_url.outputs.step_logs_url }}
-          ERROR_EXCERPT: ${{ steps.terragrunt.outputs.error_excerpt }}
-        run: |
-          cd "$UNIT_PATH"
-          if [[ $PIPELINES_EXIT_CODE -ne 0 ]]; then
-            jq -n --arg path "$UNIT_PATH" --arg logs_url "$LOGS_URL" --arg error_excerpt "$ERROR_EXCERPT" '{"path": $path, "error": true, "logs_url": $logs_url, "error_excerpt": $error_excerpt}' > result-"$ID".json
-          elif git status --porcelain | grep -q ".drift-history.json"; then
-            last_line=$(tail -n 1 .drift-history.json | jq -R '.')
-            jq -n --arg path "$UNIT_PATH" --arg drift "$last_line" '{"path": $path, "drift": $drift}' > result-"$ID".json
-          fi
-
-      - name: "Upload result"
-        uses: actions/upload-artifact@v4
-        with:
-          name: result-${{ matrix.unit.id }}
-          path: infra-live-repo/${{ matrix.unit.path }}/result-${{ matrix.unit.id }}.json
-          if-no-files-found: ignore
-          retention-days: 1
-          overwrite: true
+      - name: Execute Drift Detection
+        id: determine-drift
+        uses: ./pipelines-actions/.github/actions/pipelines-drift-detection-determine-drift
 
   consolidate_jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
