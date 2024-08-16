@@ -86,7 +86,7 @@ jobs:
         with:
           unit_id: ${{ matrix.unit.id }}
           unit_path: ${{ matrix.unit.path }}
-          PIPELNIES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
 
   consolidate_jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
