@@ -84,8 +84,8 @@ jobs:
         id: determine-drift
         uses: ./pipelines-actions/.github/actions/pipelines-drift-detection-determine-drift
         with:
-          unit_id: ${{ matrix.unit.id }}
-          unit_path: ${{ matrix.unit.path }}
+          UNIT_ID: ${{ matrix.unit.id }}
+          UNIT_PATH: ${{ matrix.unit.path }}
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           JOB_NAME: ${{ env.JOB_NAME }}
           STEP_NAME: "Execute Drift Detection"
@@ -174,7 +174,7 @@ jobs:
               logs_url="${error_urls[$i]}"
               error_excerpt="${error_excerpts[$i]}"
               errored_paths_markdown+="<details><summary><code>$path</code></summary>\n\n"
-              errored_paths_markdown+="\`\`\`terraform\n"
+              errored_paths_markdown+="\`\`\`\n"
               errored_paths_markdown+=${error_excerpt//$'\n'/\\n}
               errored_paths_markdown+="\n"
               errored_paths_markdown+="\`\`\`\n"
