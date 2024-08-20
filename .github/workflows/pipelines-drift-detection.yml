@@ -24,11 +24,13 @@ on:
     secrets:
         PIPELINES_READ_TOKEN:
           required: true
-        INFRA_ROOT_WRITE_TOKEN:
+        PR_CREATE_TOKEN:
           required: true
 env:
   PIPELINES_CLI_VERSION: v0.28.0
   PIPELINES_ACTIONS_VERSION: main
+  BOILERPLATE_VERSION: v0.5.16
+  GRUNTWORK_INSTALLER_VERSION: v0.0.40
 
 jobs:
   determine_units:
@@ -99,7 +101,7 @@ jobs:
         with:
           path: pipelines-actions
           repository: gruntwork-io/pipelines-actions
-          ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
+          ref: 2024-08-20_drift_detection_consolidate_jobs
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
 
       - name: Check out repo code
@@ -108,121 +110,9 @@ jobs:
           path: infra-live-repo
           fetch-depth: 0
 
-      - name: Install Pipelines CLI
-        uses: ./pipelines-actions/.github/actions/pipelines-install
+      - name: "Consolidate Jobs"
+        id: consolidate-jobs
+        uses: ./pipelines-actions/.github/actions/pipelines-drift-detection-consolidate-jobs
         with:
-          version: ${{ env.PIPELINES_CLI_VERSION }}
-          token: ${{ secrets.PIPELINES_READ_TOKEN }}
-
-      - name: "Download results"
-        uses: actions/download-artifact@v4
-        with:
-          pattern: result-*
-          path: results
-          merge-multiple: true
-
-      - name: "Extract results"
-        id: extract-results
-        shell: bash
-        run: |
-          ls -R results
-          drifted_paths=()
-          error_paths=()
-          error_urls=()
-          error_excerpts=()
-          for result in results/*.json; do
-            path=$(jq -r '.path' "$result")
-            has_error=$(jq -r '.error' "$result")
-            logs_url=$(jq -r '.logs_url' "$result")
-            error_excerpt=$(jq -r '.error_excerpt' "$result")
-            if [ "$has_error" = "true" ]; then
-              # Add the path to the array of error paths
-              error_paths+=("$path")
-              error_urls+=("$logs_url")
-              error_excerpts+=("$error_excerpt")
-            else
-              drifted_paths+=("$path")
-              # Extract the 'drift' value
-              drift=$(jq -r '.drift' "$result")
-              # Append the drift to the .drift-history.json file at the specified path
-              echo "$drift" | jq -c '. | fromjson' >> "./infra-live-repo/$path/.drift-history.json"
-            fi
-          done
-
-          drifted_paths_markdown=""
-          if [ ${#drifted_paths[@]} -ne 0 ]; then
-            drifted_paths_markdown+="## ${#drifted_paths[@]} Drifted Units\n"
-            for path in "${drifted_paths[@]}"; do
-              drifted_paths_markdown+="- <code>$path</code>\n\n"
-            done
-            drifted_paths_markdown+="\n"
-
-            drifted_paths_markdown+="1. Gruntwork Pipelines will automatically run a <code>plan</code> showing all changes needed to resolve the drift.\n"
-            branch_link="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/tree/drift-detection"
-            drifted_paths_markdown+="1. Optionally push commits to [this branch]($branch_link) to bring your IaC into alignment with currently deployed resources.\n"
-            drifted_paths_markdown+="3. Merge this pull request to <code>apply</code> the changes and resolve the drift.\n"
-
-            echo "drifted_paths_markdown=$drifted_paths_markdown" >> "$GITHUB_OUTPUT"
-          fi
-
-          errored_paths_markdown=""
-          if [ ${#error_paths[@]} -ne 0 ]; then
-            errored_paths_markdown+="## :warning: ${#error_paths[@]} Unscanned Units\n"
-            errored_paths_markdown+="Drift detection was not performed for these units because the plans failed:\n"
-            for i in "${!error_paths[@]}"; do
-              path="${error_paths[$i]}"
-              logs_url="${error_urls[$i]}"
-              error_excerpt="${error_excerpts[$i]}"
-              errored_paths_markdown+="<details><summary><code>$path</code></summary>\n\n"
-              errored_paths_markdown+="\`\`\`\n"
-              errored_paths_markdown+=${error_excerpt//$'\n'/\\n}
-              errored_paths_markdown+="\n"
-              errored_paths_markdown+="\`\`\`\n"
-              errored_paths_markdown+="[View logs]($logs_url)\n"
-              errored_paths_markdown+="</details>\n"
-            done
-            echo "errored_paths_markdown=$errored_paths_markdown" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: "Create PR"
-        id: propose-infra-change
-        working-directory: ./infra-live-repo
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
-          WORKING_DIRECTORY: .
-          BRANCH_NAME: "drift-detection"
-          AUTHOR_NAME: ${{ github.actor }}
-          AUTHOR_EMAIL: ${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com
-          DRIFTED_PATHS_MARKDOWN: ${{ steps.extract-results.outputs.drifted_paths_markdown }}
-          ERRORED_PATHS_MARKDOWN: ${{ steps.extract-results.outputs.errored_paths_markdown }}
-        run: |
-          git_changes=$(git status --porcelain)
-          if [[ -n $git_changes ]]; then
-            logs_url="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-            body="# :left_right_arrow: Drift Detected\n"
-            body+="This pull request remediates [detected drift]($logs_url) between IaC in this repository and cloud resources in AWS.\n"
-            body+="\n"
-            body+="$DRIFTED_PATHS_MARKDOWN\n"
-            body+="$ERRORED_PATHS_MARKDOWN\n"
-            escaped_body=$(echo -e "$body")
-
-            pipelines scm propose-infra-change \
-              --working-directory "$WORKING_DIRECTORY" \
-              --change-request-branch-name "$BRANCH_NAME" \
-              --commit-message "Drift Detected" \
-              --title "Drift Detected" \
-              --body "$escaped_body" \
-              --author-name "$AUTHOR_NAME" \
-              --author-email "$AUTHOR_EMAIL" \
-              --force true
-          fi
-
-      - name: "Show Pull Request URL in Summary"
-        shell: bash
-        if: ${{ steps.propose-infra-change.outputs.pipelines_change_request_url }}
-        env:
-          PR_URL: ${{ steps.propose-infra-change.outputs.pipelines_change_request_url }}
-        run: |
-          echo "### ↔️ Drift Detected" >> "$GITHUB_STEP_SUMMARY"
-          echo "[Link to Drift Remediation Pull Request]($PR_URL)" >> "$GITHUB_STEP_SUMMARY"
+          PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          PR_CREATE_TOKEN: ${{ secrets.PR_CREATE_TOKEN }}
