@@ -21,7 +21,7 @@ on:
       runner:
         type: string
         default: '"ubuntu-latest"'
-      branch_name:
+      branch-name:
         type: string
         default: "drift-detection"
     secrets:
@@ -119,4 +119,4 @@ jobs:
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           PR_CREATE_TOKEN: ${{ secrets.PR_CREATE_TOKEN }}
-          BRANCH_NAME: ${{ inputs.branch_name }}
+          BRANCH_NAME: ${{ inputs.branch-name }}
