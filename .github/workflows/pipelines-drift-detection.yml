@@ -104,7 +104,7 @@ jobs:
         with:
           path: pipelines-actions
           repository: gruntwork-io/pipelines-actions
-          ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
+          ref: 2024-08-22_quotes-in-summary
           token: ${{ secrets.PIPELINES_READ_TOKEN }}
 
       - name: Check out repo code
