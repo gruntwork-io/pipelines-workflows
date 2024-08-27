@@ -51,14 +51,14 @@ jobs:
     steps:
       - name: Fetch Gruntwork Read Token
         id: fetch-piplines-gruntwork-read-token
-        uses: github.com/gruntwork-test/pipelines-credentials
+        uses: gruntwork-test/pipelines-credentials
         with:
           PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
 
       - name: Fetch Org Read Token
         id: fetch-piplines-org-read-token
-        uses: github.com/gruntwork-test/pipelines-credentials
+        uses: gruntwork-test/pipelines-credentials
         with:
           PIPELINES_TOKEN_PATH: "pipelines-read/${{ env.GITHUB_REPOSITORY_OWNER }}"
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
