@@ -49,6 +49,20 @@ jobs:
     name: Detect Infrastructure Changes
     runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
+      - name: Fetch Gruntwork Read Token
+        id: fetch-piplines-gruntwork-read-token
+        uses: github.com/gruntwork-test/pipelines-credentials
+        with:
+          PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
+          FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+
+      - name: Fetch Org Read Token
+        id: fetch-piplines-org-read-token
+        uses: github.com/gruntwork-test/pipelines-credentials
+        with:
+          PIPELINES_TOKEN_PATH: "pipelines-read/${{ env.GITHUB_REPOSITORY_OWNER }}"
+          FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+
       - name: Checkout Pipelines Actions
         id: checkout_actions
         uses: actions/checkout@v4
@@ -56,7 +70,7 @@ jobs:
           path: pipelines-actions
           repository: gruntwork-io/pipelines-actions
           ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
-          token: ${{ secrets.PIPELINES_READ_TOKEN }}
+          token: ${{ steps.fetch-pipelines-gruntwork-read-token.PIPELINES_TOKEN }}
 
       - name: Validate PIPELINES_READ_TOKEN
         if: always() && steps.checkout_actions.conclusion != 'success'
