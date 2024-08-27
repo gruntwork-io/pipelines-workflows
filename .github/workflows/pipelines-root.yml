@@ -57,7 +57,7 @@ jobs:
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
 
       - name: Fetch Org Read Token
-        id: piplines-org-read-token
+        id: pipelines-org-read-token
         uses: gruntwork-test/pipelines-credentials@main
         with:
           PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
@@ -131,7 +131,7 @@ jobs:
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
 
       - name: Fetch Org Read Token
-        id: piplines-org-read-token
+        id: pipelines-org-read-token
         uses: gruntwork-test/pipelines-credentials@main
         with:
           PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
