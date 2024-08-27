@@ -30,12 +30,8 @@ on:
         required: false
 
 env:
-  PIPELINES_CLI_VERSION: v0.28.0
-<<<<<<< HEAD
+  PIPELINES_CLI_VERSION: v0.29.0-rc4
   PIPELINES_ACTIONS_VERSION: v3-rc1
-=======
-  PIPELINES_ACTIONS_VERSION: 2024-08-27_gruntcon_githubapp
->>>>>>> d4c9405 (Use actions@2024-08-27_gruntcon_githubapp)
   BOILERPLATE_VERSION: v0.5.16
   GRUNTWORK_INSTALLER_VERSION: v0.0.40
 
