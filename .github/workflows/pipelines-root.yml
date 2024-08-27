@@ -70,7 +70,7 @@ jobs:
           path: pipelines-actions
           repository: gruntwork-io/pipelines-actions
           ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
-          token: ${{ steps.fetch-pipelines-gruntwork-read-token.PIPELINES_TOKEN }}
+          token: ${{ steps.fetch-pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Validate PIPELINES_READ_TOKEN
         if: always() && steps.checkout_actions.conclusion != 'success'
