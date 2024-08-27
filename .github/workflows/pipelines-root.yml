@@ -60,7 +60,7 @@ jobs:
         id: fetch-piplines-org-read-token
         uses: gruntwork-test/pipelines-credentials@main
         with:
-          PIPELINES_TOKEN_PATH: "pipelines-read/${{ env.GITHUB_REPOSITORY_OWNER }}"
+          PIPELINES_TOKEN_PATH: pipelines-read/${{ env.GITHUB_REPOSITORY_OWNER }}
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
 
       - name: Checkout Pipelines Actions
