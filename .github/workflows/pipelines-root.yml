@@ -50,7 +50,7 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
       - name: Fetch Gruntwork Read Token
-        id: fetch-piplines-gruntwork-read-token
+        id: fetch-pipelines-gruntwork-read-token
         uses: gruntwork-test/pipelines-credentials@main
         with:
           PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
