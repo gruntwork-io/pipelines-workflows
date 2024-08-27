@@ -50,14 +50,14 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
       - name: Fetch Gruntwork Read Token
-        id: fetch-pipelines-gruntwork-read-token
+        id: pipelines-gruntwork-read-token
         uses: gruntwork-test/pipelines-credentials@main
         with:
           PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
 
       - name: Fetch Org Read Token
-        id: fetch-piplines-org-read-token
+        id: piplines-org-read-token
         uses: gruntwork-test/pipelines-credentials@main
         with:
           PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
@@ -70,7 +70,7 @@ jobs:
           path: pipelines-actions
           repository: gruntwork-io/pipelines-actions
           ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
-          token: ${{ steps.fetch-pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+          token: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Validate PIPELINES_READ_TOKEN
         if: always() && steps.checkout_actions.conclusion != 'success'
@@ -123,13 +123,27 @@ jobs:
       matrix:
         jobs: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs) }}
     steps:
+      - name: Fetch Gruntwork Read Token
+        id: pipelines-gruntwork-read-token
+        uses: gruntwork-test/pipelines-credentials@main
+        with:
+          PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
+          FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+
+      - name: Fetch Org Read Token
+        id: piplines-org-read-token
+        uses: gruntwork-test/pipelines-credentials@main
+        with:
+          PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
+          FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+
       - name: Checkout Pipelines Actions
         uses: actions/checkout@v4
         with:
           path: pipelines-actions
           repository: gruntwork-io/pipelines-actions
           ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
-          token: ${{ secrets.PIPELINES_READ_TOKEN }}
+          token: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Check out repo code
         uses: actions/checkout@v4
@@ -224,7 +238,8 @@ jobs:
         env:
           TERRAGRUNT_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd ."
         with:
-          token: ${{ secrets.PIPELINES_READ_TOKEN }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+          PIPELINES_ORG_READ_TOKEN: ${{ steps.pipelines-org-read-token.outputs.PIPELINES_TOKEN }}
           tf_binary: ${{ steps.gruntwork_context.outputs.tf_binary }}
           working_directory: ${{ steps.gruntwork_context.outputs.working_directory }}
           terragrunt_command: ${{ steps.gruntwork_context.outputs.terragrunt_command }}
