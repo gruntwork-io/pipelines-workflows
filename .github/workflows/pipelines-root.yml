@@ -100,6 +100,8 @@ jobs:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           INFRA_ROOT_WRITE_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
           ORG_REPO_ADMIN_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+          PIPELINES_ORG_READ_TOKEN: ${{ steps.pipelines-org-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Pipelines Orchestrate
         id: orchestrate
