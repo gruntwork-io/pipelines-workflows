@@ -70,7 +70,7 @@ jobs:
           TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
         run: |
           mkdir -p ./pipelines-actions
-          git clone "https://x-access-token:$TOKEN@github.com/gruntwork-io/pipelines-actions.git" pipelines-actions
+          git clone https://x-access-token:${TOKEN}@github.com/gruntwork-io/pipelines-actions.git pipelines-actions
           ls -R ./pipelines-actions
 
       - name: Checkout Pipelines Actions
