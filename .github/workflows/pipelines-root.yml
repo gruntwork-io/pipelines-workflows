@@ -63,7 +63,7 @@ jobs:
           PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
 
-      - name: [Debug] CLone Pipelines Actions
+      - name: Debug Clone Pipelines Actions
         id: debug-checkout-actions
         shell: bash
         env:
