@@ -158,7 +158,8 @@ jobs:
         id: gruntwork_context
         uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
         with:
-          token: ${{ secrets.PIPELINES_READ_TOKEN }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           change_type: ${{ matrix.jobs.ChangeType }}
           branch: ${{ matrix.jobs.Ref }}
           working_directory: ${{ matrix.jobs.WorkingDirectory }}
