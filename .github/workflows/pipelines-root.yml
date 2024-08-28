@@ -57,7 +57,7 @@ jobs:
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
 
       - name: Fetch Org Read Token
-        id: pipelines-org-read-token
+        id: pipelines-customer-org-read-token
         uses: gruntwork-test/pipelines-credentials@main
         with:
           PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
@@ -101,13 +101,14 @@ jobs:
           INFRA_ROOT_WRITE_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
           ORG_REPO_ADMIN_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
-          PIPELINES_ORG_READ_TOKEN: ${{ steps.pipelines-org-read-token.outputs.PIPELINES_TOKEN }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Pipelines Orchestrate
         id: orchestrate
         uses: ./pipelines-actions/.github/actions/pipelines-orchestrate
         with:
-          token: ${{ secrets.PIPELINES_READ_TOKEN }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
     outputs:
       pipelines_jobs: ${{ steps.orchestrate.outputs.jobs }}
@@ -133,7 +134,7 @@ jobs:
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
 
       - name: Fetch Org Read Token
-        id: pipelines-org-read-token
+        id: pipelines-customer-org-read-token
         uses: gruntwork-test/pipelines-credentials@main
         with:
           PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
@@ -241,7 +242,7 @@ jobs:
           TERRAGRUNT_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd ."
         with:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
-          PIPELINES_ORG_READ_TOKEN: ${{ steps.pipelines-org-read-token.outputs.PIPELINES_TOKEN }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           tf_binary: ${{ steps.gruntwork_context.outputs.tf_binary }}
           working_directory: ${{ steps.gruntwork_context.outputs.working_directory }}
           terragrunt_command: ${{ steps.gruntwork_context.outputs.terragrunt_command }}
