@@ -4,13 +4,17 @@ on:
   workflow_call:
     inputs:
       lock_id:
-        description: "The ID of the lock, usually a GUID. This is generally found in the console output when Terraform/OpenTofu command fails due to a timeout waiting to acquire a lock."
-        required: true
+        description: "The ID of the lock, usually a GUID. This is generally found in the console output when Terraform/OpenTofu command fails due to a timeout waiting to acquire a lock. (required if not running unlock_all)"
+        required: false
         type: string
       working_directory:
-        description: "Path to the terragrunt.hcl file where the lock is held"
-        required: true
+        description: "Path to the terragrunt.hcl file where the lock is held (required if not running unlock_all)"
+        required: false
         type: string
+      unlock_all:
+        description: "Forcibly reset all locks by deleting the dynamodb table"
+        required: false
+        type: boolean
 
       # This field can be overriden to customize the runner used for pipelines
       # workflows.
@@ -34,12 +38,13 @@ on:
         PIPELINES_READ_TOKEN:
           required: true
 env:
-  PIPELINES_CLI_VERSION: v0.20.0
+  PIPELINES_CLI_VERSION: v0.28.0
   PIPELINES_ACTIONS_VERSION: main
 
 jobs:
-  unlock:
-    name: Unlock TF State
+  unlock_one:
+    name: Unlock a single TF State
+    if: ${{ !inputs.unlock_all }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
       - name: Checkout Pipelines Actions
@@ -66,6 +71,182 @@ jobs:
           branch: 'main'
 
       - name: "Run terragrunt force-unlock in ${{ inputs.working_directory }}"
+        id: terragrunt
+        uses: ./pipelines-actions/.github/actions/pipelines-execute
+        env:
+          TERRAGRUNT_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd ."
+        with:
+          token: ${{ secrets.PIPELINES_READ_TOKEN }}
+          tf_binary: ${{ steps.gruntwork_context.outputs.tf_binary }}
+          working_directory: ${{ steps.gruntwork_context.outputs.working_directory }}
+          terragrunt_command: ${{ steps.gruntwork_context.outputs.terragrunt_command }}
+          infra_live_repo_branch: ${{ steps.gruntwork_context.outputs.branch }}
+          gruntwork_config_file: ${{ steps.gruntwork_context.outputs.gruntwork_config_file }}
+          infra_live_repo: "."
+          infra_live_directory: "."
+          deploy_branch_name: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
+
+  unlock_all:
+    name: Unlock all TF State files
+    if: ${{ inputs.unlock_all }}
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    steps:
+      - name: Checkout Pipelines Actions
+        uses: actions/checkout@v4
+        with:
+          path: pipelines-actions
+          repository: gruntwork-io/pipelines-actions
+          ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
+          token: ${{ secrets.PIPELINES_READ_TOKEN }}
+
+      - name: Check out repo code
+        uses: actions/checkout@v4
+        with:
+          path: infra-live-repo
+          fetch-depth: 0
+
+      - name: Bootstrap Workflow
+        id: gruntwork_context
+        uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
+        with:
+          token: ${{ secrets.PIPELINES_READ_TOKEN }}
+          working_directory: ${{ inputs.working_directory }}
+          terragrunt_command: "init"
+          branch: 'main'
+
+      - name: Setup Mise Toml
+        id: mise-toml
+        working-directory: ./infra-live-repo
+        shell: bash
+        env:
+          GENERATE_MISE_TOML: false
+          INFRA_LIVE_DIRECTORY: "."
+        run: |
+          echo 'TOML<<EOF' >> "$GITHUB_OUTPUT"
+          cat $INFRA_LIVE_DIRECTORY/.mise.toml >> "$GITHUB_OUTPUT"
+          echo '' >> "$GITHUB_OUTPUT"
+          echo 'EOF' >> "$GITHUB_OUTPUT"
+
+      - uses: jdx/mise-action@v2
+        with:
+          install: true
+          cache: true
+          mise_toml: "${{ steps.mise-toml.outputs.TOML }}"
+
+      - name: Wipe all dynamodb terraform lock tables
+        shell: bash
+        id: unlock_tables
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+        run: |
+          set +x
+          set +e
+
+          if [[ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]]; then
+            export GITHUB_EVENT_NAME=push
+          fi
+
+          echo "Wiping all dynamodb terraform lock tables"
+
+          # Recursively find every terragrunt hcl
+          COMPLETED_ACCOUNTS_FILE=$(mktemp)
+          NEEDS_INIT_FOLDERS=$(mktemp)
+
+          cd infra-live-repo/
+
+          REGIONS=("af-south-1" "ap-east-1" "ap-northeast-1" "ap-northeast-2" "ap-northeast-3" "ap-south-1" "ap-southeast-1" "ap-southeast-2" "ap-southeast-3" "ca-central-1" "cn-north-1" "cn-northwest-1" "eu-central-1" "eu-north-1" "eu-south-1" "eu-west-1" "eu-west-2" "eu-west-3" "me-south-1" "sa-east-1" "us-east-1" "us-east-2" "us-gov-east-1" "us-gov-west-1" "us-west-1" "us-west-2" "me-central-1")
+
+          unlock_folder () {
+            working_dir="$1"
+            cd $working_dir
+
+            pipelinesConfigAuth=$(GH_TOKEN=$GITHUB_TOKEN pipelines config auth)
+            ACCOUNTID=$(echo $pipelinesConfigAuth | jq -r ".Authentication.AWSOIDC.AccountID")
+
+            grep $ACCOUNTID $COMPLETED_ACCOUNTS_FILE > /dev/null
+            if [[ $? == 0 ]]; then
+              echo "Skipping $ACCOUNTID as it has already been processed"
+              return
+            else
+              echo "Unlocking state in $ACCOUNTID in `pwd`"
+              echo $working_dir >> $NEEDS_INIT_FOLDERS
+              echo $ACCOUNTID >> $COMPLETED_ACCOUNTS_FILE
+            fi
+
+            REGION=$(echo $pipelinesConfigAuth | jq -r ".Authentication.AWSOIDC.Region")
+
+            auth=$(GH_TOKEN=$GITHUB_TOKEN pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd .)
+            export AWS_DEFAULT_REGION=$REGION
+            export AWS_ACCESS_KEY_ID=$(jq -r '.awsCredentials.ACCESS_KEY_ID' <<< $auth)
+            export AWS_SECRET_ACCESS_KEY=$(jq -r '.awsCredentials.SECRET_ACCESS_KEY' <<< $auth)
+            export AWS_SESSION_TOKEN=$(jq -r '.awsCredentials.SESSION_TOKEN' <<< $auth)
+
+            for region in ${REGIONS[@]}; do
+              echo "Deleting table terraform-locks in $region for $ACCOUNTID"
+              aws dynamodb delete-table --table-name terraform-locks --region $region || true  # Ignore failures if no table already exists
+            done
+
+            echo "Lock removed for $ACCOUNTID"
+          }
+
+
+          while IFS= read -rd '' unit <&3; do
+            working_dir=$(dirname "$unit")
+            if [[ $working_dir == "." ]]; then
+              echo "Skipping root folder"
+              continue
+            fi
+
+            unlock_folder $working_dir &
+          done 3< <(find . -name "terragrunt.hcl" -print0)
+
+          # Wait for all jobs to finish
+          wait
+
+          # Convert bash array of strings to a JSOn array
+          JSON=$(cat $NEEDS_INIT_FOLDERS | jq -R . | jq -s .)
+          echo $JSON
+          echo "unlock_folders<<EOF" >> "$GITHUB_OUTPUT"
+          echo $JSON >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+    outputs:
+      unlock_folders: ${{ steps.unlock_tables.outputs.unlock_folders }}
+
+  pipelines_reinit:
+    name: "Rerun init in ${{ matrix.working_directory }}"
+    needs: [unlock_all]
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    if: ${{ inputs.unlock_all }}
+    strategy:
+      fail-fast: false
+      matrix:
+        working_directory: ${{ fromJson(needs.unlock_all.outputs.unlock_folders) }}
+    steps:
+      - name: Checkout Pipelines Actions
+        uses: actions/checkout@v4
+        with:
+          path: pipelines-actions
+          repository: gruntwork-io/pipelines-actions
+          ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
+          token: ${{ secrets.PIPELINES_READ_TOKEN }}
+
+      - name: Check out repo code
+        uses: actions/checkout@v4
+        with:
+          path: infra-live-repo
+          fetch-depth: 0
+
+      - name: Bootstrap Workflow
+        id: gruntwork_context
+        uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
+        with:
+          token: ${{ secrets.PIPELINES_READ_TOKEN }}
+          working_directory: ${{ matrix.working_directory }}
+          terragrunt_command: "init"
+          branch: 'main'
+
+      - name: "Run Terragrunt Init"
         id: terragrunt
         uses: ./pipelines-actions/.github/actions/pipelines-execute
         env:
