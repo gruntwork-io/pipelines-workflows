@@ -63,6 +63,20 @@ jobs:
           PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
 
+      - name: Fetch Infra Root Write Token
+        id: pipelines-infra-root-write-token
+        uses: gruntwork-test/pipelines-credentials@main
+        with:
+          PIPELINES_TOKEN_PATH: infra-root-write/${{ github.repository_owner }}
+          FALLBACK_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
+
+      - name: Fetch Org Repo Admin Token
+        id: pipelines-org-repo-admin-token
+        uses: gruntwork-test/pipelines-credentials@main
+        with:
+          PIPELINES_TOKEN_PATH: org-repo-admin/${{ github.repository_owner }}
+          FALLBACK_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
+
       - name: Checkout Pipelines Actions
         id: checkout_actions
         uses: actions/checkout@v4
@@ -98,8 +112,8 @@ jobs:
         with:
           IS_ROOT: "true"
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
-          INFRA_ROOT_WRITE_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
-          ORG_REPO_ADMIN_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
+          INFRA_ROOT_WRITE_TOKEN: ${{ steps.pipelines-infra-root-write-token.outputs.PIPELINES_TOKEN }}
+          ORG_REPO_ADMIN_TOKEN:  ${{ steps.pipelines-org-repo-admin-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
