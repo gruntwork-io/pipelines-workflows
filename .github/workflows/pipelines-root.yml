@@ -251,8 +251,8 @@ jobs:
         # TODO: Rename this as pipelines-apply-core-baselines or something similar
         uses: ./pipelines-actions/.github/actions/pipelines-baseline-account-action
         with:
-          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ secrets.PIPELINES_GRUNTWORK_READ_TOKEN }}
-          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ secrets.PIPELINES_CUSTOMER_ORG_READ_TOKEN }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
       - name: "[Baseline]: Post Baseline Core Account Action"
