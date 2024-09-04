@@ -154,6 +154,13 @@ jobs:
           PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
 
+      - name: Fetch Infra Root Write Token
+        id: pipelines-infra-root-write-token
+        uses: gruntwork-test/pipelines-credentials@main
+        with:
+          PIPELINES_TOKEN_PATH: infra-root-write/${{ github.repository_owner }}
+          FALLBACK_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
+
       - name: Checkout Pipelines Actions
         uses: actions/checkout@v4
         with:
@@ -192,7 +199,7 @@ jobs:
         with:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
-          INFRA_ROOT_WRITE_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
+          INFRA_ROOT_WRITE_TOKEN: ${{ steps.pipelines-infra-root-write-token.outputs.PIPELINES_TOKEN }}
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
       - name: "[ProvisionAccount]: Provision New Account"
@@ -202,7 +209,7 @@ jobs:
         with:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
-          INFRA_ROOT_WRITE_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
+          INFRA_ROOT_WRITE_TOKEN: ${{ steps.pipelines-infra-root-write-token.outputs.PIPELINES_TOKEN }}
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
       - name: "[ProvisionAccount]: Post Provision New Account Custom Action"
@@ -211,7 +218,7 @@ jobs:
         with:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
-          INFRA_ROOT_WRITE_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
+          INFRA_ROOT_WRITE_TOKEN: ${{ steps.pipelines-infra-root-write-token.outputs.PIPELINES_TOKEN }}
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
           baseline_path: ${{ steps.provision_new_account.outputs.baseline_path }}
 
@@ -440,6 +447,13 @@ jobs:
           PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
 
+      - name: Fetch Org Repo Admin Token
+        id: pipelines-org-repo-admin-token
+        uses: gruntwork-test/pipelines-credentials@main
+        with:
+          PIPELINES_TOKEN_PATH: org-repo-admin/${{ github.repository_owner }}
+          FALLBACK_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
+
       - name: Checkout Pipelines Actions
         uses: actions/checkout@v4
         with:
@@ -480,7 +494,7 @@ jobs:
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
-          ORG_REPO_ADMIN_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
+          ORG_REPO_ADMIN_TOKEN: ${{ steps.pipelines-org-repo-admin-token.outputs.PIPELINES_TOKEN }}
 
       - name: "Create and bootstrap delegated Repo"
         id: provision_delegated_repo
@@ -490,7 +504,7 @@ jobs:
           access_control_pull_request_url: ${{ steps.access_control_pr.outputs.pull_request_url }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
-          ORG_REPO_ADMIN_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
+          ORG_REPO_ADMIN_TOKEN: ${{ steps.pipelines-org-repo-admin-token.outputs.PIPELINES_TOKEN }}
 
       # To learn more about customizing Pipelines see our documentation at https://docs.gruntwork.io/pipelines/maintain/extending/
       - name: "Post create delegated repo custom actions"
@@ -500,13 +514,13 @@ jobs:
           access_control_pull_request_url: ${{ steps.access_control_pr.outputs.pull_request_url }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
-          ORG_REPO_ADMIN_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
+          ORG_REPO_ADMIN_TOKEN: ${{ steps.pipelines-org-repo-admin-token.outputs.PIPELINES_TOKEN }}
 
       - name: "Create Delegated Repo PR"
         uses: ./pipelines-actions/.github/actions/pipelines-new-pr-action
         with:
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
-          GH_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
+          GH_TOKEN: ${{ steps.pipelines-org-repo-admin-token.outputs.PIPELINES_TOKEN }}
           path: ${{ steps.provision_delegated_repo.outputs.path }}
           new_branch_name: ${{ steps.provision_delegated_repo.outputs.new_branch_name }}
           commit_message: ${{ steps.provision_delegated_repo.outputs.commit_message }}
