@@ -211,6 +211,7 @@ jobs:
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           INFRA_ROOT_WRITE_TOKEN: ${{ steps.pipelines-infra-root-write-token.outputs.PIPELINES_TOKEN }}
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
+          disable_provision: true # FIXME: Don't ship this
 
       - name: "[ProvisionAccount]: Post Provision New Account Custom Action"
         uses: ./pipelines-actions/.github/custom-actions/post-provision-new-account
