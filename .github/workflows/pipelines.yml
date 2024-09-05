@@ -26,13 +26,8 @@ on:
         required: true
 
 env:
-<<<<<<< HEAD
   PIPELINES_CLI_VERSION: v0.29.0-rc4
   PIPELINES_ACTIONS_VERSION: v3-rc1
-=======
-  PIPELINES_CLI_VERSION: v0.29.0-rc1
-  PIPELINES_ACTIONS_VERSION: 2024-08-27_gruntcon_githubapp
->>>>>>> c490aa7 (Use pipelines-cli@v0.29.0-rc1)
 
   # GitHub Actions tends to hit resource exhaustion and kill running jobs
   # if we leave parallelism unbounded, so we set the max to 10 for a sane default.
