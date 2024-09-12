@@ -24,6 +24,9 @@ on:
       branch-name:
         type: string
         default: "drift-detection"
+      api_base_url:
+        type: string
+        default: "https://api.prod.app.gruntwork.io/api/v1"
     secrets:
         PIPELINES_READ_TOKEN:
           required: false
@@ -48,7 +51,7 @@ jobs:
         with:
           PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
-          api_base_url: "https://aperture-dev-git-pipelines-api-gruntwork.vercel.app/api/v1"
+          api_base_url: ${{ inputs.api_base_url }}
 
 
       - name: Fetch Org Read Token
@@ -57,7 +60,7 @@ jobs:
         with:
           PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
-          api_base_url: "https://aperture-dev-git-pipelines-api-gruntwork.vercel.app/api/v1"
+          api_base_url: ${{ inputs.api_base_url }}
 
       - name: Checkout Pipelines Actions
         uses: actions/checkout@v4
@@ -95,7 +98,7 @@ jobs:
         with:
           PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
-          api_base_url: "https://aperture-dev-git-pipelines-api-gruntwork.vercel.app/api/v1"
+          api_base_url: ${{ inputs.api_base_url }}
 
       - name: Fetch Org Read Token
         id: pipelines-customer-org-read-token
@@ -103,7 +106,7 @@ jobs:
         with:
           PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
-          api_base_url: "https://aperture-dev-git-pipelines-api-gruntwork.vercel.app/api/v1"
+          api_base_url: ${{ inputs.api_base_url }}
 
       - name: Checkout Pipelines Actions
         uses: actions/checkout@v4
@@ -141,7 +144,7 @@ jobs:
         with:
           PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
-          api_base_url: "https://aperture-dev-git-pipelines-api-gruntwork.vercel.app/api/v1"
+          api_base_url: ${{ inputs.api_base_url }}
 
       - name: Fetch Org Read Token
         id: pipelines-customer-org-read-token
@@ -149,7 +152,7 @@ jobs:
         with:
           PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
-          api_base_url: "https://aperture-dev-git-pipelines-api-gruntwork.vercel.app/api/v1"
+          api_base_url: ${{ inputs.api_base_url }}
 
       - name: Fetch Create PR Token
         id: pipelines-propose-infra-change-token
@@ -157,7 +160,7 @@ jobs:
         with:
           PIPELINES_TOKEN_PATH: propose-infra-change/${{ github.repository_owner }}
           FALLBACK_TOKEN: ${{ secrets.PR_CREATE_TOKEN }}
-          api_base_url: "https://aperture-dev-git-2024-09-11drift-gruntwork.vercel.app/api/v1"
+          api_base_url: ${{ inputs.api_base_url }}
 
       - name: Checkout Pipelines Actions
         uses: actions/checkout@v4
