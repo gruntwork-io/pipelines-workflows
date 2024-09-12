@@ -26,9 +26,9 @@ on:
         default: "drift-detection"
     secrets:
         PIPELINES_READ_TOKEN:
-          required: true
+          required: false
         PR_CREATE_TOKEN:
-          required: true
+          required: false
 env:
   PIPELINES_CLI_VERSION: v0.29.0-rc5
   PIPELINES_ACTIONS_VERSION: v3-rc1
