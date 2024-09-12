@@ -296,6 +296,7 @@ jobs:
         uses: ./pipelines-actions/.github/actions/pipelines-get-job-logs-url
         if: always()
         with:
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           job_name: ${{ env.JOB_NAME }}
           step_name_prefix: "${{ steps.gruntwork_context.outputs.action == 'TERRAGRUNT_EXECUTE' && '[TerragruntExecute]:\ Authenticate with AWS and then Invoke Terragrunt' || (steps.gruntwork_context.outputs.action == 'BASELINE_ACCOUNT' && 'Run core accounts baselines' || '[ProvisionAccount]:\ Provision New Account') }}"
 
@@ -425,6 +426,7 @@ jobs:
         uses: ./pipelines-actions/.github/actions/pipelines-get-job-logs-url
         if: always()
         with:
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           job_name: ${{ env.JOB_NAME }}
           step_name_prefix: "[Baseline]: Baseline the Child Account"
 
