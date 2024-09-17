@@ -24,14 +24,17 @@ on:
       branch-name:
         type: string
         default: "drift-detection"
+      api_base_url:
+        type: string
+        default: "https://api.prod.app.gruntwork.io/api/v1"
     secrets:
         PIPELINES_READ_TOKEN:
-          required: true
+          required: false
         PR_CREATE_TOKEN:
-          required: true
+          required: false
 env:
-  PIPELINES_CLI_VERSION: v0.28.0
-  PIPELINES_ACTIONS_VERSION: main
+  PIPELINES_CLI_VERSION: v0.29.0-rc5
+  PIPELINES_ACTIONS_VERSION: v3-rc1
   BOILERPLATE_VERSION: v0.5.16
   GRUNTWORK_INSTALLER_VERSION: v0.0.40
 
@@ -42,19 +45,37 @@ jobs:
     outputs:
       units: ${{ steps.determine-units.outputs.units }}
     steps:
+      - name: Fetch Gruntwork Read Token
+        id: pipelines-gruntwork-read-token
+        uses: gruntwork-io/pipelines-credentials@main
+        with:
+          PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
+          FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          api_base_url: ${{ inputs.api_base_url }}
+
+
+      - name: Fetch Org Read Token
+        id: pipelines-customer-org-read-token
+        uses: gruntwork-io/pipelines-credentials@main
+        with:
+          PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
+          FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          api_base_url: ${{ inputs.api_base_url }}
+
       - name: Checkout Pipelines Actions
         uses: actions/checkout@v4
         with:
           path: pipelines-actions
           repository: gruntwork-io/pipelines-actions
           ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
-          token: ${{ secrets.PIPELINES_READ_TOKEN }}
+          token: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Check out repo code
         uses: actions/checkout@v4
         with:
           path: infra-live-repo
           fetch-depth: 0
+          token: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Determine Units
         id: determine-units
@@ -71,27 +92,45 @@ jobs:
       JOB_NAME: Detect Drift in ${{ matrix.unit.path }}
     name: Detect Drift in ${{ matrix.unit.path }}
     steps:
+      - name: Fetch Gruntwork Read Token
+        id: pipelines-gruntwork-read-token
+        uses: gruntwork-io/pipelines-credentials@main
+        with:
+          PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
+          FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          api_base_url: ${{ inputs.api_base_url }}
+
+      - name: Fetch Org Read Token
+        id: pipelines-customer-org-read-token
+        uses: gruntwork-io/pipelines-credentials@main
+        with:
+          PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
+          FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          api_base_url: ${{ inputs.api_base_url }}
+
       - name: Checkout Pipelines Actions
         uses: actions/checkout@v4
         with:
           path: pipelines-actions
           repository: gruntwork-io/pipelines-actions
           ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
-          token: ${{ secrets.PIPELINES_READ_TOKEN }}
+          token: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Check out repo code
         uses: actions/checkout@v4
         with:
           path: infra-live-repo
           fetch-depth: 0
+          token: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Execute Drift Detection
         id: determine-drift
         uses: ./pipelines-actions/.github/actions/pipelines-drift-detection-determine-drift
         with:
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           UNIT_ID: ${{ matrix.unit.id }}
           UNIT_PATH: ${{ matrix.unit.path }}
-          PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           JOB_NAME: ${{ env.JOB_NAME }}
           STEP_NAME: "Execute Drift Detection"
 
@@ -99,24 +138,49 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
     needs: pipelines_drift_detection
     steps:
+      - name: Fetch Gruntwork Read Token
+        id: pipelines-gruntwork-read-token
+        uses: gruntwork-io/pipelines-credentials@main
+        with:
+          PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
+          FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          api_base_url: ${{ inputs.api_base_url }}
+
+      - name: Fetch Org Read Token
+        id: pipelines-customer-org-read-token
+        uses: gruntwork-io/pipelines-credentials@main
+        with:
+          PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
+          FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          api_base_url: ${{ inputs.api_base_url }}
+
+      - name: Fetch Create PR Token
+        id: pipelines-propose-infra-change-token
+        uses: gruntwork-io/pipelines-credentials@main
+        with:
+          PIPELINES_TOKEN_PATH: propose-infra-change/${{ github.repository_owner }}
+          FALLBACK_TOKEN: ${{ secrets.PR_CREATE_TOKEN }}
+          api_base_url: ${{ inputs.api_base_url }}
+
       - name: Checkout Pipelines Actions
         uses: actions/checkout@v4
         with:
           path: pipelines-actions
           repository: gruntwork-io/pipelines-actions
           ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
-          token: ${{ secrets.PIPELINES_READ_TOKEN }}
+          token: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Check out repo code
         uses: actions/checkout@v4
         with:
           path: infra-live-repo
           fetch-depth: 0
+          token: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: "Consolidate Jobs"
         id: consolidate-jobs
         uses: ./pipelines-actions/.github/actions/pipelines-drift-detection-consolidate-jobs
         with:
-          PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
-          PR_CREATE_TOKEN: ${{ secrets.PR_CREATE_TOKEN }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+          PR_CREATE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
           BRANCH_NAME: ${{ inputs.branch-name }}
