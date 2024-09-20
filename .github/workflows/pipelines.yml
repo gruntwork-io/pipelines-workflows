@@ -60,6 +60,14 @@ jobs:
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           api_base_url: ${{ inputs.api_base_url }}
 
+      - name: Fetch Create PR Token
+        id: pipelines-propose-infra-change-token
+        uses: gruntwork-io/pipelines-credentials@main
+        with:
+          PIPELINES_TOKEN_PATH: propose-infra-change/${{ github.repository_owner }}
+          FALLBACK_TOKEN: ${{ secrets.PR_CREATE_TOKEN }}
+          api_base_url: ${{ inputs.api_base_url }}
+
       - name: Checkout Pipelines Actions
         id: checkout_actions
         uses: actions/checkout@v4
@@ -97,6 +105,7 @@ jobs:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+          PR_CREATE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
 
       - name: Pipelines Orchestrate
         id: orchestrate
