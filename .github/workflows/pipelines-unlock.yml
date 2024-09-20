@@ -291,6 +291,7 @@ jobs:
         with:
           path: infra-live-repo
           fetch-depth: 0
+          token: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Bootstrap Workflow
         id: gruntwork_context
