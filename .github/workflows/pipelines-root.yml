@@ -114,6 +114,7 @@ jobs:
         with:
           path: infra-live-repo
           fetch-depth: 0
+          token: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Preflight Checks
         uses: ./pipelines-actions/.github/actions/pipelines-preflight-action
