@@ -31,7 +31,7 @@ on:
 
 env:
   PIPELINES_CLI_VERSION: v0.28.0
-  PIPELINES_ACTIONS_VERSION: main
+  PIPELINES_ACTIONS_VERSION: feat/capture-stderr-as-well-from-pipelines-execute
   BOILERPLATE_VERSION: v0.5.16
   GRUNTWORK_INSTALLER_VERSION: v0.0.40
 
