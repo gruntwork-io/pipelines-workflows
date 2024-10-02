@@ -186,7 +186,7 @@ jobs:
         id: consolidate-jobs
         uses: ./pipelines-actions/.github/actions/pipelines-drift-detection-consolidate-jobs
         with:
-          PATH: ${{ inputs.path }}
+          PATH_FILTER: ${{ inputs.path }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PR_CREATE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
           BRANCH_NAME: ${{ inputs.branch-name }}
