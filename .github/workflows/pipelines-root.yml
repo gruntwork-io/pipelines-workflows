@@ -34,11 +34,10 @@ on:
         required: false
 
 env:
-  PIPELINES_CLI_VERSION: v0.28.5-rc1
+  PIPELINES_CLI_VERSION: v0.28.5-rc2
   PIPELINES_ACTIONS_VERSION: v3-rc1
   BOILERPLATE_VERSION: v0.5.16
   GRUNTWORK_INSTALLER_VERSION: v0.0.40
-  PIPELINES_TELEMETRY_OPT_OUT: true
 
   # Disables all executions of terragrunt. This is useful for debugging
   # specifics of pipelines actions/workflows and bypassing the (usually time consuming)
