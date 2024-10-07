@@ -87,7 +87,7 @@ jobs:
           PATH_FILTER: ${{ inputs.path }}
 
   pipelines_drift_detection:
-    if: ${{ needs.determine_units.outputs.units != null }}
+    if: ${{ fromJSON(needs.determine_units.outputs.units)[0] != null }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     needs: determine_units
     strategy:
