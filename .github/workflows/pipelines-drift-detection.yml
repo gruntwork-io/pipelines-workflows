@@ -91,6 +91,7 @@ jobs:
     needs: determine_units
     strategy:
       fail-fast: false
+      max-parallel: 18
       matrix:
         unit: ${{ fromJSON(needs.determine_units.outputs.units) }}
     env:
@@ -140,6 +141,7 @@ jobs:
           STEP_NAME: "Execute Drift Detection"
 
   consolidate_jobs:
+    name: Consolidate Jobs
     runs-on: ${{ fromJSON(inputs.runner) }}
     needs: pipelines_drift_detection
     steps:
