@@ -495,7 +495,7 @@ jobs:
           path: pipelines-actions
           repository: gruntwork-io/pipelines-actions
           ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
-          token: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}]
+          token: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Check out repo code
         uses: actions/checkout@v4
