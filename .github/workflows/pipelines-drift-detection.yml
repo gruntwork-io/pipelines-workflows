@@ -18,12 +18,12 @@ on:
       # - A simple github runner: "\"ubuntu-22.04\""
       # - A list of labels: "[\"self-hosted\", \"linux\"]"
       # - A map: "{group: \"ubuntu-runners\", labels: \"ubuntu-20.04-16core\"}"
-      path:
-        type: string
-        default: ""
       runner:
         type: string
         default: '"ubuntu-latest"'
+      path:
+        type: string
+        default: ""
       branch-name:
         type: string
         default: "drift-detection"
