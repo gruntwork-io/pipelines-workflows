@@ -55,6 +55,7 @@ jobs:
     steps:
       - name: Fetch Gruntwork Read Token
         id: pipelines-gruntwork-read-token
+        uses: gruntwork-io/pipelines-credentials@2943f2dd66ca5e4d93c6171600ae0714b101cf97
         with:
           PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
