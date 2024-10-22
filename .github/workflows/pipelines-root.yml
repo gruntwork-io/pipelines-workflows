@@ -567,7 +567,7 @@ jobs:
           step_summary_content: ${{ steps.provision_delegated_repo.outputs.step_summary_content }}
 
   pipelines_rate_limit:
-    name: Rate Limit
+    name: Get Rate Limit after all jobs
     runs-on: ${{ fromJSON(inputs.runner) }}
     needs:
       [
@@ -583,25 +583,27 @@ jobs:
 
     steps:
       - name: Log Rate Limit
-        run: |
-          async function logRateLimitInfo(token, name) {
-              return fetch("https://api.github.com/rate_limit", {
-                method: "GET",
-                headers: {
-                  Authorization: `token ${token}`
-                }
-              })
-                .then(async response => {
-                  const rateLimitRemaining = response.headers.get("x-ratelimit-remaining");
-                  console.log(
-                    `Rate limit remaining: ${rateLimitRemaining}, ${name}`
-                  );
-                  const coreRateLimitInfo = (await response.json()).resources.core;
-
-                  console.log("Core rate limit info: %o", coreRateLimitInfo);
+        uses: actions/github-script@v7
+        with:
+          script: |
+            async function logRateLimitInfo(token, name) {
+                return fetch("https://api.github.com/rate_limit", {
+                  method: "GET",
+                  headers: {
+                    Authorization: `token ${token}`
+                  }
                 })
-                .catch(e => console.log("Error fetching rate limit info: %o", e));
-              }
+                  .then(async response => {
+                    const rateLimitRemaining = response.headers.get("x-ratelimit-remaining");
+                    console.log(
+                      `Rate limit remaining: ${rateLimitRemaining}, ${name}`
+                    );
+                    const coreRateLimitInfo = (await response.json()).resources.core;
 
-          await logRateLimitInfo(process.env.PIPELINES_GRUNTWORK_READ_TOKEN, "Gruntwork Read Token");
-          await logRateLimitInfo(process.env.PIPELINES_CUSTOMER_ORG_READ_TOKEN, "Customer Org Read Token");
+                    console.log("Core rate limit info: %o", coreRateLimitInfo);
+                  })
+                  .catch(e => console.log("Error fetching rate limit info: %o", e));
+                }
+
+            await logRateLimitInfo(process.env.PIPELINES_GRUNTWORK_READ_TOKEN, "Gruntwork Read Token");
+            await logRateLimitInfo(process.env.PIPELINES_CUSTOMER_ORG_READ_TOKEN, "Customer Org Read Token");
