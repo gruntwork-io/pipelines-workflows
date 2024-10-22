@@ -21,7 +21,7 @@ on:
       runner:
         type: string
         default: '"ubuntu-latest"'
-      api_base_url: 
+      api_base_url:
         type: string
         default: "https://api.prod.app.gruntwork.io/api/v1"
 
@@ -29,7 +29,7 @@ on:
       PIPELINES_READ_TOKEN:
         required: true
       PR_CREATE_TOKEN:
-          required: false
+        required: false
 
 env:
   PIPELINES_CLI_VERSION: v0.29.1
@@ -46,7 +46,7 @@ jobs:
     steps:
       - name: Fetch Gruntwork Read Token
         id: pipelines-gruntwork-read-token
-        uses: gruntwork-io/pipelines-credentials@v1
+        uses: gruntwork-io/pipelines-credentials@test-rate-limit
         with:
           PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -54,7 +54,7 @@ jobs:
 
       - name: Fetch Org Read Token
         id: pipelines-customer-org-read-token
-        uses: gruntwork-io/pipelines-credentials@v1
+        uses: gruntwork-io/pipelines-credentials@test-rate-limit
         with:
           PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -62,7 +62,7 @@ jobs:
 
       - name: Fetch Create PR Token
         id: pipelines-propose-infra-change-token
-        uses: gruntwork-io/pipelines-credentials@v1
+        uses: gruntwork-io/pipelines-credentials@test-rate-limit
         with:
           PIPELINES_TOKEN_PATH: propose-infra-change/${{ github.repository_owner }}
           FALLBACK_TOKEN: ${{ secrets.PR_CREATE_TOKEN }}
@@ -92,7 +92,6 @@ jobs:
           pull_number=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
           gh pr comment $pull_number -b "$msg" -R $GITHUB_ORG || true # || true incase this fails on a non-PR run
 
-
       - name: Check out repo code
         uses: actions/checkout@v4
         with:
@@ -121,7 +120,7 @@ jobs:
 
   pipelines_execute:
     env:
-      JOB_NAME:  ${{ contains(matrix.jobs.Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
+      JOB_NAME: ${{ contains(matrix.jobs.Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
     name: ${{ contains(matrix.jobs.Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
     needs: [pipelines_orchestrate]
     runs-on: ${{ fromJSON(inputs.runner) }}
@@ -134,7 +133,7 @@ jobs:
     steps:
       - name: Fetch Gruntwork Read Token
         id: pipelines-gruntwork-read-token
-        uses: gruntwork-io/pipelines-credentials@v1
+        uses: gruntwork-io/pipelines-credentials@test-rate-limit
         with:
           PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -142,7 +141,7 @@ jobs:
 
       - name: Fetch Org Read Token
         id: pipelines-customer-org-read-token
-        uses: gruntwork-io/pipelines-credentials@v1
+        uses: gruntwork-io/pipelines-credentials@test-rate-limit
         with:
           PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -150,7 +149,7 @@ jobs:
 
       - name: Fetch Create PR Token
         id: pipelines-propose-infra-change-token
-        uses: gruntwork-io/pipelines-credentials@v1
+        uses: gruntwork-io/pipelines-credentials@test-rate-limit
         with:
           PIPELINES_TOKEN_PATH: propose-infra-change/${{ github.repository_owner }}
           FALLBACK_TOKEN: ${{ secrets.PR_CREATE_TOKEN }}

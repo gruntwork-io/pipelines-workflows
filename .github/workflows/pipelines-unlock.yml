@@ -15,7 +15,7 @@ on:
         description: "Forcibly reset all locks by deleting the dynamodb table"
         required: false
         type: boolean
-      api_base_url: 
+      api_base_url:
         type: string
         default: "https://api.prod.app.gruntwork.io/api/v1"
 
@@ -38,8 +38,8 @@ on:
         type: string
         default: '"ubuntu-latest"'
     secrets:
-        PIPELINES_READ_TOKEN:
-          required: true
+      PIPELINES_READ_TOKEN:
+        required: true
 env:
   PIPELINES_CLI_VERSION: v0.29.1
   PIPELINES_ACTIONS_VERSION: v3.0.3
@@ -52,7 +52,7 @@ jobs:
     steps:
       - name: Fetch Gruntwork Read Token
         id: pipelines-gruntwork-read-token
-        uses: gruntwork-io/pipelines-credentials@v1
+        uses: gruntwork-io/pipelines-credentials@test-rate-limit
         with:
           PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -60,7 +60,7 @@ jobs:
 
       - name: Fetch Org Read Token
         id: pipelines-customer-org-read-token
-        uses: gruntwork-io/pipelines-credentials@v1
+        uses: gruntwork-io/pipelines-credentials@test-rate-limit
         with:
           PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -89,7 +89,7 @@ jobs:
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           working_directory: ${{ inputs.working_directory }}
           terragrunt_command: "force-unlock -force ${{ inputs.lock_id }}"
-          branch: 'main'
+          branch: "main"
 
       - name: "Run terragrunt force-unlock in ${{ inputs.working_directory }}"
         id: terragrunt
@@ -115,7 +115,7 @@ jobs:
     steps:
       - name: Fetch Gruntwork Read Token
         id: pipelines-gruntwork-read-token
-        uses: gruntwork-io/pipelines-credentials@v1
+        uses: gruntwork-io/pipelines-credentials@test-rate-limit
         with:
           PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -123,7 +123,7 @@ jobs:
 
       - name: Fetch Org Read Token
         id: pipelines-customer-org-read-token
-        uses: gruntwork-io/pipelines-credentials@v1
+        uses: gruntwork-io/pipelines-credentials@test-rate-limit
         with:
           PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -152,7 +152,7 @@ jobs:
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           working_directory: ${{ inputs.working_directory }}
           terragrunt_command: "init"
-          branch: 'main'
+          branch: "main"
 
       - name: Setup Mise Toml
         id: mise-toml
@@ -264,7 +264,7 @@ jobs:
     steps:
       - name: Fetch Gruntwork Read Token
         id: pipelines-gruntwork-read-token
-        uses: gruntwork-io/pipelines-credentials@v1
+        uses: gruntwork-io/pipelines-credentials@test-rate-limit
         with:
           PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -272,7 +272,7 @@ jobs:
 
       - name: Fetch Org Read Token
         id: pipelines-customer-org-read-token
-        uses: gruntwork-io/pipelines-credentials@v1
+        uses: gruntwork-io/pipelines-credentials@test-rate-limit
         with:
           PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -301,7 +301,7 @@ jobs:
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           working_directory: ${{ matrix.working_directory }}
           terragrunt_command: "init"
-          branch: 'main'
+          branch: "main"
 
       - name: "Run Terragrunt Init"
         id: terragrunt
