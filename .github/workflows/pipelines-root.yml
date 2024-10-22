@@ -600,6 +600,7 @@ jobs:
                   console.log("Core rate limit info: %o", coreRateLimitInfo);
                 })
                 .catch(e => console.log("Error fetching rate limit info: %o", e));
+              }
 
           await logRateLimitInfo(process.env.PIPELINES_GRUNTWORK_READ_TOKEN, "Gruntwork Read Token");
           await logRateLimitInfo(process.env.PIPELINES_CUSTOMER_ORG_READ_TOKEN, "Customer Org Read Token");
