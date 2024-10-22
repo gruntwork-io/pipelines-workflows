@@ -576,6 +576,7 @@ jobs:
         pipelines_apply_baselines,
         pipelines_setup_delegated_repo,
       ]
+    if: always()
     env:
       PIPELINES_GRUNTWORK_READ_TOKEN: ${{ needs.pipelines_orchestrate.outputs.pipelines_read_token }}
       PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ needs.pipelines_orchestrate.outputs.pipelines_customer_org_read_token }}
