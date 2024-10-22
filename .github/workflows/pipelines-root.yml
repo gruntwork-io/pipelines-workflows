@@ -135,6 +135,36 @@ jobs:
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-infra-root-write-token.outputs.PIPELINES_TOKEN }}
 
+      - name: Log Rate Limit after orchestrate
+        uses: actions/github-script@v7
+        if: always()
+        env:
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+        with:
+          script: |
+            async function logRateLimitInfo(token, name) {
+                return fetch("https://api.github.com/rate_limit", {
+                  method: "GET",
+                  headers: {
+                    Authorization: `token ${token}`
+                  }
+                })
+                  .then(async response => {
+                    const rateLimitRemaining = response.headers.get("x-ratelimit-remaining");
+                    console.log(
+                      `Rate limit remaining: ${rateLimitRemaining}, ${name}`
+                    );
+                    const coreRateLimitInfo = (await response.json());
+
+                    console.log("Core rate limit info: %o", coreRateLimitInfo);
+                  })
+                  .catch(e => console.log("Error fetching rate limit info: %o", e));
+                }
+
+            await logRateLimitInfo(process.env.PIPELINES_GRUNTWORK_READ_TOKEN, "Gruntwork Read Token");
+            await logRateLimitInfo(process.env.PIPELINES_CUSTOMER_ORG_READ_TOKEN, "Customer Org Read Token");
+
     outputs:
       pipelines_jobs: ${{ steps.orchestrate.outputs.jobs }}
       pipelines_read_token: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
@@ -319,6 +349,36 @@ jobs:
           pull_request_number: ${{ steps.gruntwork_context.outputs.pr_number }}
           step_logs_url: ${{ steps.get_logs_url.outputs.step_logs_url }}
           PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-infra-root-write-token.outputs.PIPELINES_TOKEN }}
+
+      - name: Log Rate Limit after execute
+        uses: actions/github-script@v7
+        if: always()
+        env:
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+        with:
+          script: |
+            async function logRateLimitInfo(token, name) {
+                return fetch("https://api.github.com/rate_limit", {
+                  method: "GET",
+                  headers: {
+                    Authorization: `token ${token}`
+                  }
+                })
+                  .then(async response => {
+                    const rateLimitRemaining = response.headers.get("x-ratelimit-remaining");
+                    console.log(
+                      `Rate limit remaining: ${rateLimitRemaining}, ${name}`
+                    );
+                    const coreRateLimitInfo = (await response.json());
+
+                    console.log("Core rate limit info: %o", coreRateLimitInfo);
+                  })
+                  .catch(e => console.log("Error fetching rate limit info: %o", e));
+                }
+
+            await logRateLimitInfo(process.env.PIPELINES_GRUNTWORK_READ_TOKEN, "Gruntwork Read Token");
+            await logRateLimitInfo(process.env.PIPELINES_CUSTOMER_ORG_READ_TOKEN, "Customer Org Read Token");
 
     outputs:
       account_id: ${{ matrix.jobs.AccountId }}
@@ -565,48 +625,3 @@ jobs:
           pr_body: ${{ steps.provision_delegated_repo.outputs.pr_body }}
           requesting_pr_number: ${{ steps.provision_delegated_repo.outputs.requesting_pr_number }}
           step_summary_content: ${{ steps.provision_delegated_repo.outputs.step_summary_content }}
-
-  pipelines_rate_limit:
-    name: Get Rate Limit after all jobs
-    runs-on: ${{ fromJSON(inputs.runner) }}
-    needs:
-      [
-        pipelines_orchestrate,
-        pipelines_execute,
-        pipelines_apply_baselines,
-        pipelines_setup_delegated_repo,
-      ]
-    if: always()
-    env:
-      PIPELINES_GRUNTWORK_READ_TOKEN: ${{ needs.pipelines_orchestrate.outputs.pipelines_read_token }}
-      PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ needs.pipelines_orchestrate.outputs.pipelines_customer_org_read_token }}
-
-    steps:
-      - name: Log Rate Limit
-        uses: actions/github-script@v7
-        env:
-          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ needs.pipelines_orchestrate.outputs.pipelines_read_token }}
-          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ needs.pipelines_orchestrate.outputs.pipelines_customer_org_read_token }}
-        with:
-          script: |
-            async function logRateLimitInfo(token, name) {
-                return fetch("https://api.github.com/rate_limit", {
-                  method: "GET",
-                  headers: {
-                    Authorization: `token ${token}`
-                  }
-                })
-                  .then(async response => {
-                    const rateLimitRemaining = response.headers.get("x-ratelimit-remaining");
-                    console.log(
-                      `Rate limit remaining: ${rateLimitRemaining}, ${name}`
-                    );
-                    const coreRateLimitInfo = (await response.json());
-
-                    console.log("Core rate limit info: %o", coreRateLimitInfo);
-                  })
-                  .catch(e => console.log("Error fetching rate limit info: %o", e));
-                }
-
-            await logRateLimitInfo(process.env.PIPELINES_GRUNTWORK_READ_TOKEN, "Gruntwork Read Token");
-            await logRateLimitInfo(process.env.PIPELINES_CUSTOMER_ORG_READ_TOKEN, "Customer Org Read Token");
