@@ -584,6 +584,9 @@ jobs:
     steps:
       - name: Log Rate Limit
         uses: actions/github-script@v7
+        env:
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ needs.pipelines_orchestrate.outputs.pipelines_read_token }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ needs.pipelines_orchestrate.outputs.pipelines_customer_org_read_token }}
         with:
           script: |
             async function logRateLimitInfo(token, name) {
