@@ -153,9 +153,9 @@ jobs:
                   .then(async response => {
                     const rateLimitRemaining = response.headers.get("x-ratelimit-remaining");
                     console.log(
-                      `Rate limit remaining: ${rateLimitRemaining}, ${name}`
+                      `Rate limit remaining via headers: ${rateLimitRemaining}, ${name}`
                     );
-                    const coreRateLimitInfo = (await response.json());
+                    const coreRateLimitInfo = (await response.json()).resources.core;
 
                     console.log("Core rate limit info: %o", coreRateLimitInfo);
                   })
@@ -368,9 +368,9 @@ jobs:
                   .then(async response => {
                     const rateLimitRemaining = response.headers.get("x-ratelimit-remaining");
                     console.log(
-                      `Rate limit remaining: ${rateLimitRemaining}, ${name}`
+                      `Rate limit remaining via headers: ${rateLimitRemaining}, ${name}`
                     );
-                    const coreRateLimitInfo = (await response.json());
+                    const coreRateLimitInfo = (await response.json()).resources.core;
 
                     console.log("Core rate limit info: %o", coreRateLimitInfo);
                   })
