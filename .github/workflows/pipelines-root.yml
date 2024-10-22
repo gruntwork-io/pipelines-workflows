@@ -598,7 +598,7 @@ jobs:
                     console.log(
                       `Rate limit remaining: ${rateLimitRemaining}, ${name}`
                     );
-                    const coreRateLimitInfo = (await response.json()).resources.core;
+                    const coreRateLimitInfo = (await response.json());
 
                     console.log("Core rate limit info: %o", coreRateLimitInfo);
                   })
