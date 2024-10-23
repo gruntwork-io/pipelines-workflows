@@ -42,7 +42,7 @@ on:
           required: true
 env:
   PIPELINES_CLI_VERSION: v0.30.0-rc2
-  PIPELINES_ACTIONS_VERSION: 2024-10-23_further_spacing_fix
+  PIPELINES_ACTIONS_VERSION: v3.0.4-rc1
 
 jobs:
   unlock_one:
