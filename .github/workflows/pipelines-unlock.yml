@@ -41,8 +41,8 @@ on:
         PIPELINES_READ_TOKEN:
           required: true
 env:
-  PIPELINES_CLI_VERSION: v0.30.0-rc1
-  PIPELINES_ACTIONS_VERSION: main
+  PIPELINES_CLI_VERSION: v0.30.0-rc2
+  PIPELINES_ACTIONS_VERSION: 2024-10-23_further_spacing_fix
 
 jobs:
   unlock_one:
