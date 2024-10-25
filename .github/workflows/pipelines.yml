@@ -32,7 +32,7 @@ on:
           required: false
 
 env:
-  PIPELINES_CLI_VERSION: v0.30.0
+  PIPELINES_CLI_VERSION: v0.31.0
   PIPELINES_ACTIONS_VERSION: pipelines_v0.30.0
 
   # GitHub Actions tends to hit resource exhaustion and kill running jobs
