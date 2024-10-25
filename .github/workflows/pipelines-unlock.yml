@@ -42,7 +42,7 @@ on:
           required: true
 env:
   PIPELINES_CLI_VERSION: v0.31.0
-  PIPELINES_ACTIONS_VERSION: 2024-10-25_fix_delegated_repo_config
+  PIPELINES_ACTIONS_VERSION: v3.1.1
 
 jobs:
   unlock_one:
