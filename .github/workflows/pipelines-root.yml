@@ -34,8 +34,8 @@ on:
         required: false
 
 env:
-  PIPELINES_CLI_VERSION: v0.29.1
-  PIPELINES_ACTIONS_VERSION: v3.0.3
+  PIPELINES_CLI_VERSION: v0.31.0
+  PIPELINES_ACTIONS_VERSION: v3.1.1
   BOILERPLATE_VERSION: v0.5.16
   GRUNTWORK_INSTALLER_VERSION: v0.0.40
 
@@ -283,7 +283,7 @@ jobs:
         if: ${{ steps.gruntwork_context.outputs.action == 'TERRAGRUNT_EXECUTE' }}
         uses: ./pipelines-actions/.github/actions/pipelines-execute
         env:
-          TERRAGRUNT_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd ."
+          TERRAGRUNT_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd . --disk-cache-duration-minutes 10"
         with:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
