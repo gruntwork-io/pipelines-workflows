@@ -60,7 +60,7 @@ jobs:
           PR_TRIM=$(echo $PIPELINES_READ_TOKEN | xargs)
           IR_TRIM=$(echo $INFRA_ROOT_WRITE_TOKEN | xargs)
           OR_TRIM=$(echo $ORG_REPO_ADMIN_TOKEN | xargs)
-          echo "PIPELINES_READ_TOKEN=$PR_TRIM" | xargs>> $GITHUB_OUTPUT
+          echo "PIPELINES_READ_TOKEN=$PR_TRIM" >> $GITHUB_OUTPUT
           echo "INFRA_ROOT_WRITE_TOKEN=$IR_TRIM" >> $GITHUB_OUTPUT
           echo "ORG_REPO_ADMIN_TOKEN=$OR_TRIM" >> $GITHUB_OUTPUT
 
@@ -169,7 +169,7 @@ jobs:
           PR_TRIM=$(echo $PIPELINES_READ_TOKEN | xargs)
           IR_TRIM=$(echo $INFRA_ROOT_WRITE_TOKEN | xargs)
           OR_TRIM=$(echo $ORG_REPO_ADMIN_TOKEN | xargs)
-          echo "PIPELINES_READ_TOKEN=$PR_TRIM" | xargs>> $GITHUB_OUTPUT
+          echo "PIPELINES_READ_TOKEN=$PR_TRIM" >> $GITHUB_OUTPUT
           echo "INFRA_ROOT_WRITE_TOKEN=$IR_TRIM" >> $GITHUB_OUTPUT
           echo "ORG_REPO_ADMIN_TOKEN=$OR_TRIM" >> $GITHUB_OUTPUT
       - name: Fetch Gruntwork Read Token
@@ -370,7 +370,7 @@ jobs:
           PR_TRIM=$(echo $PIPELINES_READ_TOKEN | xargs)
           IR_TRIM=$(echo $INFRA_ROOT_WRITE_TOKEN | xargs)
           OR_TRIM=$(echo $ORG_REPO_ADMIN_TOKEN | xargs)
-          echo "PIPELINES_READ_TOKEN=$PR_TRIM" | xargs>> $GITHUB_OUTPUT
+          echo "PIPELINES_READ_TOKEN=$PR_TRIM" >> $GITHUB_OUTPUT
           echo "INFRA_ROOT_WRITE_TOKEN=$IR_TRIM" >> $GITHUB_OUTPUT
           echo "ORG_REPO_ADMIN_TOKEN=$OR_TRIM" >> $GITHUB_OUTPUT
 
@@ -504,7 +504,7 @@ jobs:
           PR_TRIM=$(echo $PIPELINES_READ_TOKEN | xargs)
           IR_TRIM=$(echo $INFRA_ROOT_WRITE_TOKEN | xargs)
           OR_TRIM=$(echo $ORG_REPO_ADMIN_TOKEN | xargs)
-          echo "PIPELINES_READ_TOKEN=$PR_TRIM" | xargs>> $GITHUB_OUTPUT
+          echo "PIPELINES_READ_TOKEN=$PR_TRIM" >> $GITHUB_OUTPUT
           echo "INFRA_ROOT_WRITE_TOKEN=$IR_TRIM" >> $GITHUB_OUTPUT
           echo "ORG_REPO_ADMIN_TOKEN=$OR_TRIM" >> $GITHUB_OUTPUT
 
