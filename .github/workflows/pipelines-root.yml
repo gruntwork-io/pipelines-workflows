@@ -21,7 +21,7 @@ on:
       runner:
         type: string
         default: '"ubuntu-latest"'
-      api_base_url: 
+      api_base_url:
         type: string
         default: "https://api.prod.app.gruntwork.io/api/v1"
 
@@ -53,12 +53,23 @@ jobs:
     name: Detect Infrastructure Changes
     runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
+      - name: Sanitize Tokens
+        id: secrets
+        shell: bash
+        run: |
+          PR_TRIM=$(echo $PIPELINES_READ_TOKEN | xargs)
+          IR_TRIM=$(echo $INFRA_ROOT_WRITE_TOKEN | xargs)
+          OR_TRIM=$(echo $ORG_REPO_ADMIN_TOKEN | xargs)
+          echo "PIPELINES_READ_TOKEN=$PR_TRIM" | xargs>> $GITHUB_OUTPUT
+          echo "INFRA_ROOT_WRITE_TOKEN=$IR_TRIM" >> $GITHUB_OUTPUT
+          echo "ORG_REPO_ADMIN_TOKEN=$OR_TRIM" >> $GITHUB_OUTPUT
+
       - name: Fetch Gruntwork Read Token
         id: pipelines-gruntwork-read-token
         uses: gruntwork-io/pipelines-credentials@v1
         with:
           PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
-          FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          FALLBACK_TOKEN: ${{ steps.secrets.outputs.PIPELINES_READ_TOKEN }}
           api_base_url: ${{ inputs.api_base_url }}
 
       - name: Fetch Org Read Token
@@ -66,7 +77,7 @@ jobs:
         uses: gruntwork-io/pipelines-credentials@v1
         with:
           PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
-          FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          FALLBACK_TOKEN: ${{ steps.secrets.outputs.PIPELINES_READ_TOKEN }}
           api_base_url: ${{ inputs.api_base_url }}
 
       - name: Fetch Infra Root Write Token
@@ -74,7 +85,7 @@ jobs:
         uses: gruntwork-io/pipelines-credentials@v1
         with:
           PIPELINES_TOKEN_PATH: infra-root-write/${{ github.repository_owner }}
-          FALLBACK_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
+          FALLBACK_TOKEN: ${{ steps.secrets.outputs.INFRA_ROOT_WRITE_TOKEN }}
           api_base_url: ${{ inputs.api_base_url }}
 
       - name: Fetch Org Repo Admin Token
@@ -82,7 +93,7 @@ jobs:
         uses: gruntwork-io/pipelines-credentials@v1
         with:
           PIPELINES_TOKEN_PATH: org-repo-admin/${{ github.repository_owner }}
-          FALLBACK_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
+          FALLBACK_TOKEN: ${{ steps.secrets.outputs.ORG_REPO_ADMIN_TOKEN }}
           api_base_url: ${{ inputs.api_base_url }}
 
       - name: Checkout Pipelines Actions
@@ -120,7 +131,7 @@ jobs:
         uses: ./pipelines-actions/.github/actions/pipelines-preflight-action
         with:
           IS_ROOT: "true"
-          PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          PIPELINES_READ_TOKEN: ${{ steps.secrets.outputs.PIPELINES_READ_TOKEN }}
           INFRA_ROOT_WRITE_TOKEN: ${{ steps.pipelines-infra-root-write-token.outputs.PIPELINES_TOKEN }}
           ORG_REPO_ADMIN_TOKEN:  ${{ steps.pipelines-org-repo-admin-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
@@ -151,12 +162,22 @@ jobs:
       matrix:
         jobs: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs) }}
     steps:
+      - name: Sanitize Tokens
+        id: secrets
+        shell: bash
+        run: |
+          PR_TRIM=$(echo $PIPELINES_READ_TOKEN | xargs)
+          IR_TRIM=$(echo $INFRA_ROOT_WRITE_TOKEN | xargs)
+          OR_TRIM=$(echo $ORG_REPO_ADMIN_TOKEN | xargs)
+          echo "PIPELINES_READ_TOKEN=$PR_TRIM" | xargs>> $GITHUB_OUTPUT
+          echo "INFRA_ROOT_WRITE_TOKEN=$IR_TRIM" >> $GITHUB_OUTPUT
+          echo "ORG_REPO_ADMIN_TOKEN=$OR_TRIM" >> $GITHUB_OUTPUT
       - name: Fetch Gruntwork Read Token
         id: pipelines-gruntwork-read-token
         uses: gruntwork-io/pipelines-credentials@v1
         with:
           PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
-          FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          FALLBACK_TOKEN: ${{ steps.secrets.outputs.PIPELINES_READ_TOKEN }}
           api_base_url: ${{ inputs.api_base_url }}
 
       - name: Fetch Org Read Token
@@ -164,7 +185,7 @@ jobs:
         uses: gruntwork-io/pipelines-credentials@v1
         with:
           PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
-          FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          FALLBACK_TOKEN: ${{ steps.secrets.outputs.PIPELINES_READ_TOKEN }}
           api_base_url: ${{ inputs.api_base_url }}
 
       - name: Fetch Infra Root Write Token
@@ -172,7 +193,7 @@ jobs:
         uses: gruntwork-io/pipelines-credentials@v1
         with:
           PIPELINES_TOKEN_PATH: infra-root-write/${{ github.repository_owner }}
-          FALLBACK_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
+          FALLBACK_TOKEN: ${{ steps.secrets.outputs.INFRA_ROOT_WRITE_TOKEN }}
           api_base_url: ${{ inputs.api_base_url }}
 
       - name: Checkout Pipelines Actions
@@ -342,12 +363,23 @@ jobs:
       matrix:
         jobs: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].NewAccounts }}
     steps:
+      - name: Sanitize Tokens
+        shell: bash
+        id: secrets
+        run: |
+          PR_TRIM=$(echo $PIPELINES_READ_TOKEN | xargs)
+          IR_TRIM=$(echo $INFRA_ROOT_WRITE_TOKEN | xargs)
+          OR_TRIM=$(echo $ORG_REPO_ADMIN_TOKEN | xargs)
+          echo "PIPELINES_READ_TOKEN=$PR_TRIM" | xargs>> $GITHUB_OUTPUT
+          echo "INFRA_ROOT_WRITE_TOKEN=$IR_TRIM" >> $GITHUB_OUTPUT
+          echo "ORG_REPO_ADMIN_TOKEN=$OR_TRIM" >> $GITHUB_OUTPUT
+
       - name: Fetch Gruntwork Read Token
         id: pipelines-gruntwork-read-token
         uses: gruntwork-io/pipelines-credentials@v1
         with:
           PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
-          FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          FALLBACK_TOKEN: ${{ steps.secrets.outputs.PIPELINES_READ_TOKEN }}
           api_base_url: ${{ inputs.api_base_url }}
 
       - name: Fetch Org Read Token
@@ -355,7 +387,7 @@ jobs:
         uses: gruntwork-io/pipelines-credentials@v1
         with:
           PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
-          FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          FALLBACK_TOKEN: ${{ steps.secrets.outputs.PIPELINES_READ_TOKEN }}
           api_base_url: ${{ inputs.api_base_url }}
 
       - name: Fetch Create PR Token
@@ -363,7 +395,7 @@ jobs:
         uses: gruntwork-io/pipelines-credentials@v1
         with:
           PIPELINES_TOKEN_PATH: propose-infra-change/${{ github.repository_owner }}
-          FALLBACK_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
+          FALLBACK_TOKEN: ${{ steps.secrets.outputs.INFRA_ROOT_WRITE_TOKEN }}
           api_base_url: ${{ inputs.api_base_url }}
 
       - name: Checkout Pipelines Actions
@@ -465,12 +497,23 @@ jobs:
     # GHA can't check for length, so we just check if there is an item in the 0 index
     if: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].NewAccounts[0] != null && needs.pipelines_execute.outputs.delegate_management == 'true' && needs.pipelines_execute.outputs.terragrunt_command == 'run-all apply' }}
     steps:
+      - name: Sanitize Tokens
+        shell: bash
+        id: secrets
+        run: |
+          PR_TRIM=$(echo $PIPELINES_READ_TOKEN | xargs)
+          IR_TRIM=$(echo $INFRA_ROOT_WRITE_TOKEN | xargs)
+          OR_TRIM=$(echo $ORG_REPO_ADMIN_TOKEN | xargs)
+          echo "PIPELINES_READ_TOKEN=$PR_TRIM" | xargs>> $GITHUB_OUTPUT
+          echo "INFRA_ROOT_WRITE_TOKEN=$IR_TRIM" >> $GITHUB_OUTPUT
+          echo "ORG_REPO_ADMIN_TOKEN=$OR_TRIM" >> $GITHUB_OUTPUT
+
       - name: Fetch Gruntwork Read Token
         id: pipelines-gruntwork-read-token
         uses: gruntwork-io/pipelines-credentials@v1
         with:
           PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
-          FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          FALLBACK_TOKEN: ${{ steps.secrets.outputs.PIPELINES_READ_TOKEN }}
           api_base_url: ${{ inputs.api_base_url }}
 
       - name: Fetch Org Read Token
@@ -478,7 +521,7 @@ jobs:
         uses: gruntwork-io/pipelines-credentials@v1
         with:
           PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
-          FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          FALLBACK_TOKEN: ${{ steps.secrets.outputs.PIPELINES_READ_TOKEN }}
           api_base_url: ${{ inputs.api_base_url }}
 
       - name: Fetch Org Repo Admin Token
@@ -486,7 +529,7 @@ jobs:
         uses: gruntwork-io/pipelines-credentials@v1
         with:
           PIPELINES_TOKEN_PATH: org-repo-admin/${{ github.repository_owner }}
-          FALLBACK_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
+          FALLBACK_TOKEN: ${{ steps.secrets.outputs.ORG_REPO_ADMIN_TOKEN }}
           api_base_url: ${{ inputs.api_base_url }}
 
       - name: Checkout Pipelines Actions
