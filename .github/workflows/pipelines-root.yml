@@ -21,7 +21,7 @@ on:
       runner:
         type: string
         default: '"ubuntu-latest"'
-      api_base_url: 
+      api_base_url:
         type: string
         default: "https://api.prod.app.gruntwork.io/api/v1"
 
@@ -53,6 +53,11 @@ jobs:
     name: Detect Infrastructure Changes
     runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
+      - name: Record start time
+        id: start_time
+        run: |
+          time_now=$(date -u +"%s")
+          echo "PIPELINES_ORCHESTRATE_START=$time_now" >> $GITHUB_ENV
       - name: Fetch Gruntwork Read Token
         id: pipelines-gruntwork-read-token
         uses: gruntwork-io/pipelines-credentials@v1
