@@ -48,7 +48,7 @@ jobs:
         id: start_time
         run: |
           time_now=$(date -u +"%s")
-          echo "PIPELINES_ORCHESTRATE_START=$time_now" >> $GITHUB_OUTPUT
+          echo "PIPELINES_ORCHESTRATE_START=$time_now" >> $GITHUB_ENV
 
       - name: Fetch Gruntwork Read Token
         id: pipelines-gruntwork-read-token
