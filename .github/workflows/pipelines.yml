@@ -48,7 +48,7 @@ jobs:
         id: start_time
         run: |
           time_now=$(date -u +"%s")
-          echo "PIPELINES_ORCHESTRATE_START=$time_now" >> $GITHUB_ENV
+          echo "PIPELINES_JOB_START_TIME=$time_now" >> $GITHUB_ENV
 
       - name: Fetch Gruntwork Read Token
         id: pipelines-gruntwork-read-token
@@ -138,6 +138,12 @@ jobs:
       matrix:
         jobs: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs) }}
     steps:
+      - name: Record start time
+        id: start_time
+        run: |
+          time_now=$(date -u +"%s")
+          echo "PIPELINES_JOB_START_TIME=$time_now" >> $GITHUB_ENV
+
       - name: Fetch Gruntwork Read Token
         id: pipelines-gruntwork-read-token
         uses: gruntwork-io/pipelines-credentials@v1
