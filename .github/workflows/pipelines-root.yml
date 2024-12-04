@@ -60,7 +60,7 @@ jobs:
       - name: Record start time
         id: start_time
         env:
-          PIPELINES_BINARY_URL: inputs.pipelines_binary_url
+          PIPELINES_BINARY_URL: ${{ inputs.pipelines_binary_url }}
         run: |
           time_now=$(date -u +"%s")
           echo "PIPELINES_JOB_START_TIME=$time_now" >> $GITHUB_ENV
