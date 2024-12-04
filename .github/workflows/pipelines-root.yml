@@ -57,8 +57,7 @@ jobs:
     name: Detect Infrastructure Changes
     runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
-      - name: Record start time
-        id: start_time
+      - name: Record workflow env vars
         env:
           PIPELINES_BINARY_URL: ${{ inputs.pipelines_binary_url }}
         run: |
@@ -164,11 +163,13 @@ jobs:
       matrix:
         jobs: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs) }}
     steps:
-      - name: Record start time
-        id: start_time
+      - name: Record workflow env vars
+        env:
+          PIPELINES_BINARY_URL: ${{ inputs.pipelines_binary_url }}
         run: |
           time_now=$(date -u +"%s")
           echo "PIPELINES_JOB_START_TIME=$time_now" >> $GITHUB_ENV
+          echo "PIPELINES_BINARY_URL=$PIPELINES_BINARY_URL" >> $GITHUB_ENV
 
       - name: Fetch Gruntwork Read Token
         id: pipelines-gruntwork-read-token
