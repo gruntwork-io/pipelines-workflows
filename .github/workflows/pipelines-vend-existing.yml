@@ -109,6 +109,7 @@ jobs:
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           change_type: AccountsAdded
           branch: main
+          terragrunt_command: run-all apply
           working_directory: ${{ inputs.account_name }}
           account_id: ${{ inputs.management_account_id }}
           # additional_data: Might need something like {"AccountRequestType": "sandbox", "ChildAccountId": "id"}
