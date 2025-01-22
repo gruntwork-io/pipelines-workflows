@@ -21,17 +21,6 @@ on:
       runner:
         type: string
         default: '"ubuntu-latest"'
-    secrets:
-      PIPELINES_READ_TOKEN:
-        required: true
-
-env:
-  PIPELINES_CLI_VERSION: v0.28.0
-  PIPELINES_ACTIONS_VERSION: main
-
-  # GitHub Actions tends to hit resource exhaustion and kill running jobs
-  # if we leave parallelism unbounded, so we set the max to 10 for a sane default.
-  TERRAGRUNT_PARALLELISM: 10
 
 jobs:
   job:
