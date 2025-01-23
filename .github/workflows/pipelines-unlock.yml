@@ -42,7 +42,7 @@ on:
           required: true
 env:
   PIPELINES_CLI_VERSION: v0.34.0
-  PIPELINES_ACTIONS_VERSION: v3.3.0
+  PIPELINES_ACTIONS_VERSION: v3.3.1
 
 jobs:
   unlock_one:
