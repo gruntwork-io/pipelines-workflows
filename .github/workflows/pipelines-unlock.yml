@@ -15,7 +15,7 @@ on:
         description: "Forcibly reset all locks by deleting the dynamodb table"
         required: false
         type: boolean
-      api_base_url: 
+      api_base_url:
         type: string
         default: "https://api.prod.app.gruntwork.io/api/v1"
 
@@ -41,8 +41,8 @@ on:
         PIPELINES_READ_TOKEN:
           required: true
 env:
-  PIPELINES_CLI_VERSION: v0.31.0
-  PIPELINES_ACTIONS_VERSION: v3.1.2
+  PIPELINES_CLI_VERSION: v0.34.0
+  PIPELINES_ACTIONS_VERSION: v3.3.1
 
 jobs:
   unlock_one:
