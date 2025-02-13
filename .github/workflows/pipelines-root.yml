@@ -42,7 +42,6 @@ env:
   PIPELINES_ACTIONS_VERSION: v3.4.0
   BOILERPLATE_VERSION: v0.5.16
   GRUNTWORK_INSTALLER_VERSION: v0.0.40
-  PIPELINES_LOG_LEVEL: debug
 
   # Disables all executions of terragrunt. This is useful for debugging
   # specifics of pipelines actions/workflows and bypassing the (usually time consuming)
