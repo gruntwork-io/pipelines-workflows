@@ -67,7 +67,7 @@ jobs:
 
       - name: Fetch Gruntwork Read Token
         id: pipelines-gruntwork-read-token
-        uses: gruntwork-io/pipelines-credentials@v1
+        uses: gruntwork-io/pipelines-credentials@debug-fallback-token
         with:
           PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -83,7 +83,7 @@ jobs:
 
       - name: Fetch Infra Root Write Token
         id: pipelines-infra-root-write-token
-        uses: gruntwork-io/pipelines-credentials@v1
+        uses: gruntwork-io/pipelines-credentials@debug-fallback-token
         with:
           PIPELINES_TOKEN_PATH: infra-root-write/${{ github.repository_owner }}
           FALLBACK_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
@@ -91,7 +91,7 @@ jobs:
 
       - name: Fetch Org Repo Admin Token
         id: pipelines-org-repo-admin-token
-        uses: gruntwork-io/pipelines-credentials@v1
+        uses: gruntwork-io/pipelines-credentials@debug-fallback-token
         with:
           PIPELINES_TOKEN_PATH: org-repo-admin/${{ github.repository_owner }}
           FALLBACK_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
