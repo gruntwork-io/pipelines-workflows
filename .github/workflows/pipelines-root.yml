@@ -39,7 +39,7 @@ on:
 
 env:
   PIPELINES_CLI_VERSION: v0.35.5
-  PIPELINES_ACTIONS_VERSION: v3.4.1
+  PIPELINES_ACTIONS_VERSION: v3.4.1 # TODO: update to whatever version comes after we merge matching actions PR
   BOILERPLATE_VERSION: v0.5.16
   GRUNTWORK_INSTALLER_VERSION: v0.0.40
 
