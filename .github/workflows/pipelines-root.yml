@@ -160,6 +160,7 @@ jobs:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-infra-root-write-token.outputs.PIPELINES_TOKEN }}
+          jobs: ${{ steps.orchestrate.outputs.jobs }}
 
     outputs:
       pipelines_jobs: ${{ steps.orchestrate.outputs.jobs }}
@@ -349,6 +350,9 @@ jobs:
           account_name: ${{ matrix.jobs.Name }}
           job: ${{ toJson(matrix.jobs) }}
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
+          formatted_plan_output: ${{ steps.terragrunt.outputs.formatted_plan_output }}
+          execute_stdout_log: ${{ steps.terragrunt.outputs.execute_stdout_log }}
+          plan_folder: ${{ steps.terragrunt.outputs.plan_folder }}
 
       - name: Get Logs URL
         id: get_logs_url
