@@ -36,8 +36,8 @@ on:
           required: false
 
 env:
-  PIPELINES_CLI_VERSION: v0.35.5
-  PIPELINES_ACTIONS_VERSION: v3.4.1 # TODO: update to whatever version comes after we merge matching actions PR
+  PIPELINES_CLI_VERSION: v0.36.2
+  PIPELINES_ACTIONS_VERSION: v3.4.3# TODO: update to whatever version comes after we merge matching actions PR
 
   # GitHub Actions tends to hit resource exhaustion and kill running jobs
   # if we leave parallelism unbounded, so we set the max to 10 for a sane default.
