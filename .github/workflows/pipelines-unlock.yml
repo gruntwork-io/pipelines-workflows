@@ -73,6 +73,7 @@ jobs:
           repository: gruntwork-io/pipelines-actions
           ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
           token: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+          github-server-url: github.com
 
       - name: Check out repo code
         uses: actions/checkout@v4
@@ -136,6 +137,7 @@ jobs:
           repository: gruntwork-io/pipelines-actions
           ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
           token: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+          github-server-url: github.com
 
       - name: Check out repo code
         uses: actions/checkout@v4
@@ -285,6 +287,7 @@ jobs:
           repository: gruntwork-io/pipelines-actions
           ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
           token: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+          github-server-url: github.com
 
       - name: Check out repo code
         uses: actions/checkout@v4
