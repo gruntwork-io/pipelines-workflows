@@ -222,7 +222,7 @@ jobs:
           infra_live_repo: "."
           infra_live_directory: "."
           deploy_branch_name: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
-          stack_paths: ${{ matrix.jobs.StackPaths }}
+          stack_paths: ${{ toJson(matrix.jobs.StackPaths) }}
 
       - name: Get Logs URL
         id: get_logs_url
