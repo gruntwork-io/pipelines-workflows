@@ -95,14 +95,7 @@ jobs:
           terragrunt_command: "force-unlock -force ${{ inputs.lock_id }}"
           branch: 'main'
 
-      - name: Run Terragrunt Stack Generate
-        id: terragrunt-stack-generate
-        uses: ./pipelines-actions/.github/actions/pipelines-execute
-        with:
-          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
-          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
-
-      - name: "Run terragrunt force-unlock in ${{ inputs.working_directory }}"
+      - name: "Run terragrunt stack generate in ${{ inputs.working_directory }}"
         id: terragrunt
         if: ${{ inputs.stack_path }}
         run: |
@@ -115,6 +108,22 @@ jobs:
           export AWS_SESSION_TOKEN=$(jq -r '.awsCredentials.SESSION_TOKEN' <<< $pipelinesConfigAuth)
           terragrunt stack generate
 
+      - name: "Run terragrunt force-unlock in ${{ inputs.working_directory }}"
+        id: terragrunt
+        uses: ./pipelines-actions/.github/actions/pipelines-execute
+        env:
+          TERRAGRUNT_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd . --disk-cache-duration-minutes 10"
+        with:
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+          tf_binary: ${{ steps.gruntwork_context.outputs.tf_binary }}
+          working_directory: ${{ steps.gruntwork_context.outputs.working_directory }}
+          terragrunt_command: ${{ steps.gruntwork_context.outputs.terragrunt_command }}
+          infra_live_repo_branch: ${{ steps.gruntwork_context.outputs.branch }}
+          gruntwork_config_file: ${{ steps.gruntwork_context.outputs.gruntwork_config_file }}
+          infra_live_repo: "."
+          infra_live_directory: "."
+          deploy_branch_name: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
 
   unlock_all:
     name: Unlock all TF State files
