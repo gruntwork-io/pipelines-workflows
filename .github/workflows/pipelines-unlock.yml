@@ -169,6 +169,17 @@ jobs:
           infra_live_directory: "."
           deploy_branch_name: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
 
+      # Upload the infra-live repo as an artifact to be used for pipelines_reinit
+      # job so that stacks don't need to be generated again
+      - name: Upload Infra-live repo as an artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: infra-live-repo
+          path: infra-live-repo
+          retention-days: 1
+          if-no-files-found: error
+          include-hidden-files: true
+
   unlock_all:
     name: Unlock all TF State files
     if: ${{ inputs.unlock_all }}
@@ -340,6 +351,18 @@ jobs:
           echo "unlock_folders<<EOF" >> "$GITHUB_OUTPUT"
           echo $JSON >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
+
+      # Upload the infra-live repo as an artifact to be used for pipelines_reinit
+      # job so that stacks don't need to be generated again
+      - name: Upload Infra-live repo as an artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: infra-live-repo
+          path: infra-live-repo
+          retention-days: 1
+          if-no-files-found: error
+          include-hidden-files: true
+
     outputs:
       unlock_folders: ${{ steps.unlock_tables.outputs.unlock_folders }}
 
@@ -377,12 +400,25 @@ jobs:
           ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
           token: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
 
-      - name: Check out repo code
-        uses: actions/checkout@v4
+      - name: Download Infra-live repo as an artifact
+        uses: actions/download-artifact@v4
         with:
-          path: infra-live-repo
-          fetch-depth: 0
-          token: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+          name: infra-live-repo
+
+      - name: Debug
+        run: |
+          pwd
+          ls -la
+
+          cd infra-live-repo
+          ls -la
+
+      # - name: Check out repo code
+      #   uses: actions/checkout@v4
+      #   with:
+      #     path: infra-live-repo
+      #     fetch-depth: 0
+      #     token: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Bootstrap Workflow
         id: gruntwork_context
@@ -393,6 +429,8 @@ jobs:
           working_directory: ${{ matrix.working_directory }}
           terragrunt_command: "init"
           branch: 'main'
+
+
 
       - name: "Run Terragrunt Init"
         id: terragrunt
