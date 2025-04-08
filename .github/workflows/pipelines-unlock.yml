@@ -99,6 +99,9 @@ jobs:
         id: terragrunt_stack_generate
         if: ${{ inputs.stack_path }}
         run: |
+          echo "pwd: $(pwd)"
+          ls -la
+          cd infra-live-repo
           stackDir=$(dirname ${{ inputs.stack_path }})
           cd $stackDir
           pipelinesConfigAuth=$(pipelines config auth)
