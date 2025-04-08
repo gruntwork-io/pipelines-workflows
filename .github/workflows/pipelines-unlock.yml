@@ -404,6 +404,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: infra-live-repo
+          path: infra-live-repo
 
       - name: Debug
         run: |
@@ -429,8 +430,6 @@ jobs:
           working_directory: ${{ matrix.working_directory }}
           terragrunt_command: "init"
           branch: 'main'
-
-
 
       - name: "Run Terragrunt Init"
         id: terragrunt
