@@ -135,6 +135,15 @@ jobs:
           terraform --version || true
           terragrunt --version
 
+      - name: Debug contents
+        shell: bash
+        run: |
+          echo "pwd: $(pwd)"
+          ls -la
+
+          cd infra-live-repo
+          ls -la
+
       - name: "Run terragrunt stack generate in ${{ inputs.working_directory }}"
         id: terragrunt_stack_generate
         if: ${{ inputs.stack_path }}
