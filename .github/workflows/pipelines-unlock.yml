@@ -148,6 +148,8 @@ jobs:
         id: terragrunt_stack_generate
         if: ${{ inputs.stack_path }}
         working-directory: ./infra-live-repo
+        env:
+          TG_EXPERIMENT: stacks
         run: |
           stackDir=$(dirname ${{ inputs.stack_path }})
           cd $stackDir
