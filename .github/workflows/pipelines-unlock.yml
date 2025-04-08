@@ -96,7 +96,7 @@ jobs:
           branch: 'main'
 
       - name: "Run terragrunt stack generate in ${{ inputs.working_directory }}"
-        id: terragrunt
+        id: terragrunt_stack_generate
         if: ${{ inputs.stack_path }}
         run: |
           stackDir=$(dirname ${{ inputs.stack_path }})
