@@ -406,21 +406,6 @@ jobs:
           name: infra-live-repo
           path: infra-live-repo
 
-      - name: Debug
-        run: |
-          pwd
-          ls -la
-
-          cd infra-live-repo
-          ls -la
-
-      # - name: Check out repo code
-      #   uses: actions/checkout@v4
-      #   with:
-      #     path: infra-live-repo
-      #     fetch-depth: 0
-      #     token: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
-
       - name: Bootstrap Workflow
         id: gruntwork_context
         uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
