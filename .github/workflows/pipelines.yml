@@ -36,7 +36,7 @@ on:
           required: false
 
 env:
-  PIPELINES_CLI_VERSION: v0.37.0-rc4
+  PIPELINES_CLI_VERSION: v0.37.0-rc5
   PIPELINES_ACTIONS_VERSION: 2025-04-10_stacks_orchestrate_git_auth
 
   # GitHub Actions tends to hit resource exhaustion and kill running jobs
