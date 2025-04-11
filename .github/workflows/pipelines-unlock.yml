@@ -46,7 +46,7 @@ on:
           required: true
 env:
   PIPELINES_CLI_VERSION: v0.36.2
-  PIPELINES_ACTIONS_VERSION: v3.4.3
+  PIPELINES_ACTIONS_VERSION: add-pipelines-code-auth-action
 
 jobs:
   unlock_one:
@@ -135,6 +135,12 @@ jobs:
           tofu --version || true
           terraform --version || true
           terragrunt --version
+
+      - name: Configure code auth
+        uses: ./pipelines-actions/.github/actions/pipelines-code-auth
+        with:
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: "Run terragrunt stack generate in ${{ inputs.working_directory }}"
         id: terragrunt_stack_generate
@@ -251,6 +257,12 @@ jobs:
           tofu --version || true
           terraform --version || true
           terragrunt --version
+
+      - name: Configure code auth
+        uses: ./pipelines-actions/.github/actions/pipelines-code-auth
+        with:
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Generate stacks if needed
         id: generate_stacks
