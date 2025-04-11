@@ -38,7 +38,7 @@ on:
         required: false
 
 env:
-  PIPELINES_CLI_VERSION: v0.36.2
+  PIPELINES_CLI_VERSION: v0.37.0-rc5
   PIPELINES_ACTIONS_VERSION: add-pipelines-code-auth-action
   BOILERPLATE_VERSION: v0.5.16
   GRUNTWORK_INSTALLER_VERSION: v0.0.40
@@ -316,6 +316,7 @@ jobs:
           infra_live_repo: "."
           infra_live_directory: "."
           deploy_branch_name: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
+          stack_paths: ${{ toJson(matrix.jobs.StackPaths) }}
 
       - name: Get Logs URL
         id: get_logs_url

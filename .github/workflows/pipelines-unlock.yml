@@ -41,8 +41,8 @@ on:
         PIPELINES_READ_TOKEN:
           required: true
 env:
-  PIPELINES_CLI_VERSION: v0.36.2
-  PIPELINES_ACTIONS_VERSION: v3.4.3
+  PIPELINES_CLI_VERSION: v0.37.0-rc5
+  PIPELINES_ACTIONS_VERSION: v3.5.1
 
 jobs:
   unlock_one:
