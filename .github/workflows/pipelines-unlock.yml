@@ -46,7 +46,7 @@ on:
           required: true
 env:
   PIPELINES_CLI_VERSION: v0.36.2
-  PIPELINES_ACTIONS_VERSION: add-pipelines-code-auth-action
+  PIPELINES_ACTIONS_VERSION: v3.6.0
 
 jobs:
   unlock_one:
