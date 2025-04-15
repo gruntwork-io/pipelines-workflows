@@ -46,7 +46,7 @@ on:
           required: true
 env:
   PIPELINES_CLI_VERSION: v0.37.0-rc7
-  PIPELINES_ACTIONS_VERSION: v3.6.0
+  PIPELINES_ACTIONS_VERSION: ore/dev-837-pipelines-user-be-notified-when-i-could-be-taking-advantage
 
 
 jobs:

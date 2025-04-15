@@ -37,7 +37,7 @@ on:
           required: false
 env:
   PIPELINES_CLI_VERSION: v0.36.6
-  PIPELINES_ACTIONS_VERSION: v3.4.3
+  PIPELINES_ACTIONS_VERSION: ore/dev-837-pipelines-user-be-notified-when-i-could-be-taking-advantage
   BOILERPLATE_VERSION: v0.5.16
   GRUNTWORK_INSTALLER_VERSION: v0.0.40
 

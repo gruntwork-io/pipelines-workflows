@@ -37,7 +37,7 @@ on:
 
 env:
   PIPELINES_CLI_VERSION: v0.36.6
-  PIPELINES_ACTIONS_VERSION: v3.4.3
+  PIPELINES_ACTIONS_VERSION: ore/dev-837-pipelines-user-be-notified-when-i-could-be-taking-advantage
 
   # GitHub Actions tends to hit resource exhaustion and kill running jobs
   # if we leave parallelism unbounded, so we set the max to 10 for a sane default.
