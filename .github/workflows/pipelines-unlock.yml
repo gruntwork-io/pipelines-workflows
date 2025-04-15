@@ -100,13 +100,12 @@ jobs:
         working-directory: "."
         shell: bash
         env:
-          GENERATE_MISE_TOML: ${{ inputs.generate_mise_toml }}
           INFRA_LIVE_DIRECTORY: "./infra-live-repo"
           TG_VERSION: ${{ steps.gruntwork_context.outputs.tg_version }}
           TF_BINARY: ${{ steps.gruntwork_context.outputs.tf_binary }}
           TF_VERSION: ${{ steps.gruntwork_context.outputs.tf_version }}
         run: |
-          if [[ "$GENERATE_MISE_TOML" == "true" ]] || [[ ! -f "$INFRA_LIVE_DIRECTORY/.mise.toml" ]]; then
+          if [[ ! -f "$INFRA_LIVE_DIRECTORY/.mise.toml" ]]; then
             if [[ ! -f "$INFRA_LIVE_DIRECTORY/.mise.toml" ]]; then
               echo 'User does not have a `.mise.toml` file, generating one to avoid failure'
             fi
@@ -232,7 +231,6 @@ jobs:
         working-directory: ./infra-live-repo
         shell: bash
         env:
-          GENERATE_MISE_TOML: false
           INFRA_LIVE_DIRECTORY: "."
         run: |
           echo 'TOML<<EOF' >> "$GITHUB_OUTPUT"
