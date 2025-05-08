@@ -46,7 +46,7 @@ on:
           required: true
 env:
   PIPELINES_CLI_VERSION: v0.38.2
-  PIPELINES_ACTIONS_VERSION: ore/dev-910-account-factory-single-account-baseline-contains-deprecated
+  PIPELINES_ACTIONS_VERSION: v3.6.4
 
 jobs:
   unlock_one:
