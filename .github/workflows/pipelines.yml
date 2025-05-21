@@ -36,7 +36,7 @@ on:
           required: false
 
 env:
-  PIPELINES_CLI_VERSION: v0.38.2
+  PIPELINES_CLI_VERSION: v0.40.0-rc1
   PIPELINES_ACTIONS_VERSION: ore/dev-927-rework-pipelines-status-update-action
 
   # GitHub Actions tends to hit resource exhaustion and kill running jobs
@@ -89,7 +89,7 @@ jobs:
           ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
           token: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
 
-      - name: Validate PIPELINES_READ_TOKEN
+      - name: Report error if token with access to gruntwork repos is invalid
         if: always() && steps.checkout_actions.conclusion != 'success'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -99,7 +99,7 @@ jobs:
         run: |
           logs_url="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
           msg=$(printf "<h2>❌ Plan for $PR_HEAD_SHA</h2>❌ Gruntwork Pipelines was unable to checkout the <code>pipelines-actions</code> repository. Please ensure the <code>PIPELINES_READ_TOKEN</code> is valid and unexpired. <a href=\"https://docs.gruntwork.io/pipelines/security/machine-users#ci-read-only-user\">Learn More</a><br><br><br><a href=\"$logs_url\">View full logs</a>")
-          echo "::error:: $msg"
+          echo "::error:: $msg" # Results in step failure but rest of logic in this step will still run
           echo "$msg" >> "$GITHUB_STEP_SUMMARY"
           pull_number=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
           gh pr comment $pull_number -b "$msg" -R $GITHUB_ORG || true # || true incase this fails on a non-PR run
