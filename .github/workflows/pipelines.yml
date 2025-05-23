@@ -267,6 +267,14 @@ jobs:
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           api_base_url: ${{ inputs.api_base_url }}
 
+      - name: Fetch Org Read Token
+        id: pipelines-customer-org-read-token
+        uses: gruntwork-io/pipelines-credentials@v1
+        with:
+          PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
+          FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          api_base_url: ${{ inputs.api_base_url }}
+
       - name: Fetch Create PR Token
         id: pipelines-propose-infra-change-token
         uses: gruntwork-io/pipelines-credentials@v1
