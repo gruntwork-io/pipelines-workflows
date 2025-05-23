@@ -104,7 +104,6 @@ jobs:
           pull_number=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
           gh pr comment $pull_number -b "$msg" -R $GITHUB_ORG || true # || true incase this fails on a non-PR run
 
-
       - name: Check out repo code
         uses: actions/checkout@v4
         with:
@@ -247,7 +246,7 @@ jobs:
       child_account_id: ${{ steps.gruntwork_context.outputs.child_account_id }}
 
   pipelines_status_check:
-    name: "Check Status"
+    name: "Pipelines Status Check"
     runs-on: ${{ fromJSON(inputs.runner) }}
     needs: [pipelines_orchestrate, pipelines_execute]
     if: always()
@@ -283,6 +282,13 @@ jobs:
           repository: gruntwork-io/pipelines-actions
           ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
           token: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+
+      - name: Check out repo code
+        uses: actions/checkout@v4
+        with:
+          path: infra-live-repo
+          fetch-depth: 0
+          token: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Check Status
         uses: ./pipelines-actions/.github/actions/pipelines-terragrunt-comment-finalize
