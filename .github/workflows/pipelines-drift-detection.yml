@@ -31,12 +31,12 @@ on:
         type: string
         default: "https://api.prod.app.gruntwork.io/api/v1"
     secrets:
-        PIPELINES_READ_TOKEN:
-          required: false
-        PR_CREATE_TOKEN:
-          required: false
+      PIPELINES_READ_TOKEN:
+        required: false
+      PR_CREATE_TOKEN:
+        required: false
 env:
-  PIPELINES_CLI_VERSION: v0.39.0
+  PIPELINES_CLI_VERSION: v0.40.0-rc5
   PIPELINES_ACTIONS_VERSION: v3.6.4
   BOILERPLATE_VERSION: v0.5.16
   GRUNTWORK_INSTALLER_VERSION: v0.0.40
@@ -55,7 +55,6 @@ jobs:
           PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           api_base_url: ${{ inputs.api_base_url }}
-
 
       - name: Fetch Org Read Token
         id: pipelines-customer-org-read-token

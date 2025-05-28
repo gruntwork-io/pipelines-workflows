@@ -25,18 +25,18 @@ on:
         type: string
         default: "https://api.prod.app.gruntwork.io/api/v1"
       pipelines_binary_url:
-          type: string
-          default: ""
-          description: "Override where we fetch pipelines from, used for internal testing"
+        type: string
+        default: ""
+        description: "Override where we fetch pipelines from, used for internal testing"
 
     secrets:
       PIPELINES_READ_TOKEN:
         required: true
       PR_CREATE_TOKEN:
-          required: false
+        required: false
 
 env:
-  PIPELINES_CLI_VERSION: v0.40.0-rc2
+  PIPELINES_CLI_VERSION: v0.40.0-rc5
   PIPELINES_ACTIONS_VERSION: ore/dev-927-rework-pipelines-status-update-action
 
   # GitHub Actions tends to hit resource exhaustion and kill running jobs
@@ -132,7 +132,7 @@ jobs:
 
   pipelines_execute:
     env:
-      JOB_NAME:  ${{ contains(matrix.jobs.Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
+      JOB_NAME: ${{ contains(matrix.jobs.Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
     name: ${{ contains(matrix.jobs.Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
     needs: [pipelines_orchestrate]
     runs-on: ${{ fromJSON(inputs.runner) }}
