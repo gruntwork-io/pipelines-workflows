@@ -45,8 +45,8 @@ on:
         PIPELINES_READ_TOKEN:
           required: true
 env:
-  PIPELINES_CLI_VERSION: v0.39.0
-  PIPELINES_ACTIONS_VERSION: v3.6.4
+  PIPELINES_CLI_VERSION: v0.40.0-rc7
+  PIPELINES_ACTIONS_VERSION: ore/dev-927-rework-pipelines-status-update-action
 
 jobs:
   unlock_one:
