@@ -73,9 +73,17 @@ jobs:
           echo "PIPELINES_JOB_START_TIME=$time_now" >> $GITHUB_ENV
           echo "PIPELINES_BINARY_URL=$PIPELINES_BINARY_URL" >> $GITHUB_ENV
 
+      - name: Checkout Pipelines Credentials
+        uses: actions/checkout@v4
+        with:
+          path: pipelines-credentials
+          repository: gruntwork-io/pipelines-credentials
+          ref: ${{ env.PIPELINES_CREDENTIALS_REF }}
+          token: ${{ secrets.PIPELINES_READ_TOKEN }}
+
       - name: Fetch Pipelines Tokens
         id: pipelines-tokens
-        uses: gruntwork-io/pipelines-credentials@v1
+        uses: ./pipelines-credentials
         with:
           PIPELINES_TOKEN_PATHS: |
             [
