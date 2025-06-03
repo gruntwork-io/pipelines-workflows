@@ -78,9 +78,16 @@ jobs:
           echo "PIPELINES_JOB_START_TIME=$time_now" >> $GITHUB_ENV
           echo "PIPELINES_BINARY_URL=$PIPELINES_BINARY_URL" >> $GITHUB_ENV
 
+      - name: Checkout Pipelines Credentials
+        uses: actions/checkout@v4
+        with:
+          path: pipelines-credentials
+          repository: gruntwork-io/pipelines-credentials
+          ref: ${{ env.PIPELINES_CREDENTIALS_REF }}
+
       - name: Fetch Gruntwork Read Token
         id: pipelines-gruntwork-read-token
-        uses: gruntwork-io/pipelines-credentials@${{ inputs.pipelines_credentials_ref }}
+        uses: ./pipelines-credentials
         with:
           PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -88,7 +95,7 @@ jobs:
 
       - name: Fetch Org Read Token
         id: pipelines-customer-org-read-token
-        uses: gruntwork-io/pipelines-credentials@${{ inputs.pipelines_credentials_ref }}
+        uses: ./pipelines-credentials
         with:
           PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -96,7 +103,7 @@ jobs:
 
       - name: Fetch Infra Root Write Token
         id: pipelines-infra-root-write-token
-        uses: gruntwork-io/pipelines-credentials@${{ inputs.pipelines_credentials_ref }}
+        uses: ./pipelines-credentials
         with:
           PIPELINES_TOKEN_PATH: infra-root-write/${{ github.repository_owner }}
           FALLBACK_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
@@ -104,7 +111,7 @@ jobs:
 
       - name: Fetch Org Repo Admin Token
         id: pipelines-org-repo-admin-token
-        uses: gruntwork-io/pipelines-credentials@${{ inputs.pipelines_credentials_ref }}
+        uses: ./pipelines-credentials
         continue-on-error: true
         with:
           PIPELINES_TOKEN_PATH: org-repo-admin/${{ github.repository_owner }}
@@ -185,9 +192,16 @@ jobs:
           echo "PIPELINES_JOB_START_TIME=$time_now" >> $GITHUB_ENV
           echo "PIPELINES_BINARY_URL=$PIPELINES_BINARY_URL" >> $GITHUB_ENV
 
+      - name: Checkout Pipelines Credentials
+        uses: actions/checkout@v4
+        with:
+          path: pipelines-credentials
+          repository: gruntwork-io/pipelines-credentials
+          ref: ${{ env.PIPELINES_CREDENTIALS_REF }}
+
       - name: Fetch Gruntwork Read Token
         id: pipelines-gruntwork-read-token
-        uses: gruntwork-io/pipelines-credentials@${{ inputs.pipelines_credentials_ref }}
+        uses: ./pipelines-credentials
         with:
           PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -195,7 +209,7 @@ jobs:
 
       - name: Fetch Org Read Token
         id: pipelines-customer-org-read-token
-        uses: gruntwork-io/pipelines-credentials@${{ inputs.pipelines_credentials_ref }}
+        uses: ./pipelines-credentials
         with:
           PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -203,7 +217,7 @@ jobs:
 
       - name: Fetch Infra Root Write Token
         id: pipelines-infra-root-write-token
-        uses: gruntwork-io/pipelines-credentials@${{ inputs.pipelines_credentials_ref }}
+        uses: ./pipelines-credentials
         with:
           PIPELINES_TOKEN_PATH: infra-root-write/${{ github.repository_owner }}
           FALLBACK_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
@@ -377,9 +391,16 @@ jobs:
       matrix:
         jobs: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].NewAccounts }}
     steps:
+      - name: Checkout Pipelines Credentials
+        uses: actions/checkout@v4
+        with:
+          path: pipelines-credentials
+          repository: gruntwork-io/pipelines-credentials
+          ref: ${{ env.PIPELINES_CREDENTIALS_REF }}
+
       - name: Fetch Gruntwork Read Token
         id: pipelines-gruntwork-read-token
-        uses: gruntwork-io/pipelines-credentials@${{ inputs.pipelines_credentials_ref }}
+        uses: ./pipelines-credentials
         with:
           PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -387,7 +408,7 @@ jobs:
 
       - name: Fetch Org Read Token
         id: pipelines-customer-org-read-token
-        uses: gruntwork-io/pipelines-credentials@${{ inputs.pipelines_credentials_ref }}
+        uses: ./pipelines-credentials
         with:
           PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -395,7 +416,7 @@ jobs:
 
       - name: Fetch Create PR Token
         id: pipelines-propose-infra-change-token
-        uses: gruntwork-io/pipelines-credentials@${{ inputs.pipelines_credentials_ref }}
+        uses: ./pipelines-credentials
         with:
           PIPELINES_TOKEN_PATH: propose-infra-change/${{ github.repository_owner }}
           FALLBACK_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
@@ -500,9 +521,16 @@ jobs:
     # GHA can't check for length, so we just check if there is an item in the 0 index
     if: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].NewAccounts[0] != null && needs.pipelines_execute.outputs.delegate_management == 'true' && needs.pipelines_execute.outputs.terragrunt_command == 'run-all apply' }}
     steps:
+      - name: Checkout Pipelines Credentials
+        uses: actions/checkout@v4
+        with:
+          path: pipelines-credentials
+          repository: gruntwork-io/pipelines-credentials
+          ref: ${{ env.PIPELINES_CREDENTIALS_REF }}
+
       - name: Fetch Gruntwork Read Token
         id: pipelines-gruntwork-read-token
-        uses: gruntwork-io/pipelines-credentials@${{ inputs.pipelines_credentials_ref }}
+        uses: ./pipelines-credentials
         with:
           PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -510,7 +538,7 @@ jobs:
 
       - name: Fetch Org Read Token
         id: pipelines-customer-org-read-token
-        uses: gruntwork-io/pipelines-credentials@${{ inputs.pipelines_credentials_ref }}
+        uses: ./pipelines-credentials
         with:
           PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -518,7 +546,7 @@ jobs:
 
       - name: Fetch Org Repo Admin Token
         id: pipelines-org-repo-admin-token
-        uses: gruntwork-io/pipelines-credentials@${{ inputs.pipelines_credentials_ref }}
+        uses: ./pipelines-credentials
         with:
           PIPELINES_TOKEN_PATH: org-repo-admin/${{ github.repository_owner }}
           FALLBACK_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
