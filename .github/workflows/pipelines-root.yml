@@ -84,7 +84,6 @@ jobs:
           path: pipelines-credentials
           repository: gruntwork-io/pipelines-credentials
           ref: ${{ env.PIPELINES_CREDENTIALS_REF }}
-          token: ${{ secrets.PIPELINES_READ_TOKEN }}
 
       - name: Fetch Pipelines Tokens
         id: pipelines-tokens
@@ -189,9 +188,16 @@ jobs:
           echo "PIPELINES_JOB_START_TIME=$time_now" >> $GITHUB_ENV
           echo "PIPELINES_BINARY_URL=$PIPELINES_BINARY_URL" >> $GITHUB_ENV
 
+      - name: Checkout Pipelines Credentials
+        uses: actions/checkout@v4
+        with:
+          path: pipelines-credentials
+          repository: gruntwork-io/pipelines-credentials
+          ref: ${{ env.PIPELINES_CREDENTIALS_REF }}
+
       - name: Fetch Pipelines Tokens
         id: pipelines-tokens
-        uses: gruntwork-io/pipelines-credentials@v1
+        uses: ./pipelines-credentials
         with:
           PIPELINES_TOKEN_PATHS: |
             [
@@ -386,9 +392,16 @@ jobs:
       matrix:
         jobs: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].NewAccounts }}
     steps:
+      - name: Checkout Pipelines Credentials
+        uses: actions/checkout@v4
+        with:
+          path: pipelines-credentials
+          repository: gruntwork-io/pipelines-credentials
+          ref: ${{ env.PIPELINES_CREDENTIALS_REF }}
+
       - name: Fetch Pipelines Tokens
         id: pipelines-tokens
-        uses: gruntwork-io/pipelines-credentials@v1
+        uses: ./pipelines-credentials
         with:
           PIPELINES_TOKEN_PATHS: |
             [
@@ -514,9 +527,16 @@ jobs:
     # GHA can't check for length, so we just check if there is an item in the 0 index
     if: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].NewAccounts[0] != null && needs.pipelines_execute.outputs.delegate_management == 'true' && needs.pipelines_execute.outputs.terragrunt_command == 'run-all apply' }}
     steps:
+      - name: Checkout Pipelines Credentials
+        uses: actions/checkout@v4
+        with:
+          path: pipelines-credentials
+          repository: gruntwork-io/pipelines-credentials
+          ref: ${{ env.PIPELINES_CREDENTIALS_REF }}
+
       - name: Fetch Pipelines Tokens
         id: pipelines-tokens
-        uses: gruntwork-io/pipelines-credentials@v1
+        uses: ./pipelines-credentials
         with:
           PIPELINES_TOKEN_PATHS: |
             [
