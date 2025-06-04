@@ -111,6 +111,12 @@ jobs:
           fetch-depth: 0
           token: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
+      - name: Install Pipelines CLI
+        uses: ./pipelines-actions/.github/actions/pipelines-install
+        with:
+          version: ${{ env.PIPELINES_CLI_VERSION }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+
       - name: Preflight Checks
         uses: ./pipelines-actions/.github/actions/pipelines-preflight-action
         with:
@@ -190,11 +196,16 @@ jobs:
           fetch-depth: 0
           token: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
+      - name: Install Pipelines CLI
+        uses: ./pipelines-actions/.github/actions/pipelines-install
+        with:
+          version: ${{ env.PIPELINES_CLI_VERSION }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+
       - name: Bootstrap Workflow
         id: gruntwork_context
         uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
         with:
-          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           change_type: ${{ matrix.jobs.ChangeType }}
           branch: ${{ matrix.jobs.Ref }}
@@ -228,13 +239,13 @@ jobs:
         uses: ./pipelines-actions/.github/actions/pipelines-comment-job-update
         with:
           PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
-          pipelines_cli_version: ${{ env.PIPELINES_CLI_VERSION }}
           step_name: ${{ matrix.jobs.ChangeType }}
           step_working_directory: ${{ matrix.jobs.WorkingDirectory }}
           step_terragrunt_command: ${{ matrix.jobs.Action.Command }}
           step_status: ${{ steps.terragrunt.conclusion == 'success' && 'success' || 'failed' }}
           plan_apply_log_file_path: ${{ steps.terragrunt.outputs.plan_folder }}
           extended_log_file_path: ${{ steps.terragrunt.outputs.execute_stdout_log }}
+          job_name: ${{ env.JOB_NAME }}
 
     outputs:
       account_id: ${{ matrix.jobs.AccountId }}
@@ -298,9 +309,40 @@ jobs:
           fetch-depth: 0
           token: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
+      - name: Install Pipelines CLI
+        uses: ./pipelines-actions/.github/actions/pipelines-install
+        with:
+          version: ${{ env.PIPELINES_CLI_VERSION }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+
       - name: Check Status
         uses: ./pipelines-actions/.github/actions/pipelines-comment-job-finalize
         with:
           PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
           GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           pipelines_cli_version: ${{ env.PIPELINES_CLI_VERSION }}
+
+      - name: Check Status
+        shell: bash
+        env:
+          PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
+        run: |
+          GH_TOKEN="$PR_COMMENT_WRITE_TOKEN" \
+            GH_ARTIFACT_TOKEN="$GH_ARTIFACT_TOKEN" \
+            pipelines status-update finalize \
+            --working-directory . \
+            --ci github-actions >/tmp/finalize-output.json
+
+          pipeline_status=$(jq -r '.status' </tmp/finalize-output.json)
+
+          cat /tmp/finalize-output.json
+
+          printf '%.s─' $(seq 1 "$(tput -T dumb cols)")
+          echo " "
+          if [[ "$pipeline_status" == "success" ]]; then
+            echo -e "✅ \033[1;32mPipeline Passed\033[0m"
+            exit 0
+          else
+            echo -e "❌ \033[1;31mPipeline Failed\033[0m"
+            exit 1
+          fi

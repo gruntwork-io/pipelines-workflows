@@ -211,11 +211,16 @@ jobs:
           fetch-depth: 0
           token: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
+      - name: Install Pipelines CLI
+        uses: ./pipelines-actions/.github/actions/pipelines-install
+        with:
+          version: ${{ env.PIPELINES_CLI_VERSION }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+
       - name: Bootstrap Workflow
         id: gruntwork_context
         uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
         with:
-          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           change_type: ${{ matrix.jobs.ChangeType }}
           branch: ${{ matrix.jobs.Ref }}
@@ -403,6 +408,12 @@ jobs:
           fetch-depth: 0
           token: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
+      - name: Install Pipelines CLI
+        uses: ./pipelines-actions/.github/actions/pipelines-install
+        with:
+          version: ${{ env.PIPELINES_CLI_VERSION }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+
       - name: Update comment
         uses: ./pipelines-actions/.github/actions/pipelines-status-update
         with:
@@ -415,7 +426,6 @@ jobs:
         id: gruntwork_context
         uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
         with:
-          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           change_type: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].ChangeType }}
           branch: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].Ref }}
@@ -526,11 +536,16 @@ jobs:
           fetch-depth: 0
           token: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
+      - name: Install Pipelines CLI
+        uses: ./pipelines-actions/.github/actions/pipelines-install
+        with:
+          version: ${{ env.PIPELINES_CLI_VERSION }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+
       - name: Bootstrap Workflow
         id: gruntwork_context
         uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
         with:
-          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           change_type: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].ChangeType }}
           branch: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].Ref }}

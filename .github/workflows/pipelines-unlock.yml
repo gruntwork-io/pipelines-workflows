@@ -85,11 +85,16 @@ jobs:
           fetch-depth: 0
           token: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
+      - name: Install Pipelines CLI
+        uses: ./pipelines-actions/.github/actions/pipelines-install
+        with:
+          version: ${{ env.PIPELINES_CLI_VERSION }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+
       - name: Bootstrap Workflow
         id: gruntwork_context
         uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
         with:
-          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           working_directory: ${{ inputs.working_directory }}
           terragrunt_command: "force-unlock -force ${{ inputs.lock_id }}"
@@ -216,11 +221,16 @@ jobs:
           fetch-depth: 0
           token: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
+      - name: Install Pipelines CLI
+        uses: ./pipelines-actions/.github/actions/pipelines-install
+        with:
+          version: ${{ env.PIPELINES_CLI_VERSION }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+
       - name: Bootstrap Workflow
         id: gruntwork_context
         uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
         with:
-          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           working_directory: ${{ inputs.working_directory }}
           terragrunt_command: "init"
@@ -411,11 +421,16 @@ jobs:
           name: infra-live-repo
           path: infra-live-repo
 
+      - name: Install Pipelines CLI
+        uses: ./pipelines-actions/.github/actions/pipelines-install
+        with:
+          version: ${{ env.PIPELINES_CLI_VERSION }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+
       - name: Bootstrap Workflow
         id: gruntwork_context
         uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
         with:
-          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           working_directory: ${{ matrix.working_directory }}
           terragrunt_command: "init"
