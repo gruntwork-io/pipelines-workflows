@@ -120,6 +120,13 @@ jobs:
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
 
+      - name: Pre Orchestrate Custom Action
+        uses: ./pipelines-actions/.github/custom-actions/pre-orchestrate
+        with:
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+          PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
+
       - name: Pipelines Orchestrate
         id: orchestrate
         uses: ./pipelines-actions/.github/actions/pipelines-orchestrate
@@ -127,6 +134,14 @@ jobs:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
+
+      - name: Post Orchestrate Custom Action
+        uses: ./pipelines-actions/.github/custom-actions/post-orchestrate
+        with:
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+          PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
+          jobs: ${{ steps.orchestrate.outputs.jobs }}
 
     outputs:
       pipelines_jobs: ${{ steps.orchestrate.outputs.jobs }}
@@ -206,6 +221,16 @@ jobs:
           child_account_id: ${{ matrix.jobs.AdditionalData.ChildAccountId }}
           account_names: ${{ matrix.jobs.AdditionalData.AccountNames }}
 
+      - name: Pre Execute Custom Action
+        uses: ./pipelines-actions/.github/custom-actions/pre-execute
+        with:
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+          account_id: ${{ matrix.jobs.AccountId }}
+          account_name: ${{ matrix.jobs.Name }}
+          job: ${{ toJson(matrix.jobs) }}
+          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
+
       - name: "Run terragrunt ${{ steps.gruntwork_context.outputs.terragrunt_command }} in ${{ steps.gruntwork_context.outputs.working_directory }}"
         id: terragrunt
         uses: ./pipelines-actions/.github/actions/pipelines-execute
@@ -245,6 +270,19 @@ jobs:
           pull_request_number: ${{ steps.gruntwork_context.outputs.pr_number }}
           step_logs_url: ${{ steps.get_logs_url.outputs.step_logs_url }}
           PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
+
+      - name: Post Execute Custom Action
+        uses: ./pipelines-actions/.github/custom-actions/post-execute
+        with:
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+          account_id: ${{ matrix.jobs.AccountId }}
+          account_name: ${{ matrix.jobs.Name }}
+          job: ${{ toJson(matrix.jobs) }}
+          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
+          formatted_plan_output: ${{ steps.terragrunt.outputs.formatted_plan_output }}
+          execute_stdout_log: ${{ steps.terragrunt.outputs.execute_stdout_log }}
+          plan_folder: ${{ steps.terragrunt.outputs.plan_folder }}
 
     outputs:
       account_id: ${{ matrix.jobs.AccountId }}
