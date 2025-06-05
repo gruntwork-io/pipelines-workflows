@@ -316,13 +316,6 @@ jobs:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Check Status
-        uses: ./pipelines-actions/.github/actions/pipelines-comment-job-finalize
-        with:
-          PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
-          GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
-          pipelines_cli_version: ${{ env.PIPELINES_CLI_VERSION }}
-
-      - name: Check Status
         shell: bash
         env:
           PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
