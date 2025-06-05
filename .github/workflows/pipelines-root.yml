@@ -38,9 +38,8 @@ on:
         required: false
 
 env:
-
-  PIPELINES_CLI_VERSION: v0.36.2
-  PIPELINES_ACTIONS_VERSION: v3.4.3 # TODO: update to whatever version comes after we merge matching actions PR
+  PIPELINES_CLI_VERSION: v0.39.0
+  PIPELINES_ACTIONS_VERSION: v3.6.4
   BOILERPLATE_VERSION: v0.5.16
   GRUNTWORK_INSTALLER_VERSION: v0.0.40
 
@@ -342,6 +341,7 @@ jobs:
           infra_live_repo: "."
           infra_live_directory: "."
           deploy_branch_name: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
+          stack_paths: ${{ toJson(matrix.jobs.StackPaths) }}
 
       - name: Post Execute Custom Action
         uses: ./pipelines-actions/.github/custom-actions/post-execute
