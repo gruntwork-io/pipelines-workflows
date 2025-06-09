@@ -216,7 +216,7 @@ jobs:
           child_account_id: ${{ matrix.jobs.AdditionalData.ChildAccountId }}
           account_names: ${{ matrix.jobs.AdditionalData.AccountNames }}
 
-      - name: "Run terragrunt ${{ steps.gruntwork_context.outputs.terragrunt_command }} in ${{ steps.gruntwork_context.outputs.working_directory }}"
+      - name: "[TerragruntExecute]: Run terragrunt ${{ steps.gruntwork_context.outputs.terragrunt_command }} in ${{ steps.gruntwork_context.outputs.working_directory }}"
         id: terragrunt
         uses: ./pipelines-actions/.github/actions/pipelines-execute
         env:
