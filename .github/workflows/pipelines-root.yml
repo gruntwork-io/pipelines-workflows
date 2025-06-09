@@ -39,7 +39,7 @@ on:
 
 env:
   PIPELINES_CLI_VERSION: v0.40.0-rc10
-  PIPELINES_ACTIONS_VERSION: v3.6.4
+  PIPELINES_ACTIONS_VERSION: ore/dev-927-rework-pipelines-status-update-action
   BOILERPLATE_VERSION: v0.5.16
   GRUNTWORK_INSTALLER_VERSION: v0.0.40
 
@@ -128,6 +128,12 @@ jobs:
           path: infra-live-repo
           fetch-depth: 0
           token: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+
+      - name: Install Pipelines CLI
+        uses: ./pipelines-actions/.github/actions/pipelines-install
+        with:
+          version: ${{ env.PIPELINES_CLI_VERSION }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Preflight Checks
         uses: ./pipelines-actions/.github/actions/pipelines-preflight-action
