@@ -342,7 +342,7 @@ jobs:
         uses: ./pipelines-actions/.github/actions/pipelines-comment-job-update
         with:
           PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
-          step_name: ${{ matrix.jobs.ChangeType }}`
+          step_name: ${{ matrix.jobs.ChangeType }}
           step_working_directory: ${{ matrix.jobs.WorkingDirectory }}
           step_terragrunt_command: ${{ matrix.jobs.Action.Command }}
           step_status: ${{ (steps.provision_new_account.conclusion == 'success' || steps.terragrunt.conclusion == 'success' || steps.core_accounts_baselines.conclusion == 'success') && 'success' || 'failed' }}
