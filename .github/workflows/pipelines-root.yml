@@ -202,6 +202,14 @@ jobs:
           FALLBACK_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
           api_base_url: ${{ inputs.api_base_url }}
 
+      - name: Fetch Propose Infra Change Token
+        id: pipelines-propose-infra-change-token
+        uses: gruntwork-io/pipelines-credentials@v1
+        with:
+          PIPELINES_TOKEN_PATH: propose-infra-change/${{ github.repository_owner }}
+          FALLBACK_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
+          api_base_url: ${{ inputs.api_base_url }}
+
       - name: Checkout Pipelines Actions
         uses: actions/checkout@v4
         with:
@@ -333,7 +341,7 @@ jobs:
         if: always()
         uses: ./pipelines-actions/.github/actions/pipelines-comment-job-update
         with:
-          PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-infra-root-write-token.outputs.PIPELINES_TOKEN }}
+          PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
           step_name: ${{ matrix.jobs.ChangeType }}`
           step_working_directory: ${{ matrix.jobs.WorkingDirectory }}
           step_terragrunt_command: ${{ matrix.jobs.Action.Command }}
