@@ -46,7 +46,7 @@ on:
         required: true
 env:
   PIPELINES_CLI_VERSION: v0.40.0-rc10
-  PIPELINES_ACTIONS_VERSION: ore/dev-927-rework-pipelines-status-update-action
+  PIPELINES_ACTIONS_VERSION: ore/dev-963-update-pipelines-preflight-action-to-call-pipelines
 
 jobs:
   unlock_one:
