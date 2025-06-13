@@ -56,6 +56,8 @@ jobs:
   pipelines_orchestrate:
     name: Detect Infrastructure Changes
     runs-on: ${{ fromJSON(inputs.runner) }}
+    env:
+      JOB_NAME: "Detect Infrastructure Changes"
     steps:
       - name: Record workflow env vars
         env:
