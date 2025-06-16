@@ -38,8 +38,8 @@ on:
         required: false
 
 env:
-  PIPELINES_CLI_VERSION: v0.40.0-rc10
-  PIPELINES_ACTIONS_VERSION: ore/dev-963-update-pipelines-preflight-action-to-call-pipelines
+  PIPELINES_CLI_VERSION: v0.40.0-rc11
+  PIPELINES_ACTIONS_VERSION: main
   BOILERPLATE_VERSION: v0.5.16
   GRUNTWORK_INSTALLER_VERSION: v0.0.40
 
