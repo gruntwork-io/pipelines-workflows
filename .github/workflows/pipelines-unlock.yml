@@ -42,11 +42,11 @@ on:
         type: string
         default: '"ubuntu-latest"'
     secrets:
-        PIPELINES_READ_TOKEN:
-          required: true
+      PIPELINES_READ_TOKEN:
+        required: true
 env:
-  PIPELINES_CLI_VERSION: v0.39.0
-  PIPELINES_ACTIONS_VERSION: v3.6.4
+  PIPELINES_CLI_VERSION: v0.40.0-rc10
+  PIPELINES_ACTIONS_VERSION: ore/dev-927-rework-pipelines-status-update-action
 
 jobs:
   unlock_one:
@@ -85,15 +85,20 @@ jobs:
           fetch-depth: 0
           token: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
+      - name: Install Pipelines CLI
+        uses: ./pipelines-actions/.github/actions/pipelines-install
+        with:
+          version: ${{ env.PIPELINES_CLI_VERSION }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+
       - name: Bootstrap Workflow
         id: gruntwork_context
         uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
         with:
-          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           working_directory: ${{ inputs.working_directory }}
           terragrunt_command: "force-unlock -force ${{ inputs.lock_id }}"
-          branch: 'main'
+          branch: "main"
 
       - name: Setup Mise Toml
         id: mise-toml
@@ -216,15 +221,20 @@ jobs:
           fetch-depth: 0
           token: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
+      - name: Install Pipelines CLI
+        uses: ./pipelines-actions/.github/actions/pipelines-install
+        with:
+          version: ${{ env.PIPELINES_CLI_VERSION }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+
       - name: Bootstrap Workflow
         id: gruntwork_context
         uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
         with:
-          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           working_directory: ${{ inputs.working_directory }}
           terragrunt_command: "init"
-          branch: 'main'
+          branch: "main"
 
       - name: Setup Mise Toml
         id: mise-toml
@@ -411,15 +421,20 @@ jobs:
           name: infra-live-repo
           path: infra-live-repo
 
+      - name: Install Pipelines CLI
+        uses: ./pipelines-actions/.github/actions/pipelines-install
+        with:
+          version: ${{ env.PIPELINES_CLI_VERSION }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+
       - name: Bootstrap Workflow
         id: gruntwork_context
         uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
         with:
-          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           working_directory: ${{ matrix.working_directory }}
           terragrunt_command: "init"
-          branch: 'main'
+          branch: "main"
 
       - name: "Run Terragrunt Init"
         id: terragrunt

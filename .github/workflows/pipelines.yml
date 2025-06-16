@@ -25,19 +25,19 @@ on:
         type: string
         default: "https://api.prod.app.gruntwork.io/api/v1"
       pipelines_binary_url:
-          type: string
-          default: ""
-          description: "Override where we fetch pipelines from, used for internal testing"
+        type: string
+        default: ""
+        description: "Override where we fetch pipelines from, used for internal testing"
 
     secrets:
       PIPELINES_READ_TOKEN:
         required: true
       PR_CREATE_TOKEN:
-          required: false
+        required: false
 
 env:
-  PIPELINES_CLI_VERSION: v0.39.0
-  PIPELINES_ACTIONS_VERSION: v3.6.4
+  PIPELINES_CLI_VERSION: v0.40.0-rc10
+  PIPELINES_ACTIONS_VERSION: ore/dev-927-rework-pipelines-status-update-action
 
   # GitHub Actions tends to hit resource exhaustion and kill running jobs
   # if we leave parallelism unbounded, so we set the max to 10 for a sane default.
@@ -89,7 +89,7 @@ jobs:
           ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
           token: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
 
-      - name: Validate PIPELINES_READ_TOKEN
+      - name: Report error if token with access to gruntwork repos is invalid
         if: always() && steps.checkout_actions.conclusion != 'success'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -99,11 +99,10 @@ jobs:
         run: |
           logs_url="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
           msg=$(printf "<h2>❌ Plan for $PR_HEAD_SHA</h2>❌ Gruntwork Pipelines was unable to checkout the <code>pipelines-actions</code> repository. Please ensure the <code>PIPELINES_READ_TOKEN</code> is valid and unexpired. <a href=\"https://docs.gruntwork.io/pipelines/security/machine-users#ci-read-only-user\">Learn More</a><br><br><br><a href=\"$logs_url\">View full logs</a>")
-          echo "::error:: $msg"
+          echo "::error:: $msg" # Results in step failure but rest of logic in this step will still run
           echo "$msg" >> "$GITHUB_STEP_SUMMARY"
           pull_number=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
           gh pr comment $pull_number -b "$msg" -R $GITHUB_ORG || true # || true incase this fails on a non-PR run
-
 
       - name: Check out repo code
         uses: actions/checkout@v4
@@ -111,6 +110,12 @@ jobs:
           path: infra-live-repo
           fetch-depth: 0
           token: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+
+      - name: Install Pipelines CLI
+        uses: ./pipelines-actions/.github/actions/pipelines-install
+        with:
+          version: ${{ env.PIPELINES_CLI_VERSION }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Preflight Checks
         uses: ./pipelines-actions/.github/actions/pipelines-preflight-action
@@ -133,7 +138,7 @@ jobs:
 
   pipelines_execute:
     env:
-      JOB_NAME:  ${{ contains(matrix.jobs.Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
+      JOB_NAME: ${{ contains(matrix.jobs.Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
     name: ${{ contains(matrix.jobs.Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
     needs: [pipelines_orchestrate]
     runs-on: ${{ fromJSON(inputs.runner) }}
@@ -191,11 +196,16 @@ jobs:
           fetch-depth: 0
           token: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
+      - name: Install Pipelines CLI
+        uses: ./pipelines-actions/.github/actions/pipelines-install
+        with:
+          version: ${{ env.PIPELINES_CLI_VERSION }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+
       - name: Bootstrap Workflow
         id: gruntwork_context
         uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
         with:
-          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           change_type: ${{ matrix.jobs.ChangeType }}
           branch: ${{ matrix.jobs.Ref }}
@@ -206,7 +216,7 @@ jobs:
           child_account_id: ${{ matrix.jobs.AdditionalData.ChildAccountId }}
           account_names: ${{ matrix.jobs.AdditionalData.AccountNames }}
 
-      - name: "Run terragrunt ${{ steps.gruntwork_context.outputs.terragrunt_command }} in ${{ steps.gruntwork_context.outputs.working_directory }}"
+      - name: "[TerragruntExecute]: Run terragrunt ${{ steps.gruntwork_context.outputs.terragrunt_command }} in ${{ steps.gruntwork_context.outputs.working_directory }}"
         id: terragrunt
         uses: ./pipelines-actions/.github/actions/pipelines-execute
         env:
@@ -224,27 +234,18 @@ jobs:
           deploy_branch_name: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
           stack_paths: ${{ toJson(matrix.jobs.StackPaths) }}
 
-      - name: Get Logs URL
-        id: get_logs_url
-        uses: ./pipelines-actions/.github/actions/pipelines-get-job-logs-url
-        if: always()
-        with:
-          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
-          job_name: ${{ env.JOB_NAME }}
-          step_name_prefix: "Run terragrunt"
-
       - name: Update comment
         if: always()
-        uses: ./pipelines-actions/.github/actions/pipelines-status-update
+        uses: ./pipelines-actions/.github/actions/pipelines-comment-job-update
         with:
+          PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
           step_name: ${{ matrix.jobs.ChangeType }}
           step_working_directory: ${{ matrix.jobs.WorkingDirectory }}
+          step_terragrunt_command: ${{ matrix.jobs.Action.Command }}
           step_status: ${{ steps.terragrunt.conclusion == 'success' && 'success' || 'failed' }}
-          step_details: ${{ steps.terragrunt.outputs.formatted_plan_output }}
-          step_details_extended_log: ${{ steps.terragrunt.outputs.execute_stdout_log }}
-          pull_request_number: ${{ steps.gruntwork_context.outputs.pr_number }}
-          step_logs_url: ${{ steps.get_logs_url.outputs.step_logs_url }}
-          PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
+          plan_apply_log_file_path: ${{ steps.terragrunt.outputs.plan_folder }}
+          extended_log_file_path: ${{ steps.terragrunt.outputs.execute_stdout_log }}
+          job_name: ${{ env.JOB_NAME }}
 
     outputs:
       account_id: ${{ matrix.jobs.AccountId }}
@@ -254,3 +255,88 @@ jobs:
       terragrunt_command: ${{ steps.gruntwork_context.outputs.terragrunt_command }}
       additional_data: ${{ steps.gruntwork_context.outputs.additional_data }}
       child_account_id: ${{ steps.gruntwork_context.outputs.child_account_id }}
+
+  pipelines_status_check:
+    name: "Pipelines Status Check"
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    needs: [pipelines_orchestrate, pipelines_execute]
+    if: always()
+    steps:
+      - name: Record workflow env vars
+        env:
+          PIPELINES_BINARY_URL: ${{ inputs.pipelines_binary_url }}
+        run: |
+          time_now=$(date -u +"%s")
+          echo "PIPELINES_JOB_START_TIME=$time_now" >> $GITHUB_ENV
+          echo "PIPELINES_BINARY_URL=$PIPELINES_BINARY_URL" >> $GITHUB_ENV
+
+      - name: Fetch Gruntwork Read Token
+        id: pipelines-gruntwork-read-token
+        uses: gruntwork-io/pipelines-credentials@v1
+        with:
+          PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
+          FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          api_base_url: ${{ inputs.api_base_url }}
+
+      - name: Fetch Org Read Token
+        id: pipelines-customer-org-read-token
+        uses: gruntwork-io/pipelines-credentials@v1
+        with:
+          PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
+          FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          api_base_url: ${{ inputs.api_base_url }}
+
+      - name: Fetch Create PR Token
+        id: pipelines-propose-infra-change-token
+        uses: gruntwork-io/pipelines-credentials@v1
+        with:
+          PIPELINES_TOKEN_PATH: propose-infra-change/${{ github.repository_owner }}
+          FALLBACK_TOKEN: ${{ secrets.PR_CREATE_TOKEN }}
+          api_base_url: ${{ inputs.api_base_url }}
+
+      - name: Checkout Pipelines Actions
+        uses: actions/checkout@v4
+        with:
+          path: pipelines-actions
+          repository: gruntwork-io/pipelines-actions
+          ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
+          token: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+
+      - name: Check out repo code
+        uses: actions/checkout@v4
+        with:
+          path: infra-live-repo
+          fetch-depth: 0
+          token: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+
+      - name: Install Pipelines CLI
+        uses: ./pipelines-actions/.github/actions/pipelines-install
+        with:
+          version: ${{ env.PIPELINES_CLI_VERSION }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+
+      - name: Check Status
+        shell: bash
+        working-directory: ./infra-live-repo
+        env:
+          PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
+        run: |
+          GH_TOKEN="$PR_COMMENT_WRITE_TOKEN" \
+            GH_ARTIFACT_TOKEN="$PR_COMMENT_WRITE_TOKEN" \
+            pipelines status-update finalize \
+            --working-directory . \
+            --ci github-actions >/tmp/finalize-output.json
+
+          pipeline_status=$(jq -r '.status' </tmp/finalize-output.json)
+
+          cat /tmp/finalize-output.json
+
+          printf '%.s─' $(seq 1 "$(tput -T dumb cols)")
+          echo " "
+          if [[ "$pipeline_status" == "success" ]]; then
+            echo -e "✅ \033[1;32mPipeline Passed\033[0m"
+            exit 0
+          else
+            echo -e "❌ \033[1;31mPipeline Failed\033[0m"
+            exit 1
+          fi
