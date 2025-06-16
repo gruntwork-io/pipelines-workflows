@@ -36,8 +36,8 @@ on:
         required: false
 
 env:
-  PIPELINES_CLI_VERSION: v0.40.0-rc10
-  PIPELINES_ACTIONS_VERSION: ore/dev-927-rework-pipelines-status-update-action
+  PIPELINES_CLI_VERSION: v0.40.0-rc11
+  PIPELINES_ACTIONS_VERSION: main
 
   # GitHub Actions tends to hit resource exhaustion and kill running jobs
   # if we leave parallelism unbounded, so we set the max to 10 for a sane default.
@@ -47,6 +47,8 @@ jobs:
   pipelines_orchestrate:
     name: Detect Infrastructure Changes
     runs-on: ${{ fromJSON(inputs.runner) }}
+    env:
+      JOB_NAME: "Detect Infrastructure Changes"
     steps:
       - name: Record workflow env vars
         env:
