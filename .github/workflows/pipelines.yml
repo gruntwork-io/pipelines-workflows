@@ -28,6 +28,18 @@ on:
           type: string
           default: ""
           description: "Override where we fetch pipelines from, used for internal testing"
+      pipelines_cli_version:
+        type: string
+        default: "v0.39.0"
+        description: "For Gruntwork internal testing - the version of the pipelines CLI to use"
+      pipelines_actions_ref:
+        type: string
+        default: "v3.6.4"
+        description: "For Gruntwork internal testing - the ref of the pipelines actions to use"
+      pipelines_credentials_ref:
+        type: string
+        default: "v1"
+        description: "For Gruntwork internal testing - the ref of the pipelines credentials to use"
 
     secrets:
       PIPELINES_READ_TOKEN:
@@ -36,8 +48,9 @@ on:
           required: false
 
 env:
-  PIPELINES_CLI_VERSION: v0.39.0
-  PIPELINES_ACTIONS_VERSION: v3.6.4
+  PIPELINES_CLI_VERSION: ${{ inputs.pipelines_cli_version }}
+  PIPELINES_ACTIONS_REF: ${{ inputs.pipelines_actions_ref }}
+  PIPELINES_CREDENTIALS_REF: ${{ inputs.pipelines_credentials_ref }}
 
   # GitHub Actions tends to hit resource exhaustion and kill running jobs
   # if we leave parallelism unbounded, so we set the max to 10 for a sane default.
@@ -56,28 +69,35 @@ jobs:
           echo "PIPELINES_JOB_START_TIME=$time_now" >> $GITHUB_ENV
           echo "PIPELINES_BINARY_URL=$PIPELINES_BINARY_URL" >> $GITHUB_ENV
 
-      - name: Fetch Gruntwork Read Token
-        id: pipelines-gruntwork-read-token
-        uses: gruntwork-io/pipelines-credentials@v1
+      - name: Checkout Pipelines Credentials
+        uses: actions/checkout@v4
         with:
-          PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
-          FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
-          api_base_url: ${{ inputs.api_base_url }}
+          path: pipelines-credentials
+          repository: gruntwork-io/pipelines-credentials
+          ref: ${{ env.PIPELINES_CREDENTIALS_REF }}
 
-      - name: Fetch Org Read Token
-        id: pipelines-customer-org-read-token
-        uses: gruntwork-io/pipelines-credentials@v1
+      - name: Fetch Pipelines Tokens
+        id: pipelines-tokens
+        uses: ./pipelines-credentials
         with:
-          PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
-          FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
-          api_base_url: ${{ inputs.api_base_url }}
-
-      - name: Fetch Create PR Token
-        id: pipelines-propose-infra-change-token
-        uses: gruntwork-io/pipelines-credentials@v1
-        with:
-          PIPELINES_TOKEN_PATH: propose-infra-change/${{ github.repository_owner }}
-          FALLBACK_TOKEN: ${{ secrets.PR_CREATE_TOKEN }}
+          PIPELINES_TOKEN_PATHS: |
+            [
+              {
+                "name": "gruntwork_read",
+                "path": "pipelines-read/gruntwork-io",
+                "fallback_secret": "${{ secrets.PIPELINES_READ_TOKEN }}"
+              },
+              {
+                "name": "customer_org_read",
+                "path": "pipelines-read/${{ github.repository_owner }}",
+                "fallback_secret": "${{ secrets.PIPELINES_READ_TOKEN }}"
+              },
+              {
+                "name": "pr_create",
+                "path": "propose-infra-change/${{ github.repository_owner }}",
+                "fallback_secret": "${{ secrets.PR_CREATE_TOKEN }}"
+              }
+            ]
           api_base_url: ${{ inputs.api_base_url }}
 
       - name: Checkout Pipelines Actions
@@ -86,8 +106,8 @@ jobs:
         with:
           path: pipelines-actions
           repository: gruntwork-io/pipelines-actions
-          ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
-          token: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+          ref: ${{ env.PIPELINES_ACTIONS_REF }}
+          token: ${{ fromJSON(steps.pipelines-tokens.outputs.PIPELINES_TOKENS).gruntwork_read }}
 
       - name: Validate PIPELINES_READ_TOKEN
         if: always() && steps.checkout_actions.conclusion != 'success'
@@ -110,23 +130,23 @@ jobs:
         with:
           path: infra-live-repo
           fetch-depth: 0
-          token: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+          token: ${{ fromJSON(steps.pipelines-tokens.outputs.PIPELINES_TOKENS).customer_org_read }}
 
       - name: Preflight Checks
         uses: ./pipelines-actions/.github/actions/pipelines-preflight-action
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
-          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
-          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
-          PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJSON(steps.pipelines-tokens.outputs.PIPELINES_TOKENS).gruntwork_read }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJSON(steps.pipelines-tokens.outputs.PIPELINES_TOKENS).customer_org_read }}
+          PR_COMMENT_WRITE_TOKEN: ${{ fromJSON(steps.pipelines-tokens.outputs.PIPELINES_TOKENS).pr_create }}
 
       - name: Pipelines Orchestrate
         id: orchestrate
         uses: ./pipelines-actions/.github/actions/pipelines-orchestrate
         with:
-          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
-          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
-          PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJSON(steps.pipelines-tokens.outputs.PIPELINES_TOKENS).gruntwork_read }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJSON(steps.pipelines-tokens.outputs.PIPELINES_TOKENS).customer_org_read }}
+          PR_COMMENT_WRITE_TOKEN: ${{ fromJSON(steps.pipelines-tokens.outputs.PIPELINES_TOKENS).pr_create }}
 
     outputs:
       pipelines_jobs: ${{ steps.orchestrate.outputs.jobs }}
@@ -152,28 +172,35 @@ jobs:
           echo "PIPELINES_JOB_START_TIME=$time_now" >> $GITHUB_ENV
           echo "PIPELINES_BINARY_URL=$PIPELINES_BINARY_URL" >> $GITHUB_ENV
 
-      - name: Fetch Gruntwork Read Token
-        id: pipelines-gruntwork-read-token
-        uses: gruntwork-io/pipelines-credentials@v1
+      - name: Checkout Pipelines Credentials
+        uses: actions/checkout@v4
         with:
-          PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
-          FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
-          api_base_url: ${{ inputs.api_base_url }}
+          path: pipelines-credentials
+          repository: gruntwork-io/pipelines-credentials
+          ref: ${{ env.PIPELINES_CREDENTIALS_REF }}
 
-      - name: Fetch Org Read Token
-        id: pipelines-customer-org-read-token
-        uses: gruntwork-io/pipelines-credentials@v1
+      - name: Fetch Pipelines Tokens
+        id: pipelines-tokens
+        uses: ./pipelines-credentials
         with:
-          PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
-          FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
-          api_base_url: ${{ inputs.api_base_url }}
-
-      - name: Fetch Create PR Token
-        id: pipelines-propose-infra-change-token
-        uses: gruntwork-io/pipelines-credentials@v1
-        with:
-          PIPELINES_TOKEN_PATH: propose-infra-change/${{ github.repository_owner }}
-          FALLBACK_TOKEN: ${{ secrets.PR_CREATE_TOKEN }}
+          PIPELINES_TOKEN_PATHS: |
+            [
+              {
+                "name": "gruntwork_read",
+                "path": "pipelines-read/gruntwork-io",
+                "fallback_secret": "${{ secrets.PIPELINES_READ_TOKEN }}"
+              },
+              {
+                "name": "customer_org_read",
+                "path": "pipelines-read/${{ github.repository_owner }}",
+                "fallback_secret": "${{ secrets.PIPELINES_READ_TOKEN }}"
+              },
+              {
+                "name": "pr_create",
+                "path": "propose-infra-change/${{ github.repository_owner }}",
+                "fallback_secret": "${{ secrets.PR_CREATE_TOKEN }}"
+              }
+            ]
           api_base_url: ${{ inputs.api_base_url }}
 
       - name: Checkout Pipelines Actions
@@ -181,22 +208,23 @@ jobs:
         with:
           path: pipelines-actions
           repository: gruntwork-io/pipelines-actions
-          ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
-          token: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+          ref: ${{ env.PIPELINES_ACTIONS_REF }}
+          token: ${{ fromJSON(steps.pipelines-tokens.outputs.PIPELINES_TOKENS).gruntwork_read }}
 
       - name: Check out repo code
         uses: actions/checkout@v4
         with:
           path: infra-live-repo
           fetch-depth: 0
-          token: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+          token: ${{ fromJSON(steps.pipelines-tokens.outputs.PIPELINES_TOKENS).customer_org_read }}
 
       - name: Bootstrap Workflow
         id: gruntwork_context
         uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
         with:
-          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
-          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJSON(steps.pipelines-tokens.outputs.PIPELINES_TOKENS).gruntwork_read }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJSON(steps.pipelines-tokens.outputs.PIPELINES_TOKENS).customer_org_read }}
+          PR_COMMENT_WRITE_TOKEN: ${{ fromJSON(steps.pipelines-tokens.outputs.PIPELINES_TOKENS).pr_create }}
           change_type: ${{ matrix.jobs.ChangeType }}
           branch: ${{ matrix.jobs.Ref }}
           working_directory: ${{ matrix.jobs.WorkingDirectory }}
@@ -212,8 +240,8 @@ jobs:
         env:
           TERRAGRUNT_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd . --disk-cache-duration-minutes 10"
         with:
-          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
-          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJSON(steps.pipelines-tokens.outputs.PIPELINES_TOKENS).gruntwork_read }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJSON(steps.pipelines-tokens.outputs.PIPELINES_TOKENS).customer_org_read }}
           tf_binary: ${{ steps.gruntwork_context.outputs.tf_binary }}
           working_directory: ${{ steps.gruntwork_context.outputs.working_directory }}
           terragrunt_command: ${{ steps.gruntwork_context.outputs.terragrunt_command }}
@@ -229,7 +257,7 @@ jobs:
         uses: ./pipelines-actions/.github/actions/pipelines-get-job-logs-url
         if: always()
         with:
-          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJSON(steps.pipelines-tokens.outputs.PIPELINES_TOKENS).customer_org_read }}
           job_name: ${{ env.JOB_NAME }}
           step_name_prefix: "Run terragrunt"
 
@@ -244,7 +272,7 @@ jobs:
           step_details_extended_log: ${{ steps.terragrunt.outputs.execute_stdout_log }}
           pull_request_number: ${{ steps.gruntwork_context.outputs.pr_number }}
           step_logs_url: ${{ steps.get_logs_url.outputs.step_logs_url }}
-          PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
+          PR_COMMENT_WRITE_TOKEN: ${{ fromJSON(steps.pipelines-tokens.outputs.PIPELINES_TOKENS).pr_create }}
 
     outputs:
       account_id: ${{ matrix.jobs.AccountId }}
