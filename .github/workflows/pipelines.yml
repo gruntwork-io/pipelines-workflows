@@ -37,7 +37,7 @@ on:
 
 env:
   PIPELINES_CLI_VERSION: v0.40.0-rc12
-  PIPELINES_ACTIONS_VERSION: main
+  PIPELINES_ACTIONS_VERSION: ore/dev-949-create-pipelines-account-factory-create-account-cli-command
 
   # GitHub Actions tends to hit resource exhaustion and kill running jobs
   # if we leave parallelism unbounded, so we set the max to 10 for a sane default.
