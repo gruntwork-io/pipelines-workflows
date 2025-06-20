@@ -366,6 +366,13 @@ jobs:
           deploy_branch_name: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
           stack_paths: ${{ toJson(matrix.jobs.StackPaths) }}
 
+      - name: Debug action and condition evaluation
+        run: |
+          echo "Action value: '${{ steps.gruntwork_context.outputs.action }}'"
+          echo "OR condition result: ${{ steps.gruntwork_context.outputs.action == 'TERRAGRUNT_EXECUTE' || steps.gruntwork_context.outputs.action == 'BASELINE_ACCOUNT' }}"
+          echo "Note: always() function cannot be evaluated in expressions, but it should be true when this step runs"
+          echo "Final condition: always() && (OR result above)"
+
       - name: Update comment
         if: always() && (${{ steps.gruntwork_context.outputs.action == 'TERRAGRUNT_EXECUTE' }} || ${{ steps.gruntwork_context.outputs.action == 'BASELINE_ACCOUNT' }})
         uses: ./pipelines-actions/.github/actions/pipelines-comment-job-update
