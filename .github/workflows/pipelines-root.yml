@@ -374,7 +374,7 @@ jobs:
           echo "Final condition: always() && (OR result above)"
 
       - name: Update comment
-        if: always() && (${{ steps.gruntwork_context.outputs.action == 'TERRAGRUNT_EXECUTE' }} || ${{ steps.gruntwork_context.outputs.action == 'BASELINE_ACCOUNT' }})
+        if: always() && (steps.gruntwork_context.outputs.action == 'TERRAGRUNT_EXECUTE' || steps.gruntwork_context.outputs.action == 'BASELINE_ACCOUNT')
         uses: ./pipelines-actions/.github/actions/pipelines-comment-job-update
         with:
           PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
