@@ -257,6 +257,15 @@ jobs:
           # TODO: This should be "first_new_account_name".
           new_account_name: ${{ matrix.jobs.NewAccounts[0].Name }}
 
+      # TODO: discuss removing mise install from individual actions and just doing it in workflows in one spot
+      - name: Install Mise
+        id: mise-toml
+        uses: jdx/mise-action@v2
+        with:
+          install: true
+          cache: true
+          mise_toml: "./infra-live-repo/mise.toml"
+
       # To learn more about customizing Pipelines see our documentation at https://docs.gruntwork.io/pipelines/maintain/extending/
       - name: "[Baseline]: Pre Provision New Account Custom Action"
         uses: ./pipelines-actions/.github/custom-actions/pre-provision-new-account
