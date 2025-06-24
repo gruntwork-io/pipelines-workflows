@@ -45,8 +45,8 @@ on:
       PIPELINES_READ_TOKEN:
         required: true
 env:
-  PIPELINES_CLI_VERSION: v0.40.0-rc12
-  PIPELINES_ACTIONS_VERSION: ore/dev-949-create-pipelines-account-factory-create-account-cli-command
+  PIPELINES_CLI_VERSION: v0.40.0-rc13
+  PIPELINES_ACTIONS_VERSION: main
 
 jobs:
   unlock_one:

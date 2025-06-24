@@ -38,8 +38,8 @@ on:
         required: false
 
 env:
-  PIPELINES_CLI_VERSION: v0.40.0-rc12
-  PIPELINES_ACTIONS_VERSION: ore/dev-949-create-pipelines-account-factory-create-account-cli-command
+  PIPELINES_CLI_VERSION: v0.40.0-rc13
+  PIPELINES_ACTIONS_VERSION: main
   BOILERPLATE_VERSION: v0.5.16
   GRUNTWORK_INSTALLER_VERSION: v0.0.40
 
