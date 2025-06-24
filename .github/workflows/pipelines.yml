@@ -271,7 +271,7 @@ jobs:
           step_name: ${{ matrix.jobs.ChangeType }}
           step_working_directory: ${{ matrix.jobs.WorkingDirectory }}
           step_terragrunt_command: ${{ matrix.jobs.Action.Command }}
-          step_status: ${{ steps.terragrunt.conclusion == 'success' && 'success' || 'failed' }}
+          step_status: ${{ steps.terragrunt.conclusion == 'success' && 'success' || 'failure' }}
           plan_apply_log_file_path: ${{ steps.terragrunt.outputs.plan_folder }}
           extended_log_file_path: ${{ steps.terragrunt.outputs.execute_stdout_log }}
           job_name: ${{ env.JOB_NAME }}
