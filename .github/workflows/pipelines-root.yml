@@ -30,7 +30,7 @@ on:
         description: "Override where we fetch pipelines from, used for internal testing"
       pipelines_cli_version:
         type: string
-        default: "v0.40.0-rc12"
+        default: "v0.40.0-rc13"
         description: "For Gruntwork internal testing - the version of the pipelines CLI to use"
       pipelines_actions_ref:
         type: string
@@ -284,6 +284,20 @@ jobs:
           # TODO: This should be "first_new_account_name".
           new_account_name: ${{ matrix.jobs.NewAccounts[0].Name }}
 
+      - name: Install Mise
+        id: mise-toml
+        uses: jdx/mise-action@v2
+        with:
+          install: true
+          cache: true
+          working_directory: "./infra-live-repo"
+
+      - name: Configure code auth
+        uses: ./pipelines-actions/.github/actions/pipelines-code-auth
+        with:
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+
       # To learn more about customizing Pipelines see our documentation at https://docs.gruntwork.io/pipelines/maintain/extending/
       - name: "[Baseline]: Pre Provision New Account Custom Action"
         uses: ./pipelines-actions/.github/custom-actions/pre-provision-new-account
@@ -298,10 +312,13 @@ jobs:
         id: provision_new_account
         if: ${{ steps.gruntwork_context.outputs.action == 'PROVISION_ACCOUNT' }}
         uses: ./pipelines-actions/.github/actions/pipelines-provision-account-action
+        env:
+          TERRAGRUNT_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd . --disk-cache-duration-minutes 10"
         with:
-          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
-          PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-infra-root-write-token.outputs.PIPELINES_TOKEN }}
+          PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
+          job: ${{ toJson(matrix.jobs) }}
+          workflow_job_name: ${{ env.JOB_NAME }}
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
       - name: "[ProvisionAccount]: Post Provision New Account Custom Action"
@@ -375,14 +392,14 @@ jobs:
           stack_paths: ${{ toJson(matrix.jobs.StackPaths) }}
 
       - name: Update comment
-        if: always()
+        if: always() && (steps.gruntwork_context.outputs.action == 'TERRAGRUNT_EXECUTE' || steps.gruntwork_context.outputs.action == 'BASELINE_ACCOUNT')
         uses: ./pipelines-actions/.github/actions/pipelines-comment-job-update
         with:
           PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
           step_name: ${{ matrix.jobs.ChangeType }}
           step_working_directory: ${{ matrix.jobs.WorkingDirectory }}
           step_terragrunt_command: ${{ matrix.jobs.Action.Command }}
-          step_status: ${{ (steps.provision_new_account.conclusion == 'success' || steps.terragrunt.conclusion == 'success' || steps.core_accounts_baselines.conclusion == 'success') && 'success' || 'failure' }}
+          step_status: ${{ (steps.terragrunt.conclusion == 'success' || steps.core_accounts_baselines.conclusion == 'success') && 'success' || 'failure' }}
           plan_apply_log_file_path: ${{ steps.terragrunt.outputs.plan_folder }}
           extended_log_file_path: ${{ steps.terragrunt.outputs.execute_stdout_log }}
           job_name: ${{ env.JOB_NAME }}
