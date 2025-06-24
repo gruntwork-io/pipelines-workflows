@@ -382,7 +382,7 @@ jobs:
           step_name: ${{ matrix.jobs.ChangeType }}
           step_working_directory: ${{ matrix.jobs.WorkingDirectory }}
           step_terragrunt_command: ${{ matrix.jobs.Action.Command }}
-          step_status: ${{ (steps.provision_new_account.conclusion == 'success' || steps.terragrunt.conclusion == 'success' || steps.core_accounts_baselines.conclusion == 'success') && 'success' || 'failed' }}
+          step_status: ${{ (steps.provision_new_account.conclusion == 'success' || steps.terragrunt.conclusion == 'success' || steps.core_accounts_baselines.conclusion == 'success') && 'success' || 'failure' }}
           plan_apply_log_file_path: ${{ steps.terragrunt.outputs.plan_folder }}
           extended_log_file_path: ${{ steps.terragrunt.outputs.execute_stdout_log }}
           job_name: ${{ env.JOB_NAME }}
