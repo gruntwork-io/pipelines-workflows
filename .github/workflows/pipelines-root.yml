@@ -284,7 +284,6 @@ jobs:
           # TODO: This should be "first_new_account_name".
           new_account_name: ${{ matrix.jobs.NewAccounts[0].Name }}
 
-      # TODO: discuss removing mise install from individual actions and just doing it in workflows in one spot
       - name: Install Mise
         id: mise-toml
         uses: jdx/mise-action@v2
