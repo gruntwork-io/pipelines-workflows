@@ -41,12 +41,26 @@ on:
       runner:
         type: string
         default: '"ubuntu-latest"'
+      pipelines_cli_version:
+        type: string
+        default: "v0.40.0-rc13"
+        description: "For Gruntwork internal testing - the version of the pipelines CLI to use"
+      pipelines_actions_ref:
+        type: string
+        default: "main"
+        description: "For Gruntwork internal testing - the ref of the pipelines actions to use"
+      pipelines_credentials_ref:
+        type: string
+        default: "v1"
+        description: "For Gruntwork internal testing - the ref of the pipelines credentials to use"
+
     secrets:
       PIPELINES_READ_TOKEN:
         required: true
 env:
-  PIPELINES_CLI_VERSION: v0.40.0-rc13
-  PIPELINES_ACTIONS_VERSION: main
+  PIPELINES_CLI_VERSION: ${{ inputs.pipelines_cli_version }}
+  PIPELINES_ACTIONS_REF: ${{ inputs.pipelines_actions_ref }}
+  PIPELINES_CREDENTIALS_REF: ${{ inputs.pipelines_credentials_ref }}
 
 jobs:
   unlock_one:
@@ -54,9 +68,16 @@ jobs:
     if: ${{ !inputs.unlock_all }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
+      - name: Checkout Pipelines Credentials
+        uses: actions/checkout@v4
+        with:
+          path: pipelines-credentials
+          repository: gruntwork-io/pipelines-credentials
+          ref: ${{ env.PIPELINES_CREDENTIALS_REF }}
+
       - name: Fetch Gruntwork Read Token
         id: pipelines-gruntwork-read-token
-        uses: gruntwork-io/pipelines-credentials@v1
+        uses: ./pipelines-credentials
         with:
           PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -64,7 +85,7 @@ jobs:
 
       - name: Fetch Org Read Token
         id: pipelines-customer-org-read-token
-        uses: gruntwork-io/pipelines-credentials@v1
+        uses: ./pipelines-credentials
         with:
           PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -75,7 +96,7 @@ jobs:
         with:
           path: pipelines-actions
           repository: gruntwork-io/pipelines-actions
-          ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
+          ref: ${{ env.PIPELINES_ACTIONS_REF }}
           token: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Check out repo code
@@ -190,9 +211,16 @@ jobs:
     if: ${{ inputs.unlock_all }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
+      - name: Checkout Pipelines Credentials
+        uses: actions/checkout@v4
+        with:
+          path: pipelines-credentials
+          repository: gruntwork-io/pipelines-credentials
+          ref: ${{ env.PIPELINES_CREDENTIALS_REF }}
+
       - name: Fetch Gruntwork Read Token
         id: pipelines-gruntwork-read-token
-        uses: gruntwork-io/pipelines-credentials@v1
+        uses: ./pipelines-credentials
         with:
           PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -200,7 +228,7 @@ jobs:
 
       - name: Fetch Org Read Token
         id: pipelines-customer-org-read-token
-        uses: gruntwork-io/pipelines-credentials@v1
+        uses: ./pipelines-credentials
         with:
           PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -211,7 +239,7 @@ jobs:
         with:
           path: pipelines-actions
           repository: gruntwork-io/pipelines-actions
-          ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
+          ref: ${{ env.PIPELINES_ACTIONS_REF }}
           token: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Check out repo code
@@ -391,9 +419,16 @@ jobs:
       matrix:
         working_directory: ${{ fromJson(needs.unlock_all.outputs.unlock_folders) }}
     steps:
+      - name: Checkout Pipelines Credentials
+        uses: actions/checkout@v4
+        with:
+          path: pipelines-credentials
+          repository: gruntwork-io/pipelines-credentials
+          ref: ${{ env.PIPELINES_CREDENTIALS_REF }}
+
       - name: Fetch Gruntwork Read Token
         id: pipelines-gruntwork-read-token
-        uses: gruntwork-io/pipelines-credentials@v1
+        uses: ./pipelines-credentials
         with:
           PIPELINES_TOKEN_PATH: "pipelines-read/gruntwork-io"
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -401,7 +436,7 @@ jobs:
 
       - name: Fetch Org Read Token
         id: pipelines-customer-org-read-token
-        uses: gruntwork-io/pipelines-credentials@v1
+        uses: ./pipelines-credentials
         with:
           PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
@@ -412,7 +447,7 @@ jobs:
         with:
           path: pipelines-actions
           repository: gruntwork-io/pipelines-actions
-          ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
+          ref: ${{ env.PIPELINES_ACTIONS_REF }}
           token: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Download Infra-live repo as an artifact
