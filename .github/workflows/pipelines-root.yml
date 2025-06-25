@@ -321,12 +321,6 @@ jobs:
           workflow_job_name: ${{ env.JOB_NAME }}
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
-      # TODO: Remove this after testing. Intended to only test the core account baseline.
-      - name: "Exit to terminate test"
-        run: |
-          echo "Exiting to terminate test"
-          exit 1
-
       - name: "[ProvisionAccount]: Post Provision New Account Custom Action"
         uses: ./pipelines-actions/.github/custom-actions/post-provision-new-account
         if: ${{ steps.gruntwork_context.outputs.action == 'PROVISION_ACCOUNT' }}
@@ -376,6 +370,12 @@ jobs:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
+
+      # TODO: Remove this after testing. Intended to only test the core account baseline.
+      - name: "Exit to terminate test"
+        run: |
+          echo "Exiting to terminate test"
+          exit 1
 
       - name: "[TerragruntExecute]: Run terragrunt ${{ steps.gruntwork_context.outputs.terragrunt_command }} in ${{ steps.gruntwork_context.outputs.working_directory }}"
         id: terragrunt
