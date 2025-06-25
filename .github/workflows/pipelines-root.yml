@@ -321,6 +321,12 @@ jobs:
           workflow_job_name: ${{ env.JOB_NAME }}
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
+      # TODO: Remove this after testing. Intended to only test the core account baseline.
+      - name: "Exit to terminate test"
+        run: |
+          echo "Exiting to terminate test"
+          exit 1
+
       - name: "[ProvisionAccount]: Post Provision New Account Custom Action"
         uses: ./pipelines-actions/.github/custom-actions/post-provision-new-account
         if: ${{ steps.gruntwork_context.outputs.action == 'PROVISION_ACCOUNT' }}
