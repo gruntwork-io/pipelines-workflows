@@ -63,7 +63,7 @@ env:
 
   # GitHub Actions tends to hit resource exhaustion and kill running jobs
   # if we leave parallelism unbounded, so we set the max to 10 for a sane default.
-  TERRAGRUNT_PARALLELISM: 10
+  TG_PARALLELISM: 10
 
 jobs:
   pipelines_orchestrate:
@@ -377,7 +377,7 @@ jobs:
         if: ${{ steps.gruntwork_context.outputs.action == 'TERRAGRUNT_EXECUTE' }}
         uses: ./pipelines-actions/.github/actions/pipelines-execute
         env:
-          TERRAGRUNT_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd . --disk-cache-duration-minutes 10"
+          TG_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd . --disk-cache-duration-minutes 10"
         with:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
