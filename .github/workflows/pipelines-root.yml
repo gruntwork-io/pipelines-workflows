@@ -356,6 +356,8 @@ jobs:
       - name: "Run core accounts baselines"
         id: core_accounts_baselines
         if: steps.gruntwork_context.outputs.action == 'BASELINE_ACCOUNT'
+        env:
+          TG_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd . --disk-cache-duration-minutes 10"
         # TODO: Rename this as pipelines-apply-core-baselines or something similar
         uses: ./pipelines-actions/.github/actions/pipelines-baseline-account-action
         with:
