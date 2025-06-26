@@ -34,7 +34,7 @@ on:
         description: "For Gruntwork internal testing - the version of the pipelines CLI to use"
       pipelines_actions_ref:
         type: string
-        default: "ore/dev-952-create-pipelines-account-factory-baseline-core-accounts-cli"
+        default: "main"
         description: "For Gruntwork internal testing - the ref of the pipelines actions to use"
       pipelines_credentials_ref:
         type: string
@@ -372,12 +372,6 @@ jobs:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
-
-      # TODO: Remove this after testing. Intended to only test the core account baseline.
-      - name: "Exit to terminate test"
-        run: |
-          echo "Exiting to terminate test"
-          exit 1
 
       - name: "[TerragruntExecute]: Run terragrunt ${{ steps.gruntwork_context.outputs.terragrunt_command }} in ${{ steps.gruntwork_context.outputs.working_directory }}"
         id: terragrunt
