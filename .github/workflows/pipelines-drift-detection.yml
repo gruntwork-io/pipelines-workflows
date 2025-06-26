@@ -32,7 +32,7 @@ on:
         default: "https://api.prod.app.gruntwork.io/api/v1"
       pipelines_cli_version:
         type: string
-        default: "v0.40.0-rc13"
+        default: "v0.40.0-rc14"
         description: "For Gruntwork internal testing - the version of the pipelines CLI to use"
       pipelines_actions_ref:
         type: string
