@@ -426,7 +426,7 @@ jobs:
     env:
       JOB_NAME: Baseline Child Account ${{ contains(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.Name }} (${{ matrix.jobs.ID }})
     name: Baseline Child Account ${{ contains(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.Name }} (${{ matrix.jobs.ID }})
-    needs: [pipelines_orchestrate, pipelines_execute]
+    needs: [pipelines_orchestrate]
     runs-on: ${{ fromJSON(inputs.runner) }}
     # GHA can't check for length, so we just check if there is an item in the 0 index
     if: fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].NewAccounts[0] != null
