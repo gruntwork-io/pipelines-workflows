@@ -30,7 +30,7 @@ on:
         description: "Override where we fetch pipelines from, used for internal testing"
       pipelines_cli_version:
         type: string
-        default: "v0.40.0-rc13"
+        default: "v0.40.0-rc14"
         description: "For Gruntwork internal testing - the version of the pipelines CLI to use"
       pipelines_actions_ref:
         type: string
@@ -356,13 +356,14 @@ jobs:
       - name: "Run core accounts baselines"
         id: core_accounts_baselines
         if: steps.gruntwork_context.outputs.action == 'BASELINE_ACCOUNT'
+        env:
+          TG_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd . --disk-cache-duration-minutes 10"
         # TODO: Rename this as pipelines-apply-core-baselines or something similar
         uses: ./pipelines-actions/.github/actions/pipelines-baseline-account-action
         with:
-          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-infra-root-write-token.outputs.PIPELINES_TOKEN }}
-          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
+          job: ${{ toJson(matrix.jobs) }}
 
       - name: "[Baseline]: Post Baseline Core Account Action"
         uses: ./pipelines-actions/.github/custom-actions/post-baseline-core-accounts
