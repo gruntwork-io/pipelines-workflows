@@ -332,17 +332,13 @@ jobs:
           baseline_path: ${{ steps.provision_new_account.outputs.baseline_path }}
 
       - name: "[ProvisionAccount]: Create New Account Pull Request Action"
-        uses: ./pipelines-actions/.github/actions/pipelines-new-pr-action
-        if: ${{ steps.gruntwork_context.outputs.action == 'PROVISION_ACCOUNT' }}
-        with:
-          GH_TOKEN: ${{ steps.pipelines-infra-root-write-token.outputs.PIPELINES_TOKEN }}
-          path: ${{ steps.provision_new_account.outputs.baseline_path }}
-          new_branch_name: ${{ steps.provision_new_account.outputs.new_branch_name }}
-          commit_message: ${{ steps.provision_new_account.outputs.commit_message }}
-          pr_body: ${{ steps.provision_new_account.outputs.pr_body }}
-          requesting_pr_number: ${{ steps.provision_new_account.outputs.requesting_pr_number }}
-          step_summary_content: ${{ steps.provision_new_account.outputs.step_summary_content }}
-          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
+        if: ${{ steps.gruntwork_context.outputs.action == 'PROVISION_ACCOUNT' && contains(steps.gruntwork_context.outputs.terragrunt_command , 'apply')}}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
+          JOB: ${{ toJson(matrix.jobs) }}
+        run: |
+          pipelines account-factory propose-baseline-infra-change --working-directory ./infra-live-repo --job "$JOB"
 
       - name: "[Baseline]: Pre Baseline Core Account Action"
         uses: ./pipelines-actions/.github/custom-actions/pre-baseline-core-accounts
