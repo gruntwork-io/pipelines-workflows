@@ -337,8 +337,14 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
           JOB: ${{ toJson(matrix.jobs) }}
+          AUTHOR_NAME: ${{ github.actor }}
+          AUTHOR_EMAIL: ${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com
         run: |
-          pipelines account-factory propose-baseline-infra-change --working-directory ./infra-live-repo --job "$JOB"
+          pipelines account-factory propose-baseline-infra-change \
+            --working-directory ./infra-live-repo \
+            --author-name "$AUTHOR_NAME" \
+            --author-email "$AUTHOR_EMAIL" \
+            --job "$JOB"
 
       - name: "[Baseline]: Pre Baseline Core Account Action"
         uses: ./pipelines-actions/.github/custom-actions/pre-baseline-core-accounts
