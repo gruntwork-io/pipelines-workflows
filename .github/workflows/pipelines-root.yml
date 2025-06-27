@@ -40,6 +40,10 @@ on:
         type: string
         default: "v1"
         description: "For Gruntwork internal testing - the ref of the pipelines credentials to use"
+      skip_execute:
+        type: string
+        default: "true"
+        description: "Added solely to speed up testing of child-account baseline job. Remove before merging"
 
     secrets:
       PIPELINES_READ_TOKEN:
@@ -194,7 +198,7 @@ jobs:
     needs: [pipelines_orchestrate]
     runs-on: ${{ fromJSON(inputs.runner) }}
     # GHA can't check for length, so we just check if there is an item in the 0 index
-    if: fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0] != null
+    if: fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0] != null && inputs.skip_execute != 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -354,19 +358,18 @@ jobs:
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
-      # Temporarily commented out to speed up tests. TODO: Revert
       # Run the core accounts baselines(shared, logs, security, etc. to ensure the account is setup correctly)
-      # - name: "Run core accounts baselines"
-      #   id: core_accounts_baselines
-      #   if: steps.gruntwork_context.outputs.action == 'BASELINE_ACCOUNT'
-      #   env:
-      #     TG_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd . --disk-cache-duration-minutes 10"
-      #   # TODO: Rename this as pipelines-apply-core-baselines or something similar
-      #   uses: ./pipelines-actions/.github/actions/pipelines-baseline-account-action
-      #   with:
-      #     PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
-      #     PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-infra-root-write-token.outputs.PIPELINES_TOKEN }}
-      #     job: ${{ toJson(matrix.jobs) }}
+      - name: "Run core accounts baselines"
+        id: core_accounts_baselines
+        if: steps.gruntwork_context.outputs.action == 'BASELINE_ACCOUNT'
+        env:
+          TG_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd . --disk-cache-duration-minutes 10"
+        # TODO: Rename this as pipelines-apply-core-baselines or something similar
+        uses: ./pipelines-actions/.github/actions/pipelines-baseline-account-action
+        with:
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+          PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-infra-root-write-token.outputs.PIPELINES_TOKEN }}
+          job: ${{ toJson(matrix.jobs) }}
 
       - name: "[Baseline]: Post Baseline Core Account Action"
         uses: ./pipelines-actions/.github/custom-actions/post-baseline-core-accounts
@@ -395,19 +398,18 @@ jobs:
           deploy_branch_name: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
           stack_paths: ${{ toJson(matrix.jobs.StackPaths) }}
 
-      # Temporarily commented out to speed up tests. TODO: Revert
-      # - name: Update comment
-      #   if: always() && (steps.gruntwork_context.outputs.action == 'TERRAGRUNT_EXECUTE' || steps.gruntwork_context.outputs.action == 'BASELINE_ACCOUNT')
-      #   uses: ./pipelines-actions/.github/actions/pipelines-comment-job-update
-      #   with:
-      #     PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
-      #     step_name: ${{ matrix.jobs.ChangeType }}
-      #     step_working_directory: ${{ matrix.jobs.WorkingDirectory }}
-      #     step_terragrunt_command: ${{ matrix.jobs.Action.Command }}
-      #     step_status: ${{ (steps.terragrunt.conclusion == 'success' || steps.core_accounts_baselines.conclusion == 'success') && 'success' || 'failure' }}
-      #     plan_apply_log_file_path: ${{ steps.terragrunt.outputs.plan_folder }}
-      #     extended_log_file_path: ${{ steps.terragrunt.outputs.execute_stdout_log }}
-      #     job_name: ${{ env.JOB_NAME }}
+      - name: Update comment
+        if: always() && (steps.gruntwork_context.outputs.action == 'TERRAGRUNT_EXECUTE' || steps.gruntwork_context.outputs.action == 'BASELINE_ACCOUNT')
+        uses: ./pipelines-actions/.github/actions/pipelines-comment-job-update
+        with:
+          PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
+          step_name: ${{ matrix.jobs.ChangeType }}
+          step_working_directory: ${{ matrix.jobs.WorkingDirectory }}
+          step_terragrunt_command: ${{ matrix.jobs.Action.Command }}
+          step_status: ${{ (steps.terragrunt.conclusion == 'success' || steps.core_accounts_baselines.conclusion == 'success') && 'success' || 'failure' }}
+          plan_apply_log_file_path: ${{ steps.terragrunt.outputs.plan_folder }}
+          extended_log_file_path: ${{ steps.terragrunt.outputs.execute_stdout_log }}
+          job_name: ${{ env.JOB_NAME }}
 
     outputs:
       account_id: ${{ matrix.jobs.AccountId }}
