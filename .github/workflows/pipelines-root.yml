@@ -693,7 +693,13 @@ jobs:
   pipelines_status_check:
     name: "Pipelines Status Check"
     runs-on: ${{ fromJSON(inputs.runner) }}
-    needs: [pipelines_orchestrate, pipelines_execute]
+    needs:
+      [
+        pipelines_orchestrate,
+        pipelines_execute,
+        pipelines_apply_baselines,
+        pipelines_setup_delegated_repo,
+      ]
     if: always() && fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0] != null
     steps:
       - name: Record workflow env vars
