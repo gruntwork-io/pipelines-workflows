@@ -553,12 +553,9 @@ jobs:
         id: baseline_child_account
         uses: ./pipelines-actions/.github/actions/pipelines-baseline-child-account-action
         with:
-          # PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
-          # account_id: ${{ matrix.jobs.ID }}
           account_name: ${{ matrix.jobs.Name }}
           job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
-          # gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
       - name: "[Baseline]: Post Baseline Child Account Action"
         uses: ./pipelines-actions/.github/custom-actions/post-baseline-child-account
