@@ -431,6 +431,14 @@ jobs:
       matrix:
         jobs: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].NewAccounts }}
     steps:
+      - name: Record workflow env vars
+        env:
+          PIPELINES_BINARY_URL: ${{ inputs.pipelines_binary_url }}
+        run: |
+          time_now=$(date -u +"%s")
+          echo "PIPELINES_JOB_START_TIME=$time_now" >> $GITHUB_ENV
+          echo "PIPELINES_BINARY_URL=$PIPELINES_BINARY_URL" >> $GITHUB_ENV
+
       - name: Checkout Pipelines Credentials
         uses: actions/checkout@v4
         with:
@@ -483,6 +491,22 @@ jobs:
           version: ${{ env.PIPELINES_CLI_VERSION }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
 
+      - name: Install Mise
+        id: mise-toml
+        uses: jdx/mise-action@v2
+        with:
+          install: true
+          cache: true
+          working_directory: "./infra-live-repo"
+
+      - name: Configure code auth
+        uses: ./pipelines-actions/.github/actions/pipelines-code-auth
+        with:
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+
+      # TODO: When baselining multiple accounts, this comment will override each other. We should update to use pipelines-comment-job-update
+      # and that requires some work since these are not actual individual jobs.
       - name: Update comment
         shell: bash
         working-directory: ./infra-live-repo
@@ -525,12 +549,9 @@ jobs:
         id: baseline_child_account
         uses: ./pipelines-actions/.github/actions/pipelines-baseline-child-account-action
         with:
-          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
-          account_id: ${{ matrix.jobs.ID }}
           account_name: ${{ matrix.jobs.Name }}
           job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
-          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
       - name: "[Baseline]: Post Baseline Child Account Action"
         uses: ./pipelines-actions/.github/custom-actions/post-baseline-child-account
@@ -561,6 +582,14 @@ jobs:
     # GHA can't check for length, so we just check if there is an item in the 0 index
     if: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].NewAccounts[0] != null && needs.pipelines_execute.outputs.delegate_management == 'true' && needs.pipelines_execute.outputs.terragrunt_command == 'run-all apply' }}
     steps:
+      - name: Record workflow env vars
+        env:
+          PIPELINES_BINARY_URL: ${{ inputs.pipelines_binary_url }}
+        run: |
+          time_now=$(date -u +"%s")
+          echo "PIPELINES_JOB_START_TIME=$time_now" >> $GITHUB_ENV
+          echo "PIPELINES_BINARY_URL=$PIPELINES_BINARY_URL" >> $GITHUB_ENV
+
       - name: Checkout Pipelines Credentials
         uses: actions/checkout@v4
         with:
@@ -675,7 +704,13 @@ jobs:
   pipelines_status_check:
     name: "Pipelines Status Check"
     runs-on: ${{ fromJSON(inputs.runner) }}
-    needs: [pipelines_orchestrate, pipelines_execute]
+    needs:
+      [
+        pipelines_orchestrate,
+        pipelines_execute,
+        pipelines_apply_baselines,
+        pipelines_setup_delegated_repo,
+      ]
     if: always() && fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0] != null
     steps:
       - name: Record workflow env vars
