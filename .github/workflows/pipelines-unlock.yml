@@ -42,8 +42,8 @@ on:
         type: string
         default: '"ubuntu-latest"'
     secrets:
-        PIPELINES_READ_TOKEN:
-          required: true
+      PIPELINES_READ_TOKEN:
+        required: true
 env:
   PIPELINES_CLI_VERSION: v0.39.1
   PIPELINES_ACTIONS_VERSION: v3.6.5
@@ -93,7 +93,7 @@ jobs:
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           working_directory: ${{ inputs.working_directory }}
           terragrunt_command: "force-unlock -force ${{ inputs.lock_id }}"
-          branch: 'main'
+          branch: "main"
 
       - name: Setup Mise Toml
         id: mise-toml
@@ -224,7 +224,7 @@ jobs:
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           working_directory: ${{ inputs.working_directory }}
           terragrunt_command: "init"
-          branch: 'main'
+          branch: "main"
 
       - name: Setup Mise Toml
         id: mise-toml
@@ -243,6 +243,7 @@ jobs:
           install: true
           cache: true
           mise_toml: "${{ steps.mise-toml.outputs.TOML }}"
+          version: 2024.10.8
 
       - name: Test Terraform, OpenTofu and Terragrunt
         shell: bash
@@ -419,7 +420,7 @@ jobs:
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           working_directory: ${{ matrix.working_directory }}
           terragrunt_command: "init"
-          branch: 'main'
+          branch: "main"
 
       - name: "Run Terragrunt Init"
         id: terragrunt
