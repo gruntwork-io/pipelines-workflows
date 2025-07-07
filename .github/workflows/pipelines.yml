@@ -37,7 +37,7 @@ on:
 
 env:
   PIPELINES_CLI_VERSION: v0.39.1
-  PIPELINES_ACTIONS_VERSION: v3.6.4
+  PIPELINES_ACTIONS_VERSION: 3.6-dev
 
   # GitHub Actions tends to hit resource exhaustion and kill running jobs
   # if we leave parallelism unbounded, so we set the max to 10 for a sane default.
