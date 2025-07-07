@@ -167,6 +167,8 @@ jobs:
 
       - name: Preflight Checks
         uses: ./pipelines-actions/.github/actions/pipelines-preflight-action
+        env:
+          PIPELINES_LOG_LEVEL: debug
         with:
           IS_ROOT: "true"
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
