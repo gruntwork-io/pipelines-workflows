@@ -711,7 +711,7 @@ jobs:
         pipelines_apply_baselines,
         pipelines_setup_delegated_repo,
       ]
-    if: always() && fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0] != null
+    if: always() && fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0] != null && fromJson(needs.pipelines_execute.outputs.action) == 'TERRAGRUNT_EXECUTE'
     steps:
       - name: Record workflow env vars
         env:
