@@ -290,6 +290,7 @@ jobs:
         with:
           install: true
           cache: true
+          version: 2024.10.8
           working_directory: "./infra-live-repo"
 
       - name: Configure code auth
@@ -395,7 +396,7 @@ jobs:
           stack_paths: ${{ toJson(matrix.jobs.StackPaths) }}
 
       - name: Update comment
-        if: always() && (steps.gruntwork_context.outputs.action == 'TERRAGRUNT_EXECUTE' || steps.gruntwork_context.outputs.action == 'BASELINE_ACCOUNT')
+        if: always() && steps.gruntwork_context.outputs.action == 'TERRAGRUNT_EXECUTE'
         uses: ./pipelines-actions/.github/actions/pipelines-comment-job-update
         with:
           PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
@@ -497,6 +498,7 @@ jobs:
         with:
           install: true
           cache: true
+          version: 2024.10.8
           working_directory: "./infra-live-repo"
 
       - name: Configure code auth
@@ -711,7 +713,7 @@ jobs:
         pipelines_apply_baselines,
         pipelines_setup_delegated_repo,
       ]
-    if: always() && fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0] != null
+    if: always() && fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0] != null && fromJson(needs.pipelines_execute.outputs.action) == 'TERRAGRUNT_EXECUTE'
     steps:
       - name: Record workflow env vars
         env:
