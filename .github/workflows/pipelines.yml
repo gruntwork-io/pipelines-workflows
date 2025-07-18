@@ -110,6 +110,7 @@ jobs:
           repository: gruntwork-io/pipelines-actions
           ref: ${{ env.PIPELINES_ACTIONS_REF }}
           token: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+          github-server-url: https://github.com
 
       - name: Report error if token with access to gruntwork repos is invalid
         if: always() && steps.checkout_actions.conclusion != 'success'
@@ -330,6 +331,7 @@ jobs:
           repository: gruntwork-io/pipelines-actions
           ref: ${{ env.PIPELINES_ACTIONS_REF }}
           token: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+          github-server-url: https://github.com
 
       - name: Check out repo code
         uses: actions/checkout@v4
