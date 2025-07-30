@@ -568,18 +568,6 @@ jobs:
           job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
-      - name: Update comment
-        shell: bash
-        working-directory: ./infra-live-repo
-        env:
-          GH_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
-          ACTION: "Baseline Child Account ${{ matrix.jobs.Name }}"
-        run: |
-          pipelines scm create-change-request-comment \
-            --working-directory "." \
-            --auto-header \
-            --comment "✅ $ACTION\nCheck the logs for more details."
-
   pipelines_setup_delegated_repo:
     name: "Setup Delegated Repo"
     needs: [pipelines_orchestrate, pipelines_apply_baselines, pipelines_execute]
@@ -716,7 +704,7 @@ jobs:
         pipelines_apply_baselines,
         pipelines_setup_delegated_repo,
       ]
-    if: always() && fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0] != null && fromJson(needs.pipelines_execute.outputs.action) == 'TERRAGRUNT_EXECUTE'
+    if: always()
     steps:
       - name: Record workflow env vars
         env:
