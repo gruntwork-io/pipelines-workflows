@@ -508,20 +508,6 @@ jobs:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
-      # TODO: When baselining multiple accounts, this comment will override each other. We should update to use pipelines-comment-job-update
-      # and that requires some work since these are not actual individual jobs.
-      - name: Update comment
-        shell: bash
-        working-directory: ./infra-live-repo
-        env:
-          GH_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
-          ACTION: "Baseline Child Account ${{ matrix.jobs.Name }}"
-        run: |
-          pipelines scm create-change-request-comment \
-            --working-directory "." \
-            --auto-header \
-            --comment "🔄 $ACTION..."
-
       - name: Bootstrap Workflow
         id: gruntwork_context
         uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
