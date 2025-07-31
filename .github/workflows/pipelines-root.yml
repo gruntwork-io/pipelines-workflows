@@ -365,8 +365,9 @@ jobs:
         uses: ./pipelines-actions/.github/actions/pipelines-baseline-account-action
         with:
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
-          PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-infra-root-write-token.outputs.PIPELINES_TOKEN }}
+          PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
           job: ${{ toJson(matrix.jobs) }}
+          workflow_job_name: ${{ env.JOB_NAME }}
 
       - name: "[Baseline]: Post Baseline Core Account Action"
         uses: ./pipelines-actions/.github/custom-actions/post-baseline-core-accounts
@@ -507,20 +508,6 @@ jobs:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
-      # TODO: When baselining multiple accounts, this comment will override each other. We should update to use pipelines-comment-job-update
-      # and that requires some work since these are not actual individual jobs.
-      - name: Update comment
-        shell: bash
-        working-directory: ./infra-live-repo
-        env:
-          GH_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
-          ACTION: "Baseline Child Account ${{ matrix.jobs.Name }}"
-        run: |
-          pipelines scm create-change-request-comment \
-            --working-directory "." \
-            --auto-header \
-            --comment "🔄 $ACTION..."
-
       - name: Bootstrap Workflow
         id: gruntwork_context
         uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
@@ -552,8 +539,10 @@ jobs:
         uses: ./pipelines-actions/.github/actions/pipelines-baseline-child-account-action
         with:
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+          PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
           account_name: ${{ matrix.jobs.Name }}
           job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
+          workflow_job_name: ${{ env.JOB_NAME }}
 
       - name: "[Baseline]: Post Baseline Child Account Action"
         uses: ./pipelines-actions/.github/custom-actions/post-baseline-child-account
@@ -564,18 +553,6 @@ jobs:
           account_name: ${{ matrix.jobs.Name }}
           job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
-
-      - name: Update comment
-        shell: bash
-        working-directory: ./infra-live-repo
-        env:
-          GH_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
-          ACTION: "Baseline Child Account ${{ matrix.jobs.Name }}"
-        run: |
-          pipelines scm create-change-request-comment \
-            --working-directory "." \
-            --auto-header \
-            --comment "✅ $ACTION\nCheck the logs for more details."
 
   pipelines_setup_delegated_repo:
     name: "Setup Delegated Repo"
@@ -713,7 +690,7 @@ jobs:
         pipelines_apply_baselines,
         pipelines_setup_delegated_repo,
       ]
-    if: always() && fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0] != null && fromJson(needs.pipelines_execute.outputs.action) == 'TERRAGRUNT_EXECUTE'
+    if: always()
     steps:
       - name: Record workflow env vars
         env:
