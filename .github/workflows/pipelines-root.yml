@@ -169,7 +169,7 @@ jobs:
         uses: ./pipelines-actions/.github/actions/pipelines-preflight-action
         with:
           IS_ROOT: "true"
-          PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          PIPELINES_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           INFRA_ROOT_WRITE_TOKEN: ${{ steps.pipelines-infra-root-write-token.outputs.PIPELINES_TOKEN }}
           ORG_REPO_ADMIN_TOKEN: ${{ steps.pipelines-org-repo-admin-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
