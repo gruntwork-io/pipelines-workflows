@@ -21,10 +21,10 @@ on:
       runner:
         type: string
         default: '"ubuntu-latest"'
-      drift-detection-filter:
+      drift_detection_filter:
         type: string
         default: ""
-      drift-detection-branch:
+      drift_detection_branch:
         type: string
         default: "drift-detection"
       api_base_url:
@@ -142,6 +142,6 @@ jobs:
         id: determine-drift
         uses: ./pipelines-actions/.github/actions/pipelines-drift-detection
         with:
-          DRIFT_DETECTION_FILTER: ${{ inputs.drift-detection-filter }}
-          DRIFT_DETECTION_BRANCH: ${{ inputs.drift-detection-branch }}
+          DRIFT_DETECTION_FILTER: ${{ inputs.drift_detection_filter }}
+          DRIFT_DETECTION_BRANCH: ${{ inputs.drift_detection_branch }}
           PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
