@@ -30,6 +30,10 @@ on:
       api_base_url:
         type: string
         default: "https://api.prod.app.gruntwork.io/api/v1"
+      pipelines_binary_url:
+        type: string
+        default: ""
+        description: "Override where we fetch pipelines from, used for internal testing"
       pipelines_cli_version:
         type: string
         default: "v0.40.0-rc17"
@@ -60,6 +64,13 @@ jobs:
     name: Detect Infrastructure Drift
     runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
+      - name: Record workflow env vars
+        env:
+          PIPELINES_BINARY_URL: ${{ inputs.pipelines_binary_url }}
+        run: |
+          time_now=$(date -u +"%s")
+          echo "PIPELINES_JOB_START_TIME=$time_now" >> $GITHUB_ENV
+          echo "PIPELINES_BINARY_URL=$PIPELINES_BINARY_URL" >> $GITHUB_ENV
       - name: Checkout Pipelines Credentials
         uses: actions/checkout@v4
         with:
@@ -114,6 +125,12 @@ jobs:
           cache: true
           version: 2024.10.8
           working_directory: "./infra-live-repo"
+
+      - name: Install Pipelines CLI
+        uses: ./pipelines-actions/.github/actions/pipelines-install
+        with:
+          version: ${{ env.PIPELINES_CLI_VERSION }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Configure code auth
         uses: ./pipelines-actions/.github/actions/pipelines-code-auth
