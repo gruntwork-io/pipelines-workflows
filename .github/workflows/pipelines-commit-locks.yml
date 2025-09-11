@@ -156,6 +156,7 @@ jobs:
           AUTHOR_EMAIL: ${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com
           ACTION_PATH: ${{ github.action_path }}
         run: |
+          # FIXME: Plumb through a filter to only commit .terraform.lock.hcl
           pipelines scm propose-infra-change \
               --working-directory "$WORKING_DIRECTORY" \
               --change-request-branch-name "pipelines-update-locks" \
