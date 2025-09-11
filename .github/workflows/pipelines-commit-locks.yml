@@ -136,6 +136,7 @@ jobs:
         id: create-locks
         working-directory: ./infra-live-repo
         env:
+          GH_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           TG_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd . --disk-cache-duration-minutes 10"
         run: |
           terragrunt run --all --provider-cache --queue-exclude-dir=. -- providers lock -platform=linux_amd64
