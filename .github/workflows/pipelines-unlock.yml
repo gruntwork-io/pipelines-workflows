@@ -47,7 +47,7 @@ on:
         description: "For Gruntwork internal testing - the version of the pipelines CLI to use"
       pipelines_actions_ref:
         type: string
-        default: "main"
+        default: "chore/bumping-mise"
         description: "For Gruntwork internal testing - the ref of the pipelines actions to use"
       pipelines_credentials_ref:
         type: string
@@ -151,7 +151,7 @@ jobs:
         with:
           install: true
           cache: true
-          version: 2024.10.8
+          version: "2025.8.21"
           mise_toml: "${{ steps.mise-toml.outputs.TOML }}"
 
       - name: Test Terraform, OpenTofu and Terragrunt
@@ -280,7 +280,7 @@ jobs:
         with:
           install: true
           cache: true
-          version: 2024.10.8
+          version: "2025.8.21"
           mise_toml: "${{ steps.mise-toml.outputs.TOML }}"
 
       - name: Test Terraform, OpenTofu and Terragrunt
