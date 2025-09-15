@@ -182,7 +182,7 @@ jobs:
         id: terragrunt
         uses: ./pipelines-actions/.github/actions/pipelines-execute
         env:
-          TG_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd . --disk-cache-duration-minutes 10"
+          TG_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --wd . --disk-cache-duration-minutes 10"
         with:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
@@ -476,7 +476,7 @@ jobs:
         id: terragrunt
         uses: ./pipelines-actions/.github/actions/pipelines-execute
         env:
-          TG_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd . --disk-cache-duration-minutes 10"
+          TG_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --wd . --disk-cache-duration-minutes 10"
         with:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
