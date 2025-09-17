@@ -641,7 +641,6 @@ jobs:
 
       - name: "Create Access Control PR"
         id: access_control_pr
-        if: ${{ contains(steps.gruntwork_context.outputs.terragrunt_command , 'apply') }}
         uses: ./pipelines-actions/.github/actions/pipelines-provision-access-control-action
         with:
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
@@ -674,14 +673,11 @@ jobs:
       - name: "Create Delegated Repo PR"
         uses: ./pipelines-actions/.github/actions/pipelines-new-pr-action
         with:
-          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
           GH_TOKEN: ${{ steps.pipelines-org-repo-admin-token.outputs.PIPELINES_TOKEN }}
-          path: ${{ steps.provision_delegated_repo.outputs.path }}
-          new_branch_name: ${{ steps.provision_delegated_repo.outputs.new_branch_name }}
-          commit_message: ${{ steps.provision_delegated_repo.outputs.commit_message }}
-          pr_body: ${{ steps.provision_delegated_repo.outputs.pr_body }}
+          delegated_repo_path: ${{ steps.provision_delegated_repo.outputs.delegated_repo_path }}
+          delegated_repo_name: ${{ steps.provision_delegated_repo.outputs.delegated_repo_name }}
           requesting_pr_number: ${{ steps.provision_delegated_repo.outputs.requesting_pr_number }}
-          step_summary_content: ${{ steps.provision_delegated_repo.outputs.step_summary_content }}
+          access_control_pr_url: ${{ steps.access_control_pr.outputs.pull_request_url }}
 
   pipelines_status_check:
     name: "Pipelines Status Check"
