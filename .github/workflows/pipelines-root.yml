@@ -670,13 +670,13 @@ jobs:
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           ORG_REPO_ADMIN_TOKEN: ${{ steps.pipelines-org-repo-admin-token.outputs.PIPELINES_TOKEN }}
 
-      - name: "Create Delegated Repo PR"
+      - name: "Create delegated repo pull request"
         uses: ./pipelines-actions/.github/actions/pipelines-new-pr-action
         with:
           GH_TOKEN: ${{ steps.pipelines-org-repo-admin-token.outputs.PIPELINES_TOKEN }}
           delegated_repo_path: ${{ steps.provision_delegated_repo.outputs.delegated_repo_path }}
           delegated_repo_name: ${{ steps.provision_delegated_repo.outputs.delegated_repo_name }}
-          requesting_pr_number: ${{ steps.provision_delegated_repo.outputs.requesting_pr_number }}
+          requesting_pr_number: ${{ steps.provision_delegated_repo.outputs.requesting_pr_number || 131 }} # TODO: Remove hardcoded number neccessary due to testing on unmerged PR by testing
           access_control_pr_url: ${{ steps.access_control_account.outputs.pull_request_url }}
 
   pipelines_status_check:
