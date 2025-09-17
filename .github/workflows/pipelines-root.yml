@@ -639,8 +639,8 @@ jobs:
           # the delegated_repo_name (which is the same in all the new request files)
           new_account_name: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].NewAccounts[0].Name }}
 
-      - name: "Create Access Control PR"
-        id: access_control_pr
+      - name: "Provision access control account(s) and create PR"
+        id: access_control_account
         uses: ./pipelines-actions/.github/actions/pipelines-provision-access-control-action
         with:
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
@@ -649,13 +649,13 @@ jobs:
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           ORG_REPO_ADMIN_TOKEN: ${{ steps.pipelines-org-repo-admin-token.outputs.PIPELINES_TOKEN }}
 
-      - name: "Create and bootstrap delegated Repo"
+      - name: "Create delegated repo and bootstrap"
         id: provision_delegated_repo
         uses: ./pipelines-actions/.github/actions/pipelines-provision-repo-action
         with:
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
           job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
-          access_control_pull_request_url: ${{ steps.access_control_pr.outputs.pull_request_url }}
+          access_control_pull_request_url: ${{ steps.access_control_account.outputs.pull_request_url }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           ORG_REPO_ADMIN_TOKEN: ${{ steps.pipelines-org-repo-admin-token.outputs.PIPELINES_TOKEN }}
@@ -665,7 +665,7 @@ jobs:
         uses: ./pipelines-actions/.github/custom-actions/post-create-delegated-repo
         with:
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
-          access_control_pull_request_url: ${{ steps.access_control_pr.outputs.pull_request_url }}
+          access_control_pull_request_url: ${{ steps.access_control_account.outputs.pull_request_url }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           ORG_REPO_ADMIN_TOKEN: ${{ steps.pipelines-org-repo-admin-token.outputs.PIPELINES_TOKEN }}
@@ -677,7 +677,7 @@ jobs:
           delegated_repo_path: ${{ steps.provision_delegated_repo.outputs.delegated_repo_path }}
           delegated_repo_name: ${{ steps.provision_delegated_repo.outputs.delegated_repo_name }}
           requesting_pr_number: ${{ steps.provision_delegated_repo.outputs.requesting_pr_number }}
-          access_control_pr_url: ${{ steps.access_control_pr.outputs.pull_request_url }}
+          access_control_pr_url: ${{ steps.access_control_account.outputs.pull_request_url }}
 
   pipelines_status_check:
     name: "Pipelines Status Check"
