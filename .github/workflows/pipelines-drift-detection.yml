@@ -136,7 +136,6 @@ jobs:
         id: determine-units
         shell: bash
         env:
-          GH_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           DRIFT_DETECTION_FILTER: ${{ inputs.pipelines_drift_detection_filter }}
         run: |
           pipelines drift-detection determine-units --working-directory ./infra-live-repo --filter "$DRIFT_DETECTION_FILTER"
@@ -224,6 +223,7 @@ jobs:
         env:
           UNIT_PATH: ${{ matrix.unit.path }}
           UNIT_ID: ${{ matrix.unit.id }}
+          GH_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
         run: |
           pipelines drift-detection determine-unit-drift --working-directory ./infra-live-repo --unit-path "$UNIT_PATH" --unit-id "$UNIT_ID"
 
