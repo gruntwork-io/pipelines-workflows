@@ -221,11 +221,16 @@ jobs:
         id: determine-drift
         shell: bash
         env:
-          UNIT_PATH: ${{ matrix.unit.path }}
-          UNIT_ID: ${{ matrix.unit.id }}
+          DRIFT_DETECTION_FILTER: ${{ inputs.pipelines_drift_detection_filter }}
           GH_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+          UNIT_ID: ${{ matrix.unit.id }}
+          UNIT_PATH: ${{ matrix.unit.path }}
         run: |
-          pipelines drift-detection determine-unit-drift --working-directory ./infra-live-repo --unit-path "$UNIT_PATH" --unit-id "$UNIT_ID"
+          pipelines drift-detection determine-unit-drift \
+            --working-directory ./infra-live-repo \
+            --unit-path "$UNIT_PATH" \
+            --unit-id "$UNIT_ID" \
+            --filter "$DRIFT_DETECTION_FILTER"
 
       - name: "Upload result"
         uses: actions/upload-artifact@v4
