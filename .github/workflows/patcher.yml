@@ -1,0 +1,382 @@
+# Patcher Workflow Implementation Specification
+# File: pipelines-workflows/.github/workflows/patcher.yml
+# This is the complete workflow specification ready for implementation
+
+name: Patcher
+run-name: Run Gruntwork Patcher
+
+on:
+  workflow_call:
+    inputs:
+      # === Patcher Configuration ===
+      patcher_command:
+        type: string
+        default: "update"
+        description: "Patcher command to run. Valid options: 'update' or 'report'."
+
+      patcher_version:
+        type: string
+        default: "v0.16.0"
+        description: "Version of Patcher to use."
+
+      terrapatch_version:
+        type: string
+        default: "v0.1.6"
+        description: "Version of terrapatch to use."
+
+      # === Operation Configuration ===
+      working_dir:
+        type: string
+        default: ""
+        description: "Directory where Patcher should run. If empty, runs in whole repo."
+
+      dependency:
+        type: string
+        default: ""
+        description: "Limit update to single dependency (format: org/repo/name)."
+
+      update_strategy:
+        type: string
+        default: "next-breaking"
+        description: "Update strategy for patcher operations."
+
+      # === Pull Request Configuration ===
+      pull_request_branch:
+        type: string
+        default: ""
+        description: "Branch where PR should be created. Required when command = 'update'."
+
+      pull_request_title:
+        type: string
+        default: "[Patcher] Update dependencies"
+        description: "Title of the Pull Request."
+
+      commit_author:
+        type: string
+        default: "gruntwork-patcher-bot <patcher@gruntwork.io>"
+        description: "Author of the PR commits in format 'Name <name@email.com>'."
+
+      # === Report Configuration ===
+      include_dirs:
+        type: string
+        default: ""
+        description: "Include directories matching glob pattern (report only). Example: '{*dev*}/**'"
+
+      exclude_dirs:
+        type: string
+        default: ""
+        description: "Exclude directories matching glob pattern (report only). Example: '{*alb*}/**'"
+
+      spec_file:
+        type: string
+        default: "spec.json"
+        description: "Name of the upgrade specification file."
+
+      # === Infrastructure Configuration ===
+      runner:
+        type: string
+        default: '"ubuntu-latest"'
+        description: "Runner configuration as escaped JSON string."
+
+      api_base_url:
+        type: string
+        default: "https://api.prod.app.gruntwork.io/api/v1"
+        description: "Base URL for Gruntwork API."
+
+      pipelines_credentials_ref:
+        type: string
+        default: "v1"
+        description: "Reference for pipelines-credentials action."
+
+      # === Utility Configuration ===
+      dry_run:
+        type: boolean
+        default: false
+        description: "Simulate operations using dry-run mode."
+
+      no_color:
+        type: boolean
+        default: false
+        description: "Disable color output."
+
+    secrets:
+      PIPELINES_READ_TOKEN:
+        required: true
+        description: "Fallback token for read operations"
+      PR_CREATE_TOKEN:
+        required: false
+        description: "Fallback token for PR operations"
+
+    outputs:
+      dependencies:
+        description: "Dependencies report (for report command)"
+        value: ${{ jobs.patcher_execute.outputs.dependencies }}
+      status:
+        description: "Execution status (success|failure)"
+        value: ${{ jobs.patcher_execute.outputs.status }}
+      pull_request_url:
+        description: "URL of created pull request (for update command)"
+        value: ${{ jobs.patcher_execute.outputs.pull_request_url }}
+
+env:
+  PIPELINES_CREDENTIALS_REF: ${{ inputs.pipelines_credentials_ref }}
+
+jobs:
+  patcher_execute:
+    name: Execute Patcher
+    runs-on: ${{ fromJSON(inputs.runner) }}
+
+    outputs:
+      dependencies: ${{ steps.run-patcher.outputs.dependencies }}
+      status: ${{ steps.run-patcher.conclusion }}
+      pull_request_url: ${{ steps.run-patcher.outputs.pull_request_url }}
+
+    steps:
+      # === STEP 1: Environment Setup ===
+      - name: Record Workflow Environment
+        run: |
+          time_now=$(date -u +"%s")
+          echo "PATCHER_JOB_START_TIME=$time_now" >> $GITHUB_ENV
+          echo "Starting Patcher workflow execution"
+          echo "Command: ${{ inputs.patcher_command }}"
+          echo "Working Directory: ${{ inputs.working_dir || '.' }}"
+          echo "Version: ${{ inputs.patcher_version }}"
+
+      # === STEP 2: Credential Setup ===
+      - name: Checkout Pipelines Credentials
+        uses: actions/checkout@v4
+        with:
+          path: pipelines-credentials
+          repository: gruntwork-io/pipelines-credentials
+          ref: ${{ env.PIPELINES_CREDENTIALS_REF }}
+
+      # === STEP 3: Token Acquisition ===
+      - name: Fetch Read Token
+        id: patcher-read-token
+        uses: ./pipelines-credentials
+        with:
+          PIPELINES_TOKEN_PATH: pipelines-read/${{ github.repository_owner }}
+          FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          api_base_url: ${{ inputs.api_base_url }}
+
+      - name: Fetch Update Token
+        id: patcher-update-token
+        uses: ./pipelines-credentials
+        with:
+          PIPELINES_TOKEN_PATH: propose-infra-change/${{ github.repository_owner }}
+          FALLBACK_TOKEN: ${{ secrets.PR_CREATE_TOKEN }}
+          api_base_url: ${{ inputs.api_base_url }}
+
+      # === STEP 4: Repository Setup ===
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ steps.patcher-read-token.outputs.PIPELINES_TOKEN }}
+          fetch-depth: 0
+
+      # === STEP 5: Input Validation ===
+      - name: Validate Inputs
+        run: |
+          echo "Validating workflow inputs..."
+
+          # Validate required inputs for update command
+          if [[ "${{ inputs.patcher_command }}" == "update" && -z "${{ inputs.pull_request_branch }}" ]]; then
+            echo "::error::pull_request_branch is required when patcher_command is 'update'"
+            exit 1
+          fi
+
+          # Validate patcher command
+          if [[ "${{ inputs.patcher_command }}" != "update" && "${{ inputs.patcher_command }}" != "report" ]]; then
+            echo "::error::patcher_command must be 'update' or 'report', got '${{ inputs.patcher_command }}'"
+            exit 1
+          fi
+
+          # Validate update strategy
+          valid_strategies=("next-breaking" "next-safe" "latest")
+          if [[ ! " ${valid_strategies[@]} " =~ " ${{ inputs.update_strategy }} " ]]; then
+            echo "::warning::update_strategy '${{ inputs.update_strategy }}' may not be recognized by patcher"
+          fi
+
+          echo "Input validation completed successfully"
+
+      # === STEP 6: Authentication Status Check ===
+      - name: Report Authentication Status
+        run: |
+          echo "Authentication Status Report:"
+          echo "================================"
+
+          # Check if we're using GitHub App tokens or fallback tokens
+          if [[ "${{ steps.patcher-read-token.outputs.PIPELINES_TOKEN }}" == "${{ secrets.PIPELINES_READ_TOKEN }}" ]]; then
+            echo "::notice::Using fallback PIPELINES_READ_TOKEN for read operations"
+            echo "Read Token: Fallback PAT"
+          else
+            echo "Read Token: GitHub App (pipelines-read/${{ github.repository_owner }})"
+          fi
+
+          if [[ "${{ inputs.patcher_command }}" == "update" ]]; then
+            if [[ "${{ steps.patcher-update-token.outputs.PIPELINES_TOKEN }}" == "${{ secrets.PR_CREATE_TOKEN }}" ]]; then
+              echo "::notice::Using fallback PR_CREATE_TOKEN for update operations"
+              echo "Update Token: Fallback PAT"
+            else
+              echo "Update Token: GitHub App (propose-infra-change/${{ github.repository_owner }})"
+            fi
+          else
+            echo "Update Token: Not needed for report command"
+          fi
+
+          echo "================================"
+
+      # === STEP 7: Patcher Execution ===
+      - name: Execute Patcher
+        id: run-patcher
+        uses: gruntwork-io/patcher-action@v2
+        with:
+          # === Authentication (GitHub App tokens) ===
+          github_token: ${{ steps.patcher-read-token.outputs.PIPELINES_TOKEN }}
+          read_token: ${{ steps.patcher-read-token.outputs.PIPELINES_TOKEN }}
+          update_token: ${{ steps.patcher-update-token.outputs.PIPELINES_TOKEN }}
+
+          # === GitHub Configuration (inferred from context) ===
+          github_base_url: ${{ github.server_url }}
+          github_org: ${{ github.repository_owner }}
+
+          # === Patcher Configuration ===
+          patcher_command: ${{ inputs.patcher_command }}
+          patcher_version: ${{ inputs.patcher_version }}
+          terrapatch_version: ${{ inputs.terrapatch_version }}
+
+          # === Operation Configuration ===
+          working_dir: ${{ inputs.working_dir }}
+          dependency: ${{ inputs.dependency }}
+          update_strategy: ${{ inputs.update_strategy }}
+
+          # === Pull Request Configuration ===
+          pull_request_branch: ${{ inputs.pull_request_branch }}
+          pull_request_title: ${{ inputs.pull_request_title }}
+          commit_author: ${{ inputs.commit_author }}
+
+          # === Report Configuration ===
+          include_dirs: ${{ inputs.include_dirs }}
+          exclude_dirs: ${{ inputs.exclude_dirs }}
+          spec_file: ${{ inputs.spec_file }}
+
+          # === Utility Configuration ===
+          dry_run: ${{ inputs.dry_run }}
+          no_color: ${{ inputs.no_color }}
+
+      # === STEP 8: Success Reporting ===
+      - name: Report Success
+        if: success()
+        run: |
+          echo "::notice::Patcher execution completed successfully"
+          echo "Command: ${{ inputs.patcher_command }}"
+
+          if [[ "${{ inputs.patcher_command }}" == "update" ]]; then
+            echo "::notice::Pull request branch: ${{ inputs.pull_request_branch }}"
+            if [[ -n "${{ steps.run-patcher.outputs.pull_request_url }}" ]]; then
+              echo "::notice::Pull request URL: ${{ steps.run-patcher.outputs.pull_request_url }}"
+            fi
+          fi
+
+          if [[ "${{ inputs.patcher_command }}" == "report" ]]; then
+            if [[ -n "${{ steps.run-patcher.outputs.dependencies }}" ]]; then
+              echo "::notice::Dependencies report generated successfully"
+            fi
+          fi
+
+      # === STEP 9: Error Handling ===
+      - name: Handle Authentication Failure
+        if: failure() && (steps.patcher-read-token.conclusion == 'failure' || steps.patcher-update-token.conclusion == 'failure')
+        run: |
+          echo "::error::GitHub App authentication failed"
+          echo ""
+          echo "Troubleshooting Steps:"
+          echo "1. Ensure the Gruntwork.io GitHub App is installed in the '${{ github.repository_owner }}' organization"
+          echo "2. Verify the app has the required permissions for this repository"
+          echo "3. Check that the repository is accessible to the GitHub App"
+          echo ""
+          echo "Installation Instructions:"
+          echo "Visit: https://github.com/apps/gruntwork-io"
+          echo "Or contact your GitHub organization administrator"
+          echo ""
+          echo "Fallback Token Status:"
+          if [[ -z "${{ secrets.PIPELINES_READ_TOKEN }}" ]]; then
+            echo "- PIPELINES_READ_TOKEN: Not provided"
+          else
+            echo "- PIPELINES_READ_TOKEN: Available (but authentication still failed)"
+          fi
+
+          if [[ -z "${{ secrets.PR_CREATE_TOKEN }}" ]]; then
+            echo "- PR_CREATE_TOKEN: Not provided"
+          else
+            echo "- PR_CREATE_TOKEN: Available"
+          fi
+
+          exit 1
+
+      - name: Handle Input Validation Failure
+        if: failure() && steps.validate-inputs.conclusion == 'failure'
+        run: |
+          echo "::error::Input validation failed"
+          echo ""
+          echo "Common Issues:"
+          echo "1. For 'update' command, 'pull_request_branch' is required"
+          echo "2. 'patcher_command' must be either 'update' or 'report'"
+          echo "3. Check that all required inputs are properly specified"
+          echo ""
+          echo "Current Configuration:"
+          echo "- Command: ${{ inputs.patcher_command }}"
+          echo "- PR Branch: ${{ inputs.pull_request_branch || '(not set)' }}"
+          echo "- Working Dir: ${{ inputs.working_dir || '(root)' }}"
+
+          exit 1
+
+      - name: Handle Patcher Execution Failure
+        if: failure() && steps.run-patcher.conclusion == 'failure'
+        run: |
+          echo "::error::Patcher execution failed"
+          echo ""
+          echo "Configuration Details:"
+          echo "- Command: ${{ inputs.patcher_command }}"
+          echo "- Version: ${{ inputs.patcher_version }}"
+          echo "- Working Directory: ${{ inputs.working_dir || '.' }}"
+          echo "- Update Strategy: ${{ inputs.update_strategy }}"
+
+          if [[ "${{ inputs.patcher_command }}" == "update" ]]; then
+            echo "- PR Branch: ${{ inputs.pull_request_branch }}"
+            echo "- PR Title: ${{ inputs.pull_request_title }}"
+          fi
+
+          if [[ -n "${{ inputs.dependency }}" ]]; then
+            echo "- Target Dependency: ${{ inputs.dependency }}"
+          fi
+
+          echo ""
+          echo "Troubleshooting:"
+          echo "1. Check the patcher-action logs above for detailed error information"
+          echo "2. Verify the working directory exists and contains terraform/terragrunt files"
+          echo "3. Ensure the specified patcher version is valid and available"
+          echo "4. For update operations, verify write permissions to the repository"
+          echo ""
+          echo "For more help, see: https://github.com/gruntwork-io/patcher-action#troubleshooting"
+
+          exit 1
+
+      # === STEP 10: Cleanup and Summary ===
+      - name: Workflow Summary
+        if: always()
+        run: |
+          echo "Patcher Workflow Execution Summary"
+          echo "=================================="
+          echo "Command: ${{ inputs.patcher_command }}"
+          echo "Status: ${{ job.status }}"
+          echo "Duration: $(($(date -u +"%s") - $PATCHER_JOB_START_TIME)) seconds"
+          echo "Repository: ${{ github.repository }}"
+          echo "Organization: ${{ github.repository_owner }}"
+          echo "Workflow Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          if [[ "${{ job.status }}" == "success" ]]; then
+            echo "✅ Workflow completed successfully"
+          else
+            echo "❌ Workflow completed with errors"
+          fi
