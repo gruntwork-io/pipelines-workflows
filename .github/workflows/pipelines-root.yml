@@ -43,9 +43,9 @@ on:
 
     secrets:
       PIPELINES_READ_TOKEN:
-        required: true
+        required: false
       INFRA_ROOT_WRITE_TOKEN:
-        required: true
+        required: false
       ORG_REPO_ADMIN_TOKEN:
         required: false
 

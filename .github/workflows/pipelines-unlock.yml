@@ -56,7 +56,7 @@ on:
 
     secrets:
       PIPELINES_READ_TOKEN:
-        required: true
+        required: false
 env:
   PIPELINES_CLI_VERSION: ${{ inputs.pipelines_cli_version }}
   PIPELINES_ACTIONS_REF: ${{ inputs.pipelines_actions_ref }}
