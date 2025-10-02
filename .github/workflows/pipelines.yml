@@ -43,7 +43,7 @@ on:
 
     secrets:
       PIPELINES_READ_TOKEN:
-        required: true
+        required: false
       PR_CREATE_TOKEN:
         required: false
 
