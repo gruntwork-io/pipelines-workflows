@@ -151,7 +151,7 @@ jobs:
         with:
           install: true
           cache: true
-          version: 2024.10.8
+          version: 2025.10.0
           mise_toml: "${{ steps.mise-toml.outputs.TOML }}"
 
       - name: Test Terraform, OpenTofu and Terragrunt
@@ -280,7 +280,7 @@ jobs:
         with:
           install: true
           cache: true
-          version: 2024.10.8
+          version: 2025.10.0
           mise_toml: "${{ steps.mise-toml.outputs.TOML }}"
 
       - name: Test Terraform, OpenTofu and Terragrunt
