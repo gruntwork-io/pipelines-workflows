@@ -117,7 +117,7 @@ jobs:
         with:
           install: true
           cache: true
-          version: 2025.10.0
+          version: 2024.10.8
           working_directory: "./infra-live-repo"
 
       - name: Install Pipelines CLI
@@ -202,7 +202,7 @@ jobs:
         with:
           install: true
           cache: true
-          version: 2025.10.0
+          version: 2024.10.8
           working_directory: "./infra-live-repo"
 
       - name: Install Pipelines CLI
