@@ -643,7 +643,6 @@ jobs:
         id: access_control_account
         uses: ./pipelines-actions/.github/actions/pipelines-provision-access-control-action
         with:
-          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
           job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
@@ -653,9 +652,9 @@ jobs:
         id: provision_delegated_repo
         uses: ./pipelines-actions/.github/actions/pipelines-provision-repo-action
         with:
-          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
           job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
           access_control_pull_request_url: ${{ steps.access_control_account.outputs.pull_request_url }}
+          new_account_name: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].NewAccounts[0].Name }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           ORG_REPO_ADMIN_TOKEN: ${{ steps.pipelines-org-repo-admin-token.outputs.PIPELINES_TOKEN }}
@@ -673,11 +672,10 @@ jobs:
       - name: "Create delegated repo pull request"
         uses: ./pipelines-actions/.github/actions/pipelines-new-pr-action
         with:
-          GH_TOKEN: ${{ steps.pipelines-org-repo-admin-token.outputs.PIPELINES_TOKEN }}
+          job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
           delegated_repo_path: ${{ steps.provision_delegated_repo.outputs.delegated_repo_path }}
-          delegated_repo_name: ${{ steps.provision_delegated_repo.outputs.delegated_repo_name }}
-          requesting_pr_number: ${{ steps.provision_delegated_repo.outputs.requesting_pr_number || 131 }} # TODO: Remove hardcoded number neccessary due to testing on unmerged PR by testing
           access_control_pr_url: ${{ steps.access_control_account.outputs.pull_request_url }}
+          GH_TOKEN: ${{ steps.pipelines-org-repo-admin-token.outputs.PIPELINES_TOKEN }}
 
   pipelines_status_check:
     name: "Pipelines Status Check"
