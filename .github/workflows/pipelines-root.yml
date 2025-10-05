@@ -320,7 +320,6 @@ jobs:
           PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
           job: ${{ toJson(matrix.jobs) }}
           workflow_job_name: ${{ env.JOB_NAME }}
-          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
       - name: "[ProvisionAccount]: Post Provision New Account Custom Action"
         uses: ./pipelines-actions/.github/custom-actions/post-provision-new-account
