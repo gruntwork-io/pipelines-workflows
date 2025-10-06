@@ -30,7 +30,7 @@ on:
         description: "Override where we fetch pipelines from, used for internal testing"
       pipelines_cli_version:
         type: string
-        default: "v0.40.0-rc17"
+        default: "v0.40.0-rc25"
         description: "For Gruntwork internal testing - the version of the pipelines CLI to use"
       pipelines_actions_ref:
         type: string
@@ -320,7 +320,6 @@ jobs:
           PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
           job: ${{ toJson(matrix.jobs) }}
           workflow_job_name: ${{ env.JOB_NAME }}
-          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
       - name: "[ProvisionAccount]: Post Provision New Account Custom Action"
         uses: ./pipelines-actions/.github/custom-actions/post-provision-new-account
@@ -559,7 +558,7 @@ jobs:
     needs: [pipelines_orchestrate, pipelines_apply_baselines, pipelines_execute]
     runs-on: ${{ fromJSON(inputs.runner) }}
     # GHA can't check for length, so we just check if there is an item in the 0 index
-    if: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].NewAccounts[0] != null && needs.pipelines_execute.outputs.delegate_management == 'true' && needs.pipelines_execute.outputs.terragrunt_command == 'run-all apply' }}
+    if: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].NewAccounts[0] != null && needs.pipelines_execute.outputs.delegate_management == 'true' && contains(needs.pipelines_execute.outputs.terragrunt_command, 'apply') }}
     steps:
       - name: Record workflow env vars
         env:
@@ -639,21 +638,22 @@ jobs:
           # the delegated_repo_name (which is the same in all the new request files)
           new_account_name: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].NewAccounts[0].Name }}
 
-      - name: "Create Access Control PR"
-        id: access_control_pr
+      - name: "Provision access control account(s) and create PR"
+        id: access_control_account
         uses: ./pipelines-actions/.github/actions/pipelines-provision-access-control-action
         with:
-          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
+          job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           ORG_REPO_ADMIN_TOKEN: ${{ steps.pipelines-org-repo-admin-token.outputs.PIPELINES_TOKEN }}
 
-      - name: "Create and bootstrap delegated Repo"
+      - name: "Create delegated repo and bootstrap"
         id: provision_delegated_repo
         uses: ./pipelines-actions/.github/actions/pipelines-provision-repo-action
         with:
-          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
-          access_control_pull_request_url: ${{ steps.access_control_pr.outputs.pull_request_url }}
+          job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
+          access_control_pull_request_url: ${{ steps.access_control_account.outputs.pull_request_url }}
+          new_account_name: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].NewAccounts[0].Name }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           ORG_REPO_ADMIN_TOKEN: ${{ steps.pipelines-org-repo-admin-token.outputs.PIPELINES_TOKEN }}
@@ -663,22 +663,18 @@ jobs:
         uses: ./pipelines-actions/.github/custom-actions/post-create-delegated-repo
         with:
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
-          access_control_pull_request_url: ${{ steps.access_control_pr.outputs.pull_request_url }}
+          access_control_pull_request_url: ${{ steps.access_control_account.outputs.pull_request_url }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           ORG_REPO_ADMIN_TOKEN: ${{ steps.pipelines-org-repo-admin-token.outputs.PIPELINES_TOKEN }}
 
-      - name: "Create Delegated Repo PR"
+      - name: "Create delegated repo pull request"
         uses: ./pipelines-actions/.github/actions/pipelines-new-pr-action
         with:
-          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
+          job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
+          delegated_repo_path: ${{ steps.provision_delegated_repo.outputs.delegated_repo_path }}
+          access_control_pr_url: ${{ steps.access_control_account.outputs.pull_request_url }}
           GH_TOKEN: ${{ steps.pipelines-org-repo-admin-token.outputs.PIPELINES_TOKEN }}
-          path: ${{ steps.provision_delegated_repo.outputs.path }}
-          new_branch_name: ${{ steps.provision_delegated_repo.outputs.new_branch_name }}
-          commit_message: ${{ steps.provision_delegated_repo.outputs.commit_message }}
-          pr_body: ${{ steps.provision_delegated_repo.outputs.pr_body }}
-          requesting_pr_number: ${{ steps.provision_delegated_repo.outputs.requesting_pr_number }}
-          step_summary_content: ${{ steps.provision_delegated_repo.outputs.step_summary_content }}
 
   pipelines_status_check:
     name: "Pipelines Status Check"
