@@ -7,7 +7,7 @@ on:
         description: "The ID of the lock, usually a GUID. This is generally found in the console output when Terraform/OpenTofu command fails due to a timeout waiting to acquire a lock. (required if not running unlock_all)"
         required: false
         type: string
-      working_directory:
+      unit_path:
         description: "Path to the terragrunt.hcl file where the lock is held (required if not running unlock_all)"
         required: false
         type: string
@@ -19,9 +19,6 @@ on:
         description: "Forcibly reset all locks by deleting the dynamodb table"
         required: false
         type: boolean
-      api_base_url:
-        type: string
-        default: "https://api.prod.app.gruntwork.io/api/v1"
 
       # This field can be overriden to customize the runner used for pipelines
       # workflows.
@@ -41,6 +38,13 @@ on:
       runner:
         type: string
         default: '"ubuntu-latest"'
+      api_base_url:
+        type: string
+        default: "https://api.prod.app.gruntwork.io/api/v1"
+      pipelines_binary_url:
+        type: string
+        default: ""
+        description: "Override where we fetch pipelines from, used for internal testing"
       pipelines_cli_version:
         type: string
         default: "v0.40.0-rc25"
@@ -68,6 +72,14 @@ jobs:
     if: ${{ !inputs.unlock_all }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
+      - name: Record workflow env vars
+        env:
+          PIPELINES_BINARY_URL: ${{ inputs.pipelines_binary_url }}
+        run: |
+          time_now=$(date -u +"%s")
+          echo "PIPELINES_JOB_START_TIME=$time_now" >> $GITHUB_ENV
+          echo "PIPELINES_BINARY_URL=$PIPELINES_BINARY_URL" >> $GITHUB_ENV
+
       - name: Checkout Pipelines Credentials
         uses: actions/checkout@v4
         with:
@@ -106,56 +118,24 @@ jobs:
           fetch-depth: 0
           token: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
+      - name: Install Mise
+        id: mise-toml
+        uses: jdx/mise-action@v2
+        with:
+          install: true
+          cache: true
+          version: 2025.10.0
+          working_directory: "./infra-live-repo"
+
       - name: Install Pipelines CLI
         uses: ./pipelines-actions/.github/actions/pipelines-install
         with:
           version: ${{ env.PIPELINES_CLI_VERSION }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
 
-      - name: Bootstrap Workflow
-        id: gruntwork_context
-        uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
-        with:
-          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
-          working_directory: ${{ inputs.working_directory }}
-          terragrunt_command: "force-unlock -force ${{ inputs.lock_id }}"
-          branch: "main"
-
-      - name: Setup Mise Toml
-        id: mise-toml
-        working-directory: "."
-        shell: bash
-        env:
-          INFRA_LIVE_DIRECTORY: "./infra-live-repo"
-          TG_VERSION: ${{ steps.gruntwork_context.outputs.tg_version }}
-          TF_BINARY: ${{ steps.gruntwork_context.outputs.tf_binary }}
-          TF_VERSION: ${{ steps.gruntwork_context.outputs.tf_version }}
-        run: |
-          if [[ ! -f "$INFRA_LIVE_DIRECTORY/.mise.toml" ]]; then
-            if [[ ! -f "$INFRA_LIVE_DIRECTORY/.mise.toml" ]]; then
-              echo 'User does not have a `.mise.toml` file, generating one to avoid failure'
-            fi
-            echo 'TOML<<EOF' >> "$GITHUB_OUTPUT"
-            echo '[tools]' >> "$GITHUB_OUTPUT"
-            echo "$TF_BINARY = \"$TF_VERSION\"" >> "$GITHUB_OUTPUT"
-            echo "terragrunt = \"$TG_VERSION\"" >> "$GITHUB_OUTPUT"
-            echo 'EOF' >> "$GITHUB_OUTPUT"
-          else
-            echo 'TOML<<EOF' >> "$GITHUB_OUTPUT"
-            cat $INFRA_LIVE_DIRECTORY/.mise.toml >> "$GITHUB_OUTPUT"
-            echo '' >> "$GITHUB_OUTPUT"
-            echo 'EOF' >> "$GITHUB_OUTPUT"
-          fi
-
-      - uses: jdx/mise-action@v2
-        with:
-          install: true
-          cache: true
-          version: 2025.10.0
-          mise_toml: "${{ steps.mise-toml.outputs.TOML }}"
-
       - name: Test Terraform, OpenTofu and Terragrunt
         shell: bash
+        working-directory: "./infra-live-repo"
         run: |
           tofu --version || true
           terraform --version || true
@@ -167,50 +147,35 @@ jobs:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
-      - name: "Run terragrunt stack generate in ${{ inputs.working_directory }}"
-        id: terragrunt_stack_generate
-        if: ${{ inputs.stack_path }}
-        working-directory: ./infra-live-repo
+      - name: Pipelines Unlock Unit
+        shell: bash
+        working-directory: "./infra-live-repo"
         env:
-          TG_EXPERIMENT: stacks
+          UNLOCK_UNIT_PATH: ${{ inputs.unit_path }}
+          UNLOCK_UNIT_LOCK_ID: ${{ inputs.lock_id }}
+          UNLOCK_UNIT_STACK_PATH: ${{ inputs.stack_path }}
+          GH_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
         run: |
-          stackDir=$(dirname ${{ inputs.stack_path }})
-          cd $stackDir
-          terragrunt stack generate
+          pipelines unlock unit \
+            --unit-path "$UNLOCK_UNIT_PATH" \
+            --lock-id "$UNLOCK_UNIT_LOCK_ID" \
+            --stack-path "$UNLOCK_UNIT_STACK_PATH" \
+            --working-directory .
 
-      - name: "Run terragrunt force-unlock in ${{ inputs.working_directory }}"
-        id: terragrunt
-        uses: ./pipelines-actions/.github/actions/pipelines-execute
-        env:
-          TG_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd . --disk-cache-duration-minutes 10"
-        with:
-          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
-          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
-          tf_binary: ${{ steps.gruntwork_context.outputs.tf_binary }}
-          working_directory: ${{ steps.gruntwork_context.outputs.working_directory }}
-          terragrunt_command: ${{ steps.gruntwork_context.outputs.terragrunt_command }}
-          infra_live_repo_branch: ${{ steps.gruntwork_context.outputs.branch }}
-          gruntwork_config_file: ${{ steps.gruntwork_context.outputs.gruntwork_config_file }}
-          infra_live_repo: "."
-          infra_live_directory: "."
-          deploy_branch_name: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
-
-      # Upload the infra-live repo as an artifact to be used for pipelines_reinit
-      # job so that stacks don't need to be generated again
-      - name: Upload Infra-live repo as an artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: infra-live-repo
-          path: infra-live-repo
-          retention-days: 1
-          if-no-files-found: error
-          include-hidden-files: true
 
   unlock_all:
     name: Unlock all TF State files
     if: ${{ inputs.unlock_all }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
+      - name: Record workflow env vars
+        env:
+          PIPELINES_BINARY_URL: ${{ inputs.pipelines_binary_url }}
+        run: |
+          time_now=$(date -u +"%s")
+          echo "PIPELINES_JOB_START_TIME=$time_now" >> $GITHUB_ENV
+          echo "PIPELINES_BINARY_URL=$PIPELINES_BINARY_URL" >> $GITHUB_ENV
+
       - name: Checkout Pipelines Credentials
         uses: actions/checkout@v4
         with:
@@ -249,42 +214,24 @@ jobs:
           fetch-depth: 0
           token: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
+      - name: Install Mise
+        id: mise-toml
+        uses: jdx/mise-action@v2
+        with:
+          install: true
+          cache: true
+          version: 2025.10.0
+          working_directory: "./infra-live-repo"
+
       - name: Install Pipelines CLI
         uses: ./pipelines-actions/.github/actions/pipelines-install
         with:
           version: ${{ env.PIPELINES_CLI_VERSION }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
 
-      - name: Bootstrap Workflow
-        id: gruntwork_context
-        uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
-        with:
-          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
-          working_directory: ${{ inputs.working_directory }}
-          terragrunt_command: "init"
-          branch: "main"
-
-      - name: Setup Mise Toml
-        id: mise-toml
-        working-directory: ./infra-live-repo
-        shell: bash
-        env:
-          INFRA_LIVE_DIRECTORY: "."
-        run: |
-          echo 'TOML<<EOF' >> "$GITHUB_OUTPUT"
-          cat $INFRA_LIVE_DIRECTORY/.mise.toml >> "$GITHUB_OUTPUT"
-          echo '' >> "$GITHUB_OUTPUT"
-          echo 'EOF' >> "$GITHUB_OUTPUT"
-
-      - uses: jdx/mise-action@v2
-        with:
-          install: true
-          cache: true
-          version: 2025.10.0
-          mise_toml: "${{ steps.mise-toml.outputs.TOML }}"
-
       - name: Test Terraform, OpenTofu and Terragrunt
         shell: bash
+        working-directory: "./infra-live-repo"
         run: |
           tofu --version || true
           terraform --version || true
@@ -296,130 +243,36 @@ jobs:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
-      - name: Generate stacks if needed
-        id: generate_stacks
-        working-directory: ./infra-live-repo
-        env:
-          TG_EXPERIMENT: stacks
-        run: |
-          echo "Finding directories containing stack files"
-          # Find all directories containing terragrunt.stack.hcl files
-          STACK_DIRS=$(find . -name "terragrunt.stack.hcl" -exec dirname {} \;)
-
-          if [[ -z "$STACK_DIRS" ]]; then
-            echo "No stack directories found"
-            exit 0
-          fi
-
-          # For each stack directory, run terragrunt stack generate
-          for STACK_DIR in $STACK_DIRS; do
-            echo "Generating stack in $STACK_DIR"
-            (cd $STACK_DIR && terragrunt stack generate)
-          done
-
-          echo "Completed stacks generation"
-
-      - name: Wipe all dynamodb terraform lock tables
-        shell: bash
+      - name: Unlock All
         id: unlock_tables
+        shell: bash
+        working-directory: "./infra-live-repo"
         env:
           GH_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
         run: |
-          set +x
-          set +e
-
-          if [[ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]]; then
-            export GITHUB_EVENT_NAME=push
-          fi
-
-          echo "Wiping all dynamodb terraform lock tables"
-
-          # Recursively find every terragrunt hcl
-          COMPLETED_ACCOUNTS_FILE=$(mktemp)
-          NEEDS_INIT_FOLDERS=$(mktemp)
-
-          cd infra-live-repo/
-
-          REGIONS=("af-south-1" "ap-east-1" "ap-northeast-1" "ap-northeast-2" "ap-northeast-3" "ap-south-1" "ap-southeast-1" "ap-southeast-2" "ap-southeast-3" "ca-central-1" "cn-north-1" "cn-northwest-1" "eu-central-1" "eu-north-1" "eu-south-1" "eu-west-1" "eu-west-2" "eu-west-3" "me-south-1" "sa-east-1" "us-east-1" "us-east-2" "us-gov-east-1" "us-gov-west-1" "us-west-1" "us-west-2" "me-central-1")
-
-          unlock_folder () {
-            working_dir="$1"
-            cd $working_dir
-
-            pipelinesConfigAuth=$(pipelines config auth)
-            ACCOUNTID=$(echo $pipelinesConfigAuth | jq -r ".Authentication.AWSOIDC.AccountID")
-
-            grep $ACCOUNTID $COMPLETED_ACCOUNTS_FILE > /dev/null
-            if [[ $? == 0 ]]; then
-              echo "Skipping $ACCOUNTID as it has already been processed"
-              return
-            else
-              echo "Unlocking state in $ACCOUNTID in `pwd`"
-              echo $working_dir >> $NEEDS_INIT_FOLDERS
-              echo $ACCOUNTID >> $COMPLETED_ACCOUNTS_FILE
-            fi
-
-            REGION=$(echo $pipelinesConfigAuth | jq -r ".Authentication.AWSOIDC.Region")
-
-            auth=$(pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd . --disk-cache-duration-minutes 10)
-            export AWS_DEFAULT_REGION=$REGION
-            export AWS_ACCESS_KEY_ID=$(jq -r '.awsCredentials.ACCESS_KEY_ID' <<< $auth)
-            export AWS_SECRET_ACCESS_KEY=$(jq -r '.awsCredentials.SECRET_ACCESS_KEY' <<< $auth)
-            export AWS_SESSION_TOKEN=$(jq -r '.awsCredentials.SESSION_TOKEN' <<< $auth)
-
-            for region in ${REGIONS[@]}; do
-              echo "Deleting table terraform-locks in $region for $ACCOUNTID"
-              aws dynamodb delete-table --table-name terraform-locks --region $region || true  # Ignore failures if no table already exists
-            done
-
-            echo "Lock removed for $ACCOUNTID"
-          }
-
-
-          while IFS= read -rd '' unit <&3; do
-            working_dir=$(dirname "$unit")
-            if [[ $working_dir == "." ]]; then
-              echo "Skipping root folder"
-              continue
-            fi
-
-            unlock_folder $working_dir &
-          done 3< <(find . -name "terragrunt.hcl" -print0)
-
-          # Wait for all jobs to finish
-          wait
-
-          # Convert bash array of strings to a JSOn array
-          JSON=$(cat $NEEDS_INIT_FOLDERS | jq -R . | jq -s .)
-          echo $JSON
-          echo "unlock_folders<<EOF" >> "$GITHUB_OUTPUT"
-          echo $JSON >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
-
-      # Upload the infra-live repo as an artifact to be used for pipelines_reinit
-      # job so that stacks don't need to be generated again
-      - name: Upload Infra-live repo as an artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: infra-live-repo
-          path: infra-live-repo
-          retention-days: 1
-          if-no-files-found: error
-          include-hidden-files: true
+          pipelines unlock all --working-directory .
 
     outputs:
-      unlock_folders: ${{ steps.unlock_tables.outputs.unlock_folders }}
+      reinit_unit_paths: ${{ steps.unlock_tables.outputs.pipelines_units_to_init }}
 
   pipelines_reinit:
-    name: "Rerun init in ${{ matrix.working_directory }}"
+    name: "Rerun init in ${{ matrix.unit_path }}"
     needs: [unlock_all]
     runs-on: ${{ fromJSON(inputs.runner) }}
     if: ${{ inputs.unlock_all }}
     strategy:
       fail-fast: false
       matrix:
-        working_directory: ${{ fromJson(needs.unlock_all.outputs.unlock_folders) }}
+        unit_path: ${{ fromJson(needs.unlock_all.outputs.reinit_unit_paths) }}
     steps:
+      - name: Record workflow env vars
+        env:
+          PIPELINES_BINARY_URL: ${{ inputs.pipelines_binary_url }}
+        run: |
+          time_now=$(date -u +"%s")
+          echo "PIPELINES_JOB_START_TIME=$time_now" >> $GITHUB_ENV
+          echo "PIPELINES_BINARY_URL=$PIPELINES_BINARY_URL" >> $GITHUB_ENV
+
       - name: Checkout Pipelines Credentials
         uses: actions/checkout@v4
         with:
@@ -451,11 +304,21 @@ jobs:
           ref: ${{ env.PIPELINES_ACTIONS_REF }}
           token: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
 
-      - name: Download Infra-live repo as an artifact
-        uses: actions/download-artifact@v4
+      - name: Check out repo code
+        uses: actions/checkout@v4
         with:
-          name: infra-live-repo
           path: infra-live-repo
+          fetch-depth: 0
+          token: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+
+      - name: Install Mise
+        id: mise-toml
+        uses: jdx/mise-action@v2
+        with:
+          install: true
+          cache: true
+          version: 2025.10.0
+          working_directory: "./infra-live-repo"
 
       - name: Install Pipelines CLI
         uses: ./pipelines-actions/.github/actions/pipelines-install
@@ -463,28 +326,25 @@ jobs:
           version: ${{ env.PIPELINES_CLI_VERSION }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
 
-      - name: Bootstrap Workflow
-        id: gruntwork_context
-        uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
-        with:
-          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
-          working_directory: ${{ matrix.working_directory }}
-          terragrunt_command: "init"
-          branch: "main"
+      - name: Test Terraform, OpenTofu and Terragrunt
+        shell: bash
+        working-directory: "./infra-live-repo"
+        run: |
+          tofu --version || true
+          terraform --version || true
+          terragrunt --version
 
-      - name: "Run Terragrunt Init"
-        id: terragrunt
-        uses: ./pipelines-actions/.github/actions/pipelines-execute
-        env:
-          TG_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd . --disk-cache-duration-minutes 10"
+      - name: Configure code auth
+        uses: ./pipelines-actions/.github/actions/pipelines-code-auth
         with:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
-          tf_binary: ${{ steps.gruntwork_context.outputs.tf_binary }}
-          working_directory: ${{ steps.gruntwork_context.outputs.working_directory }}
-          terragrunt_command: ${{ steps.gruntwork_context.outputs.terragrunt_command }}
-          infra_live_repo_branch: ${{ steps.gruntwork_context.outputs.branch }}
-          gruntwork_config_file: ${{ steps.gruntwork_context.outputs.gruntwork_config_file }}
-          infra_live_repo: "."
-          infra_live_directory: "."
-          deploy_branch_name: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
+
+      - name: Pipelines Reinit Unit
+        shell: bash
+        working-directory: "./infra-live-repo"
+        env:
+          UNIT_PATH: ${{ matrix.unit_path }}
+          GH_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+        run: |
+          pipelines unlock reinit --unit-path "$UNIT_PATH" --working-directory .
