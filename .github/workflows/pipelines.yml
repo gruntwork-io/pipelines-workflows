@@ -231,21 +231,7 @@ jobs:
           version: ${{ env.PIPELINES_CLI_VERSION }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
 
-      - name: Bootstrap Workflow
-        id: gruntwork_context
-        uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
-        with:
-          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
-          change_type: ${{ matrix.jobs.ChangeType }}
-          branch: ${{ matrix.jobs.Ref }}
-          working_directory: ${{ matrix.jobs.WorkingDirectory }}
-          account_id: ${{ matrix.jobs.AccountId }}
-          terragrunt_command: ${{ matrix.jobs.Action.Command }} ${{ matrix.jobs.Action.Args }}
-          additional_data: ${{ toJson(matrix.jobs.AdditionalData) }}
-          child_account_id: ${{ matrix.jobs.AdditionalData.ChildAccountId }}
-          account_names: ${{ matrix.jobs.AdditionalData.AccountNames }}
-
-      - name: "[TerragruntExecute]: Run terragrunt ${{ steps.gruntwork_context.outputs.terragrunt_command }} in ${{ steps.gruntwork_context.outputs.working_directory }}"
+      - name: "[TerragruntExecute]: Run terragrunt ${{ matrix.jobs.Action.Command }} in ${{ matrix.jobs.WorkingDirectory }}"
         id: terragrunt
         uses: ./pipelines-actions/.github/actions/pipelines-execute
         env:
@@ -253,14 +239,11 @@ jobs:
         with:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
-          tf_binary: ${{ steps.gruntwork_context.outputs.tf_binary }}
-          working_directory: ${{ steps.gruntwork_context.outputs.working_directory }}
-          terragrunt_command: ${{ steps.gruntwork_context.outputs.terragrunt_command }}
-          infra_live_repo_branch: ${{ steps.gruntwork_context.outputs.branch }}
-          gruntwork_config_file: ${{ steps.gruntwork_context.outputs.gruntwork_config_file }}
+          working_directory: ${{ matrix.jobs.WorkingDirectory }}
+          terragrunt_command: ${{ matrix.jobs.Action.Command }}
+          infra_live_repo_branch: ${{ matrix.jobs.Ref }}
           infra_live_repo: "."
           infra_live_directory: "."
-          deploy_branch_name: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
           stack_paths: ${{ toJson(matrix.jobs.StackPaths) }}
 
       - name: Update comment
@@ -278,12 +261,11 @@ jobs:
 
     outputs:
       account_id: ${{ matrix.jobs.AccountId }}
-      branch: ${{ steps.gruntwork_context.outputs.branch }}
-      action: ${{ steps.gruntwork_context.outputs.action }}
-      working_directory: ${{ steps.gruntwork_context.outputs.working_directory }}
-      terragrunt_command: ${{ steps.gruntwork_context.outputs.terragrunt_command }}
-      additional_data: ${{ steps.gruntwork_context.outputs.additional_data }}
-      child_account_id: ${{ steps.gruntwork_context.outputs.child_account_id }}
+      branch: ${{ matrix.jobs.Ref }}
+      working_directory: ${{ matrix.jobs.WorkingDirectory }}
+      terragrunt_command: ${{ matrix.jobs.Action.Command }}
+      additional_data: ${{ matrix.jobs.AdditionalData }}
+      child_account_id: ${{ matrix.jobs.AdditionalData.ChildAccountId }}
 
   pipelines_status_check:
     name: "Pipelines Status Check"
