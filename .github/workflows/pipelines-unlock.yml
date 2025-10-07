@@ -121,6 +121,7 @@ jobs:
 
       - name: Test Terraform, OpenTofu and Terragrunt
         shell: bash
+        working-directory: ./infra-live-repo
         run: |
           tofu --version || true
           terraform --version || true
@@ -237,6 +238,7 @@ jobs:
 
       - name: Test Terraform, OpenTofu and Terragrunt
         shell: bash
+        working-directory: ./infra-live-repo
         run: |
           tofu --version || true
           terraform --version || true
