@@ -7,7 +7,7 @@ on:
         description: "The ID of the lock, usually a GUID. This is generally found in the console output when Terraform/OpenTofu command fails due to a timeout waiting to acquire a lock. (required if not running unlock_all)"
         required: false
         type: string
-      working_directory:
+      unit_path:
         description: "Path to the terragrunt.hcl file where the lock is held (required if not running unlock_all)"
         required: false
         type: string
@@ -19,9 +19,6 @@ on:
         description: "Forcibly reset all locks by deleting the dynamodb table"
         required: false
         type: boolean
-      api_base_url:
-        type: string
-        default: "https://api.prod.app.gruntwork.io/api/v1"
 
       # This field can be overriden to customize the runner used for pipelines
       # workflows.
@@ -41,6 +38,13 @@ on:
       runner:
         type: string
         default: '"ubuntu-latest"'
+      api_base_url:
+        type: string
+        default: "https://api.prod.app.gruntwork.io/api/v1"
+      pipelines_binary_url:
+        type: string
+        default: ""
+        description: "Override where we fetch pipelines from, used for internal testing"
       pipelines_cli_version:
         type: string
         default: "v0.40.0-rc25"
@@ -68,6 +72,14 @@ jobs:
     if: ${{ !inputs.unlock_all }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
+      - name: Record workflow env vars
+        env:
+          PIPELINES_BINARY_URL: ${{ inputs.pipelines_binary_url }}
+        run: |
+          time_now=$(date -u +"%s")
+          echo "PIPELINES_JOB_START_TIME=$time_now" >> $GITHUB_ENV
+          echo "PIPELINES_BINARY_URL=$PIPELINES_BINARY_URL" >> $GITHUB_ENV
+
       - name: Checkout Pipelines Credentials
         uses: actions/checkout@v4
         with:
@@ -138,7 +150,7 @@ jobs:
         shell: bash
         working-directory: "./infra-live-repo"
         env:
-          UNLOCK_UNIT_PATH: ${{ inputs.working_directory }}
+          UNLOCK_UNIT_PATH: ${{ inputs.unit_path }}
           UNLOCK_UNIT_LOCK_ID: ${{ inputs.lock_id }}
           UNLOCK_UNIT_STACK_PATH: ${{ inputs.stack_path }}
         run: |
@@ -154,6 +166,14 @@ jobs:
     if: ${{ inputs.unlock_all }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     steps:
+      - name: Record workflow env vars
+        env:
+          PIPELINES_BINARY_URL: ${{ inputs.pipelines_binary_url }}
+        run: |
+          time_now=$(date -u +"%s")
+          echo "PIPELINES_JOB_START_TIME=$time_now" >> $GITHUB_ENV
+          echo "PIPELINES_BINARY_URL=$PIPELINES_BINARY_URL" >> $GITHUB_ENV
+
       - name: Checkout Pipelines Credentials
         uses: actions/checkout@v4
         with:
@@ -240,6 +260,14 @@ jobs:
       matrix:
         unit_path: ${{ fromJson(needs.unlock_all.outputs.reinit_unit_paths) }}
     steps:
+      - name: Record workflow env vars
+        env:
+          PIPELINES_BINARY_URL: ${{ inputs.pipelines_binary_url }}
+        run: |
+          time_now=$(date -u +"%s")
+          echo "PIPELINES_JOB_START_TIME=$time_now" >> $GITHUB_ENV
+          echo "PIPELINES_BINARY_URL=$PIPELINES_BINARY_URL" >> $GITHUB_ENV
+
       - name: Checkout Pipelines Credentials
         uses: actions/checkout@v4
         with:
