@@ -34,7 +34,7 @@ on:
         description: "For Gruntwork internal testing - the version of the pipelines CLI to use"
       pipelines_actions_ref:
         type: string
-        default: "main"
+        default: "ore/dev-1113-fail-pipelines-status-check-correctly-for-failed-setup"
         description: "For Gruntwork internal testing - the ref of the pipelines actions to use"
       pipelines_credentials_ref:
         type: string
@@ -554,6 +554,8 @@ jobs:
           gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
   pipelines_setup_delegated_repo:
+    env:
+      JOB_NAME: Setup Delegated Repo
     name: "Setup Delegated Repo"
     needs: [pipelines_orchestrate, pipelines_apply_baselines, pipelines_execute]
     runs-on: ${{ fromJSON(inputs.runner) }}
@@ -652,6 +654,7 @@ jobs:
         uses: ./pipelines-actions/.github/actions/pipelines-provision-repo-action
         with:
           job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
+          workflow_job_name: ${{ env.JOB_NAME }}
           access_control_pull_request_url: ${{ steps.access_control_account.outputs.pull_request_url }}
           new_account_name: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].NewAccounts[0].Name }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
@@ -673,6 +676,8 @@ jobs:
         with:
           job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
           delegated_repo_path: ${{ steps.provision_delegated_repo.outputs.delegated_repo_path }}
+          delegated_step_output_file_path: ${{ steps.provision_delegated_repo.outputs.step_output_file_path }}
+          delegated_step_output_file_name: ${{ steps.provision_delegated_repo.outputs.step_output_file_name }}
           access_control_pr_url: ${{ steps.access_control_account.outputs.pull_request_url }}
           GH_TOKEN: ${{ steps.pipelines-org-repo-admin-token.outputs.PIPELINES_TOKEN }}
 
