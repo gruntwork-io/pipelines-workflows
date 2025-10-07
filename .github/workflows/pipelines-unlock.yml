@@ -154,6 +154,7 @@ jobs:
           UNLOCK_UNIT_PATH: ${{ inputs.unit_path }}
           UNLOCK_UNIT_LOCK_ID: ${{ inputs.lock_id }}
           UNLOCK_UNIT_STACK_PATH: ${{ inputs.stack_path }}
+          GH_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
         run: |
           pipelines unlock unit \
             --unit-path "$UNLOCK_UNIT_PATH" \
@@ -246,6 +247,8 @@ jobs:
         id: unlock_tables
         shell: bash
         working-directory: "./infra-live-repo"
+        env:
+          GH_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
         run: |
           pipelines unlock all --working-directory .
 
@@ -342,5 +345,6 @@ jobs:
         working-directory: "./infra-live-repo"
         env:
           UNIT_PATH: ${{ matrix.unit_path }}
+          GH_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
         run: |
           pipelines unlock reinit --unit-path "$UNIT_PATH" --working-directory .
