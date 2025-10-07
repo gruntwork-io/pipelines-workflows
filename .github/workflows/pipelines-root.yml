@@ -268,22 +268,6 @@ jobs:
           version: ${{ env.PIPELINES_CLI_VERSION }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
 
-      - name: Bootstrap Workflow
-        id: gruntwork_context
-        uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
-        with:
-          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
-          change_type: ${{ matrix.jobs.ChangeType }}
-          branch: ${{ matrix.jobs.Ref }}
-          working_directory: ${{ matrix.jobs.WorkingDirectory }}
-          account_id: ${{ matrix.jobs.AccountId }}
-          terragrunt_command: ${{ matrix.jobs.Action.Command }} ${{ matrix.jobs.Action.Args }}
-          additional_data: ${{ toJson(matrix.jobs.AdditionalData) }}
-          child_account_id: ${{ matrix.jobs.AdditionalData.ChildAccountId }}
-          account_names: ${{ matrix.jobs.AdditionalData.AccountNames }}
-          # TODO: This should be "first_new_account_name".
-          new_account_name: ${{ matrix.jobs.NewAccounts[0].Name }}
-
       - name: Install Mise
         id: mise-toml
         uses: jdx/mise-action@v2
@@ -302,16 +286,15 @@ jobs:
       # To learn more about customizing Pipelines see our documentation at https://docs.gruntwork.io/pipelines/maintain/extending/
       - name: "[Baseline]: Pre Provision New Account Custom Action"
         uses: ./pipelines-actions/.github/custom-actions/pre-provision-new-account
-        if: ${{ steps.gruntwork_context.outputs.action == 'PROVISION_ACCOUNT' }}
+        if: ${{ matrix.jobs.ChangeType == 'AccountsRequested' }}
         with:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           INFRA_ROOT_WRITE_TOKEN: ${{ steps.pipelines-infra-root-write-token.outputs.PIPELINES_TOKEN }}
-          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
       - name: "[ProvisionAccount]: Provision New Account"
         id: provision_new_account
-        if: ${{ steps.gruntwork_context.outputs.action == 'PROVISION_ACCOUNT' }}
+        if: ${{ matrix.jobs.ChangeType == 'AccountsRequested' }}
         uses: ./pipelines-actions/.github/actions/pipelines-provision-account-action
         env:
           TERRAGRUNT_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd . --disk-cache-duration-minutes 10"
@@ -323,16 +306,15 @@ jobs:
 
       - name: "[ProvisionAccount]: Post Provision New Account Custom Action"
         uses: ./pipelines-actions/.github/custom-actions/post-provision-new-account
-        if: ${{ steps.gruntwork_context.outputs.action == 'PROVISION_ACCOUNT' }}
+        if: ${{ matrix.jobs.ChangeType == 'AccountsRequested' }}
         with:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           INFRA_ROOT_WRITE_TOKEN: ${{ steps.pipelines-infra-root-write-token.outputs.PIPELINES_TOKEN }}
-          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
           baseline_path: ${{ steps.provision_new_account.outputs.baseline_path }}
 
       - name: "[ProvisionAccount]: Create New Account Pull Request Action"
-        if: ${{ steps.gruntwork_context.outputs.action == 'PROVISION_ACCOUNT' && contains(steps.gruntwork_context.outputs.terragrunt_command , 'apply')}}
+        if: ${{ matrix.jobs.ChangeType == 'AccountsRequested' && contains(matrix.jobs.Action.Command , 'apply')}}
         shell: bash
         env:
           GH_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
@@ -348,16 +330,15 @@ jobs:
 
       - name: "[Baseline]: Pre Baseline Core Account Action"
         uses: ./pipelines-actions/.github/custom-actions/pre-baseline-core-accounts
-        if: steps.gruntwork_context.outputs.action == 'BASELINE_ACCOUNT'
+        if: ${{ matrix.jobs.ChangeType == 'AccountsAdded' }}
         with:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
-          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
       # Run the core accounts baselines(shared, logs, security, etc. to ensure the account is setup correctly)
       - name: "Run core accounts baselines"
         id: core_accounts_baselines
-        if: steps.gruntwork_context.outputs.action == 'BASELINE_ACCOUNT'
+        if: ${{ matrix.jobs.ChangeType == 'AccountsAdded' }}
         env:
           TG_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd . --disk-cache-duration-minutes 10"
         # TODO: Rename this as pipelines-apply-core-baselines or something similar
@@ -370,33 +351,29 @@ jobs:
 
       - name: "[Baseline]: Post Baseline Core Account Action"
         uses: ./pipelines-actions/.github/custom-actions/post-baseline-core-accounts
-        if: steps.gruntwork_context.outputs.action == 'BASELINE_ACCOUNT'
+        if: ${{ matrix.jobs.ChangeType == 'AccountsAdded' }}
         with:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
-          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
-      - name: "[TerragruntExecute]: Run terragrunt ${{ steps.gruntwork_context.outputs.terragrunt_command }} in ${{ steps.gruntwork_context.outputs.working_directory }}"
+      - name: "[TerragruntExecute]: Run terragrunt ${{ matrix.jobs.Action.Command }} in ${{ matrix.jobs.WorkingDirectory }}"
         id: terragrunt
-        if: ${{ steps.gruntwork_context.outputs.action == 'TERRAGRUNT_EXECUTE' }}
+        if: ${{ (matrix.jobs.ChangeType != 'AccountsRequested') && (matrix.jobs.ChangeType != 'AccountsAdded') }}
         uses: ./pipelines-actions/.github/actions/pipelines-execute
         env:
           TG_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd . --disk-cache-duration-minutes 10"
         with:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
-          tf_binary: ${{ steps.gruntwork_context.outputs.tf_binary }}
-          working_directory: ${{ steps.gruntwork_context.outputs.working_directory }}
-          terragrunt_command: ${{ steps.gruntwork_context.outputs.terragrunt_command }}
-          infra_live_repo_branch: ${{ steps.gruntwork_context.outputs.branch }}
-          gruntwork_config_file: ${{ steps.gruntwork_context.outputs.gruntwork_config_file }}
+          working_directory: ${{ matrix.jobs.WorkingDirectory }}
+          terragrunt_command: ${{ matrix.jobs.Action.Command }}
+          infra_live_repo_branch: ${{ matrix.jobs.Ref }}
           infra_live_repo: "."
           infra_live_directory: "."
-          deploy_branch_name: ${{ steps.gruntwork_context.outputs.deploy_branch_name }}
           stack_paths: ${{ toJson(matrix.jobs.StackPaths) }}
 
       - name: Update comment
-        if: always() && steps.gruntwork_context.outputs.action == 'TERRAGRUNT_EXECUTE'
+        if: always() && ${{ (matrix.jobs.ChangeType != 'AccountsRequested') && (matrix.jobs.ChangeType != 'AccountsAdded') }}
         uses: ./pipelines-actions/.github/actions/pipelines-comment-job-update
         with:
           PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
@@ -410,14 +387,11 @@ jobs:
 
     outputs:
       account_id: ${{ matrix.jobs.AccountId }}
-      branch: ${{ steps.gruntwork_context.outputs.branch }}
-      action: ${{ steps.gruntwork_context.outputs.action }}
-      working_directory: ${{ steps.gruntwork_context.outputs.working_directory }}
-      terragrunt_command: ${{ steps.gruntwork_context.outputs.terragrunt_command }}
-      additional_data: ${{ steps.gruntwork_context.outputs.additional_data }}
-      child_account_id: ${{ steps.gruntwork_context.outputs.child_account_id }}
-      pr_number: ${{ steps.gruntwork_context.outputs.pr_number }}
-      delegate_management: ${{ steps.gruntwork_context.outputs.delegate_management }}
+      branch: ${{ matrix.jobs.Ref }}
+      working_directory: ${{ matrix.jobs.WorkingDirectory }}
+      terragrunt_command: ${{ matrix.jobs.Action.Command }}
+      additional_data: ${{ toJson(matrix.jobs.AdditionalData) }}
+      child_account_id: ${{ matrix.jobs.AdditionalData.ChildAccountId }}
 
   pipelines_apply_baselines:
     env:
@@ -507,21 +481,6 @@ jobs:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
-      - name: Bootstrap Workflow
-        id: gruntwork_context
-        uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
-        with:
-          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
-          change_type: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].ChangeType }}
-          branch: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].Ref }}
-          working_directory: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].WorkingDirectory }}
-          account_id: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].AccountId }}
-          terragrunt_command: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].Action.Command }} ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].Action.Args }}
-          additional_data: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].AdditionalData) }}
-          account_names: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].AdditionalData.AccountNames }}
-          child_account_id: ${{ matrix.jobs.ID }}
-          new_account_name: ${{ matrix.jobs.Name }}
-
       # To learn more about customizing Pipelines see our documentation at https://docs.gruntwork.io/pipelines/maintain/extending/
       - name: "[Baseline]: Pre Baseline Child Account Action"
         uses: ./pipelines-actions/.github/custom-actions/pre-baseline-child-account
@@ -531,7 +490,6 @@ jobs:
           account_id: ${{ matrix.jobs.ID }}
           account_name: ${{ matrix.jobs.Name }}
           job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
-          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
 
       - name: "[Baseline]: Baseline the Child Account"
         id: baseline_child_account
@@ -551,7 +509,9 @@ jobs:
           account_id: ${{ matrix.jobs.ID }}
           account_name: ${{ matrix.jobs.Name }}
           job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
-          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
+
+    outputs:
+      delegate_management: ${{ steps.baseline_child_account.outputs.delegate_management }}
 
   pipelines_setup_delegated_repo:
     env:
@@ -560,7 +520,7 @@ jobs:
     needs: [pipelines_orchestrate, pipelines_apply_baselines, pipelines_execute]
     runs-on: ${{ fromJSON(inputs.runner) }}
     # GHA can't check for length, so we just check if there is an item in the 0 index
-    if: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].NewAccounts[0] != null && needs.pipelines_execute.outputs.delegate_management == 'true' && contains(needs.pipelines_execute.outputs.terragrunt_command, 'apply') }}
+    if: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].NewAccounts[0] != null && needs.pipelines_apply_baselines.outputs.delegate_management == 'true' && contains(needs.pipelines_execute.outputs.terragrunt_command, 'apply') }}
     steps:
       - name: Record workflow env vars
         env:
@@ -622,24 +582,6 @@ jobs:
           version: ${{ env.PIPELINES_CLI_VERSION }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
 
-      - name: Bootstrap Workflow
-        id: gruntwork_context
-        uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
-        with:
-          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
-          change_type: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].ChangeType }}
-          branch: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].Ref }}
-          working_directory: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].WorkingDirectory }}
-          account_id: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].AccountId }}
-          terragrunt_command: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].Action.Command }} ${{ needs.pipelines_orchestrate.outputs.pipelines_jobs[0].Action.Args }}
-          additional_data: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].AdditionalData) }}
-          child_account_id: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].AdditionalData.ChildAccountId }}
-          account_names: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].AdditionalData.AccountNames }}
-          # This is just to help bootstrap find one of the (possibly several) new account request files
-          # Inside those files is some shared config that we need to setup access control such as
-          # the delegated_repo_name (which is the same in all the new request files)
-          new_account_name: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].NewAccounts[0].Name }}
-
       - name: "Provision access control account(s) and create PR"
         id: access_control_account
         uses: ./pipelines-actions/.github/actions/pipelines-provision-access-control-action
@@ -665,7 +607,6 @@ jobs:
       - name: "Post create delegated repo custom actions"
         uses: ./pipelines-actions/.github/custom-actions/post-create-delegated-repo
         with:
-          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
           access_control_pull_request_url: ${{ steps.access_control_account.outputs.pull_request_url }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
