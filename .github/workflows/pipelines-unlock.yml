@@ -127,12 +127,6 @@ jobs:
           version: 2025.10.0
           working_directory: "./infra-live-repo"
 
-      - name: Install Pipelines CLI
-        uses: ./pipelines-actions/.github/actions/pipelines-install
-        with:
-          version: ${{ env.PIPELINES_CLI_VERSION }}
-          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
-
       - name: Test Terraform, OpenTofu and Terragrunt
         shell: bash
         working-directory: "./infra-live-repo"
@@ -140,6 +134,12 @@ jobs:
           tofu --version || true
           terraform --version || true
           terragrunt --version
+
+      - name: Install Pipelines CLI
+        uses: ./pipelines-actions/.github/actions/pipelines-install
+        with:
+          version: ${{ env.PIPELINES_CLI_VERSION }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Configure code auth
         uses: ./pipelines-actions/.github/actions/pipelines-code-auth
@@ -161,7 +161,6 @@ jobs:
             --lock-id "$UNLOCK_UNIT_LOCK_ID" \
             --stack-path "$UNLOCK_UNIT_STACK_PATH" \
             --working-directory .
-
 
   unlock_all:
     name: Unlock all TF State files
@@ -223,12 +222,6 @@ jobs:
           version: 2025.10.0
           working_directory: "./infra-live-repo"
 
-      - name: Install Pipelines CLI
-        uses: ./pipelines-actions/.github/actions/pipelines-install
-        with:
-          version: ${{ env.PIPELINES_CLI_VERSION }}
-          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
-
       - name: Test Terraform, OpenTofu and Terragrunt
         shell: bash
         working-directory: "./infra-live-repo"
@@ -236,6 +229,12 @@ jobs:
           tofu --version || true
           terraform --version || true
           terragrunt --version
+
+      - name: Install Pipelines CLI
+        uses: ./pipelines-actions/.github/actions/pipelines-install
+        with:
+          version: ${{ env.PIPELINES_CLI_VERSION }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Configure code auth
         uses: ./pipelines-actions/.github/actions/pipelines-code-auth
@@ -319,13 +318,6 @@ jobs:
           cache: true
           version: 2025.10.0
           working_directory: "./infra-live-repo"
-
-      - name: Install Pipelines CLI
-        uses: ./pipelines-actions/.github/actions/pipelines-install
-        with:
-          version: ${{ env.PIPELINES_CLI_VERSION }}
-          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
-
       - name: Test Terraform, OpenTofu and Terragrunt
         shell: bash
         working-directory: "./infra-live-repo"
@@ -333,6 +325,11 @@ jobs:
           tofu --version || true
           terraform --version || true
           terragrunt --version
+      - name: Install Pipelines CLI
+        uses: ./pipelines-actions/.github/actions/pipelines-install
+        with:
+          version: ${{ env.PIPELINES_CLI_VERSION }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Configure code auth
         uses: ./pipelines-actions/.github/actions/pipelines-code-auth
