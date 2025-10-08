@@ -296,8 +296,6 @@ jobs:
         id: provision_new_account
         if: ${{ matrix.jobs.ChangeType == 'AccountsRequested' }}
         uses: ./pipelines-actions/.github/actions/pipelines-provision-account-action
-        env:
-          TERRAGRUNT_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd . --disk-cache-duration-minutes 10"
         with:
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
@@ -339,8 +337,6 @@ jobs:
       - name: "Run core accounts baselines"
         id: core_accounts_baselines
         if: ${{ matrix.jobs.ChangeType == 'AccountsAdded' }}
-        env:
-          TG_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd . --disk-cache-duration-minutes 10"
         # TODO: Rename this as pipelines-apply-core-baselines or something similar
         uses: ./pipelines-actions/.github/actions/pipelines-baseline-account-action
         with:
@@ -360,8 +356,6 @@ jobs:
         id: terragrunt
         if: ${{ (matrix.jobs.ChangeType != 'AccountsRequested') && (matrix.jobs.ChangeType != 'AccountsAdded') }}
         uses: ./pipelines-actions/.github/actions/pipelines-execute
-        env:
-          TG_AUTH_PROVIDER_CMD: "pipelines auth terragrunt-credentials --ci github-actions --cloud aws --wd . --disk-cache-duration-minutes 10"
         with:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
