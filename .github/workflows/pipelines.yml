@@ -264,7 +264,7 @@ jobs:
       branch: ${{ matrix.jobs.Ref }}
       working_directory: ${{ matrix.jobs.WorkingDirectory }}
       terragrunt_command: ${{ matrix.jobs.Action.Command }}
-      additional_data: ${{ matrix.jobs.AdditionalData }}
+      additional_data: ${{ toJson(matrix.jobs.AdditionalData) }}
       child_account_id: ${{ matrix.jobs.AdditionalData.ChildAccountId }}
 
   pipelines_status_check:
