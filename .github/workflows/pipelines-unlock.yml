@@ -8,11 +8,11 @@ on:
         required: false
         type: string
       unit_path:
-        description: "Path to the terragrunt.hcl file where the lock is held (required if not running unlock_all)"
+        description: "Path to the Terragrunt Unit directory where the lock is held (everything up to but not including terragrunt.hcl - required if not running unlock_all)"
         required: false
         type: string
       stack_path:
-        description: "Path to a terragrunt.stack.hcl that generates content required to run unlock in a specified working directory"
+        description: "Path to a Terragrunt Stack directory (everything up to but not including terragrunt.stack.hcl) that generates content required to run unlock in a specified Terragrunt Unit"
         required: false
         type: string
       unlock_all:
@@ -47,15 +47,15 @@ on:
         description: "Override where we fetch pipelines from, used for internal testing"
       pipelines_cli_version:
         type: string
-        default: "v0.40.0-rc25"
+        default: "v0.40.0"
         description: "For Gruntwork internal testing - the version of the pipelines CLI to use"
       pipelines_actions_ref:
         type: string
-        default: "main"
+        default: "v4.0.0"
         description: "For Gruntwork internal testing - the ref of the pipelines actions to use"
       pipelines_credentials_ref:
         type: string
-        default: "v1"
+        default: "v1.0.4"
         description: "For Gruntwork internal testing - the ref of the pipelines credentials to use"
 
     secrets:
