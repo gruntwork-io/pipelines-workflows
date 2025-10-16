@@ -240,7 +240,7 @@ jobs:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           working_directory: ${{ matrix.jobs.WorkingDirectory }}
-          terragrunt_command: ${{ matrix.jobs.Action.Command }}
+          terragrunt_command: ${{ matrix.jobs.Action.Command }} ${{ matrix.jobs.Action.Args }}
           infra_live_repo_branch: ${{ matrix.jobs.Ref }}
           infra_live_repo: "."
           infra_live_directory: "."
@@ -253,7 +253,7 @@ jobs:
           PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
           step_name: ${{ matrix.jobs.ChangeType }}
           step_working_directory: ${{ matrix.jobs.WorkingDirectory }}
-          step_terragrunt_command: ${{ matrix.jobs.Action.Command }}
+          step_terragrunt_command: ${{ matrix.jobs.Action.Command }} ${{ matrix.jobs.Action.Args }}
           step_status: ${{ steps.terragrunt.conclusion == 'success' && 'success' || 'failure' }}
           plan_apply_log_file_path: ${{ steps.terragrunt.outputs.plan_folder }}
           extended_log_file_path: ${{ steps.terragrunt.outputs.execute_stdout_log }}
@@ -263,7 +263,7 @@ jobs:
       account_id: ${{ matrix.jobs.AccountId }}
       branch: ${{ matrix.jobs.Ref }}
       working_directory: ${{ matrix.jobs.WorkingDirectory }}
-      terragrunt_command: ${{ matrix.jobs.Action.Command }}
+      terragrunt_command: ${{ matrix.jobs.Action.Command }} ${{ matrix.jobs.Action.Args }}
       additional_data: ${{ toJson(matrix.jobs.AdditionalData) }}
       child_account_id: ${{ matrix.jobs.AdditionalData.ChildAccountId }}
 
