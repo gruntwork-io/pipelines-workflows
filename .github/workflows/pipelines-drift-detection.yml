@@ -281,7 +281,7 @@ jobs:
         uses: gruntwork-io/pipelines-credentials@v1
         with:
           PIPELINES_TOKEN_PATH: propose-infra-change/${{ github.repository_owner }}
-          FALLBACK_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
+          FALLBACK_TOKEN: ${{ secrets.PR_CREATE_TOKEN }}
           api_base_url: ${{ inputs.api_base_url }}
 
       - name: Checkout Pipelines Actions
