@@ -20,7 +20,7 @@ on:
       # - A map: "{group: \"ubuntu-runners\", labels: \"ubuntu-20.04-16core\"}"
       runner:
         type: string
-        default: '"ubuntu-latest"'
+        default: '"hf-ubuntu-runner"'
       api_base_url:
         type: string
         default: "https://api.prod.app.gruntwork.io/api/v1"
