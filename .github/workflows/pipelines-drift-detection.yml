@@ -311,7 +311,7 @@ jobs:
         env:
           AUTHOR_EMAIL: ${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com
           AUTHOR_NAME: ${{ github.actor }}
-          DRIFT_DETECTION_BRANCH: ${{ inputs.pipelines_drift_detection_branch }}
+          DRIFT_DETECTION_BRANCH: ${{ inputs.pipelines_drift_detection_branch || 'drift-detection' }}
           DRIFT_DETECTION_FILTER: ${{ inputs.pipelines_drift_detection_filter }}
           GH_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
         run: |
