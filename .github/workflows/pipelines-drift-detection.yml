@@ -278,7 +278,7 @@ jobs:
 
       - name: Fetch Create PR Token
         id: pipelines-propose-infra-change-token
-        uses: gruntwork-io/pipelines-credentials@v1
+        uses: ./pipelines-credentials
         with:
           PIPELINES_TOKEN_PATH: propose-infra-change/${{ github.repository_owner }}
           FALLBACK_TOKEN: ${{ secrets.PR_CREATE_TOKEN }}
