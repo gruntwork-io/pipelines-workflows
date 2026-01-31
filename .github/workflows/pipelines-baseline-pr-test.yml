@@ -1,0 +1,95 @@
+name: Pipelines Execute
+run-name: Run Gruntwork Pipelines
+on:
+  workflow_call:
+    inputs:
+      runner:
+        type: string
+        default: "\"ubuntu-latest\""
+      account_name:
+        type: string
+        required: true
+    secrets:
+      PIPELINES_READ_TOKEN:
+        required: true
+      INFRA_ROOT_WRITE_TOKEN:
+        required: true
+      OPSGENIE_API_KEY:
+        required: true
+
+env:
+  PIPELINES_CLI_VERSION: v0.15.1
+  PIPELINES_ACTIONS_VERSION: main
+  BOILERPLATE_VERSION: v0.5.16
+  GRUNTWORK_INSTALLER_VERSION: v0.0.40
+
+jobs:
+  pipelines_determine:
+    name: Test Provision Account
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    steps:
+      - name: Checkout Pipelines Actions
+        uses: actions/checkout@v4
+        with:
+          path: pipelines-actions
+          repository: Informa-Unity/pipelines-actions
+          ref: ${{ env.PIPELINES_ACTIONS_VERSION }}
+          token: ${{ secrets.PIPELINES_READ_TOKEN }}
+
+      - name: Checkout Customized Pipelines Actions
+        uses: actions/checkout@v4
+        with:
+          path: pipelines-actions-customizations
+          repository: Informa-Unity/pipelines-actions-customizations
+          ref: main
+          token: ${{ secrets.PIPELINES_READ_TOKEN }}
+
+      - name: Check out repo code
+        uses: actions/checkout@v4
+        with:
+          path: infra-live-repo
+          fetch-depth: 0
+
+      - name: Bootstrap Workflow
+        id: gruntwork_context
+        uses: ./pipelines-actions/.github/actions/pipelines-bootstrap
+        with:
+          token: ${{ secrets.PIPELINES_READ_TOKEN }}
+          change_type: AccountsRequested
+          branch: "main"
+          working_directory: "."
+          account_id: "123456"
+          terragrunt_command: apply
+          additional_data: ""
+          child_account_id: ""
+          account_names: ${{ inputs.account_name }}
+          new_account_name: ${{ inputs.account_name }}
+
+      # To learn more about customizing Pipelines see our documentation at https://docs.gruntwork.io/pipelines/maintain/extending/
+      - name: "[Baseline]: Pre Provision New Account Custom Action"
+        uses: ./pipelines-actions/.github/custom-actions/pre-provision-new-account
+        if: ${{ steps.gruntwork_context.outputs.action == 'PROVISION_ACCOUNT' }}
+        with:
+          PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          INFRA_ROOT_WRITE_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
+          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
+
+      - name: "[ProvisionAccount]: Provision New Account"
+        id: provision_new_account
+        if: ${{ steps.gruntwork_context.outputs.action == 'PROVISION_ACCOUNT' }}
+        uses: ./pipelines-actions/.github/actions/pipelines-provision-account-action
+        with:
+          PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          INFRA_ROOT_WRITE_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
+          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
+          disable_provision: true
+
+      - name: "[Baseline]: Post Provision New Account Custom Action"
+        uses: ./pipelines-actions-customizations/.github/custom-actions/post-provision-new-account
+        if: ${{ steps.gruntwork_context.outputs.action == 'PROVISION_ACCOUNT' }}
+        with:
+          PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          INFRA_ROOT_WRITE_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
+          OPSGENIE_API_KEY: ${{ secrets.OPSGENIE_API_KEY }}
+          gruntwork_context: ${{ toJson(steps.gruntwork_context.outputs) }}
+          baseline_pull_request_url: ${{ steps.provision_new_account.outputs.pull_request_url }}
