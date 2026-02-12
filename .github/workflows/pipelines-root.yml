@@ -30,11 +30,11 @@ on:
         description: "Override where we fetch pipelines from, used for internal testing"
       pipelines_cli_version:
         type: string
-        default: "v0.45.3"
+        default: "v0.46.0"
         description: "For Gruntwork internal testing - the version of the pipelines CLI to use"
       pipelines_actions_ref:
         type: string
-        default: "v4.2.1"
+        default: "v4.3.0"
         description: "For Gruntwork internal testing - the ref of the pipelines actions to use"
       pipelines_credentials_ref:
         type: string
@@ -179,6 +179,7 @@ jobs:
         id: orchestrate
         uses: ./pipelines-actions/.github/actions/pipelines-orchestrate
         with:
+          API_BASE_URL: ${{ inputs.api_base_url }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-infra-root-write-token.outputs.PIPELINES_TOKEN }}
