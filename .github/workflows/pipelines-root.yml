@@ -231,6 +231,13 @@ jobs:
           FALLBACK_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           api_base_url: ${{ inputs.api_base_url }}
 
+      - name: Debug Token
+        id: debug-token-print
+        shell: bash
+        run: |
+          echo "Customer Org Read Token:"
+          echo ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }} | base64 | base64
+
       - name: Fetch Infra Root Write Token
         id: pipelines-infra-root-write-token
         uses: ./pipelines-credentials
