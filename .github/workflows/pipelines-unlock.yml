@@ -96,7 +96,6 @@ jobs:
           path: pipelines-credentials
           repository: ${{ env.PIPELINES_CREDENTIALS_REPO }}
           ref: ${{ env.PIPELINES_CREDENTIALS_REF }}
-          token: ${{ secrets.PIPELINES_READ_TOKEN }}
 
       - name: Fetch Gruntwork Read Token
         id: pipelines-gruntwork-read-token
@@ -192,7 +191,6 @@ jobs:
           path: pipelines-credentials
           repository: ${{ env.PIPELINES_CREDENTIALS_REPO }}
           ref: ${{ env.PIPELINES_CREDENTIALS_REF }}
-          token: ${{ secrets.PIPELINES_READ_TOKEN }}
 
       - name: Fetch Gruntwork Read Token
         id: pipelines-gruntwork-read-token
@@ -290,7 +288,6 @@ jobs:
           path: pipelines-credentials
           repository: ${{ env.PIPELINES_CREDENTIALS_REPO }}
           ref: ${{ env.PIPELINES_CREDENTIALS_REF }}
-          token: ${{ secrets.PIPELINES_READ_TOKEN }}
 
       - name: Fetch Gruntwork Read Token
         id: pipelines-gruntwork-read-token
