@@ -266,6 +266,7 @@ jobs:
           step_status: ${{ steps.terragrunt.conclusion == 'success' && 'success' || 'failure' }}
           plan_apply_log_file_path: ${{ steps.terragrunt.outputs.plan_folder }}
           extended_log_file_path: ${{ steps.terragrunt.outputs.execute_stdout_log }}
+          pipelines_report_file_path: ${{ steps.terragrunt.outputs.pipelines_report_file_path }}
           job_name: ${{ env.JOB_NAME }}
 
     outputs:
