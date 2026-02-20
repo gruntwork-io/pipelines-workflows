@@ -703,13 +703,15 @@ jobs:
         shell: bash
         working-directory: ./infra-live-repo
         env:
-          PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
+          API_BASE_URL: ${{ inputs.api_base_url }}
+          GH_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
+          GH_ARTIFACT_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
         run: |
-          GH_TOKEN="$PR_COMMENT_WRITE_TOKEN" \
-            GH_ARTIFACT_TOKEN="$PR_COMMENT_WRITE_TOKEN" \
-            pipelines status-update finalize \
+          pipelines status-update finalize \
             --working-directory . \
             --ci github-actions >/tmp/finalize-output.json
+
+          pipelines inventory usage --working-directory . || true
 
           pipeline_status=$(jq -r '.status' </tmp/finalize-output.json)
 
