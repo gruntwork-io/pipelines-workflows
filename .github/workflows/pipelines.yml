@@ -32,10 +32,18 @@ on:
         type: string
         default: "v0.46.1"
         description: "For Gruntwork internal testing - the version of the pipelines CLI to use"
+      pipelines_actions_repo:
+        type: string
+        default: "gruntwork-io/pipelines-actions"
+        description: "Repository to fetch pipelines actions from (e.g. use your org/repo for self-hosted)"
       pipelines_actions_ref:
         type: string
         default: "v4.3.0"
         description: "For Gruntwork internal testing - the ref of the pipelines actions to use"
+      pipelines_credentials_repo:
+        type: string
+        default: "gruntwork-io/pipelines-credentials"
+        description: "Repository to fetch pipelines credentials from (e.g. use your org/repo for self-hosted)"
       pipelines_credentials_ref:
         type: string
         default: "v1.2.0"
@@ -49,7 +57,9 @@ on:
 
 env:
   PIPELINES_CLI_VERSION: ${{ inputs.pipelines_cli_version }}
+  PIPELINES_ACTIONS_REPO: ${{ inputs.pipelines_actions_repo }}
   PIPELINES_ACTIONS_REF: ${{ inputs.pipelines_actions_ref }}
+  PIPELINES_CREDENTIALS_REPO: ${{ inputs.pipelines_credentials_repo }}
   PIPELINES_CREDENTIALS_REF: ${{ inputs.pipelines_credentials_ref }}
 
   # GitHub Actions tends to hit resource exhaustion and kill running jobs
@@ -75,7 +85,7 @@ jobs:
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           path: pipelines-credentials
-          repository: gruntwork-io/pipelines-credentials
+          repository: ${{ env.PIPELINES_CREDENTIALS_REPO }}
           ref: ${{ env.PIPELINES_CREDENTIALS_REF }}
 
       - name: Fetch Gruntwork Read Token
@@ -107,9 +117,9 @@ jobs:
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           path: pipelines-actions
-          repository: gruntwork-io/pipelines-actions
+          repository: ${{ env.PIPELINES_ACTIONS_REPO }}
           ref: ${{ env.PIPELINES_ACTIONS_REF }}
-          token: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+          token: ${{ env.PIPELINES_ACTIONS_REPO == 'gruntwork-io/pipelines-actions' && steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN || steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Report error if token with access to gruntwork repos is invalid
         if: always() && steps.checkout_actions.conclusion != 'success'
@@ -184,7 +194,7 @@ jobs:
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           path: pipelines-credentials
-          repository: gruntwork-io/pipelines-credentials
+          repository: ${{ env.PIPELINES_CREDENTIALS_REPO }}
           ref: ${{ env.PIPELINES_CREDENTIALS_REF }}
 
       - name: Fetch Gruntwork Read Token
@@ -215,9 +225,9 @@ jobs:
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           path: pipelines-actions
-          repository: gruntwork-io/pipelines-actions
+          repository: ${{ env.PIPELINES_ACTIONS_REPO }}
           ref: ${{ env.PIPELINES_ACTIONS_REF }}
-          token: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+          token: ${{ env.PIPELINES_ACTIONS_REPO == 'gruntwork-io/pipelines-actions' && steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN || steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Check out repo code
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -284,7 +294,7 @@ jobs:
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           path: pipelines-credentials
-          repository: gruntwork-io/pipelines-credentials
+          repository: ${{ env.PIPELINES_CREDENTIALS_REPO }}
           ref: ${{ env.PIPELINES_CREDENTIALS_REF }}
 
       - name: Fetch Gruntwork Read Token
@@ -315,9 +325,9 @@ jobs:
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           path: pipelines-actions
-          repository: gruntwork-io/pipelines-actions
+          repository: ${{ env.PIPELINES_ACTIONS_REPO }}
           ref: ${{ env.PIPELINES_ACTIONS_REF }}
-          token: ${{ steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN }}
+          token: ${{ env.PIPELINES_ACTIONS_REPO == 'gruntwork-io/pipelines-actions' && steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN || steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Check out repo code
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
