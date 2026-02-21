@@ -40,6 +40,14 @@ on:
         type: string
         default: "v4.3.0"
         description: "For Gruntwork internal testing - the ref of the pipelines actions to use"
+      pipelines_actions_customizations_repo:
+        type: string
+        default: ""
+        description: "Optional repo (org/repo) used as an overlay for pipelines-actions; when set, its contents are copied over pipelines-actions (e.g. custom actions). Leave empty to not use customizations."
+      pipelines_actions_customizations_ref:
+        type: string
+        default: "main"
+        description: "Ref (branch, tag, or SHA) of the pipelines-actions-customizations repo to use when pipelines_actions_customizations_repo is set"
       pipelines_credentials_repo:
         type: string
         default: "gruntwork-io/pipelines-credentials"
@@ -48,6 +56,14 @@ on:
         type: string
         default: "v1.2.0"
         description: "For Gruntwork internal testing - the ref of the pipelines credentials to use"
+      pipelines_workflows_repo:
+        type: string
+        default: "gruntwork-io/pipelines-workflows"
+        description: "Repository to fetch pipelines workflows from (e.g. use your org/repo for self-hosted)"
+      pipelines_workflows_ref:
+        type: string
+        default: "main"
+        description: "Ref of the pipelines workflows repo to use (branch, tag, or SHA)"
 
     secrets:
       PIPELINES_READ_TOKEN:
@@ -61,8 +77,12 @@ env:
   PIPELINES_CLI_VERSION: ${{ inputs.pipelines_cli_version }}
   PIPELINES_ACTIONS_REPO: ${{ inputs.pipelines_actions_repo }}
   PIPELINES_ACTIONS_REF: ${{ inputs.pipelines_actions_ref }}
+  PIPELINES_ACTIONS_CUSTOMIZATIONS_REPO: ${{ inputs.pipelines_actions_customizations_repo }}
+  PIPELINES_ACTIONS_CUSTOMIZATIONS_REF: ${{ inputs.pipelines_actions_customizations_ref }}
   PIPELINES_CREDENTIALS_REPO: ${{ inputs.pipelines_credentials_repo }}
   PIPELINES_CREDENTIALS_REF: ${{ inputs.pipelines_credentials_ref }}
+  PIPELINES_WORKFLOWS_REPO: ${{ inputs.pipelines_workflows_repo }}
+  PIPELINES_WORKFLOWS_REF: ${{ inputs.pipelines_workflows_ref }}
   BOILERPLATE_VERSION: v0.5.16
   GRUNTWORK_INSTALLER_VERSION: v0.0.40
 
@@ -162,6 +182,23 @@ jobs:
           pull_number=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
           gh pr comment $pull_number -b "$msg" -R $GITHUB_ORG || true # || true incase this fails on a non-PR run
 
+      - name: Checkout Pipelines Actions Customizations
+        if: inputs.pipelines_actions_customizations_repo != '' && steps.checkout_actions.conclusion == 'success'
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          path: pipelines-actions-customizations
+          repository: ${{ env.PIPELINES_ACTIONS_CUSTOMIZATIONS_REPO }}
+          ref: ${{ env.PIPELINES_ACTIONS_CUSTOMIZATIONS_REF }}
+          token: ${{ contains(env.PIPELINES_ACTIONS_CUSTOMIZATIONS_REPO, 'gruntwork-io/') && steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN || steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+
+      - name: Apply pipelines-actions customizations
+        if: inputs.pipelines_actions_customizations_repo != '' && steps.checkout_actions.conclusion == 'success'
+        shell: bash
+        run: |
+          if [[ -d pipelines-actions-customizations ]]; then
+            cp -r pipelines-actions-customizations/. pipelines-actions/
+          fi
+
       - name: Check out repo code
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
@@ -258,12 +295,30 @@ jobs:
           api_base_url: ${{ inputs.api_base_url }}
 
       - name: Checkout Pipelines Actions
+        id: checkout_actions_execute
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           path: pipelines-actions
           repository: ${{ env.PIPELINES_ACTIONS_REPO }}
           ref: ${{ env.PIPELINES_ACTIONS_REF }}
           token: ${{ env.PIPELINES_ACTIONS_REPO == 'gruntwork-io/pipelines-actions' && steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN || steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+
+      - name: Checkout Pipelines Actions Customizations
+        if: inputs.pipelines_actions_customizations_repo != '' && steps.checkout_actions_execute.conclusion == 'success'
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          path: pipelines-actions-customizations
+          repository: ${{ env.PIPELINES_ACTIONS_CUSTOMIZATIONS_REPO }}
+          ref: ${{ env.PIPELINES_ACTIONS_CUSTOMIZATIONS_REF }}
+          token: ${{ contains(env.PIPELINES_ACTIONS_CUSTOMIZATIONS_REPO, 'gruntwork-io/') && steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN || steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+
+      - name: Apply pipelines-actions customizations
+        if: inputs.pipelines_actions_customizations_repo != '' && steps.checkout_actions_execute.conclusion == 'success'
+        shell: bash
+        run: |
+          if [[ -d pipelines-actions-customizations ]]; then
+            cp -r pipelines-actions-customizations/. pipelines-actions/
+          fi
 
       - name: Check out repo code
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -450,12 +505,30 @@ jobs:
           api_base_url: ${{ inputs.api_base_url }}
 
       - name: Checkout Pipelines Actions
+        id: checkout_actions_baselines
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           path: pipelines-actions
           repository: ${{ env.PIPELINES_ACTIONS_REPO }}
           ref: ${{ env.PIPELINES_ACTIONS_REF }}
           token: ${{ env.PIPELINES_ACTIONS_REPO == 'gruntwork-io/pipelines-actions' && steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN || steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+
+      - name: Checkout Pipelines Actions Customizations
+        if: inputs.pipelines_actions_customizations_repo != '' && steps.checkout_actions_baselines.conclusion == 'success'
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          path: pipelines-actions-customizations
+          repository: ${{ env.PIPELINES_ACTIONS_CUSTOMIZATIONS_REPO }}
+          ref: ${{ env.PIPELINES_ACTIONS_CUSTOMIZATIONS_REF }}
+          token: ${{ contains(env.PIPELINES_ACTIONS_CUSTOMIZATIONS_REPO, 'gruntwork-io/') && steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN || steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+
+      - name: Apply pipelines-actions customizations
+        if: inputs.pipelines_actions_customizations_repo != '' && steps.checkout_actions_baselines.conclusion == 'success'
+        shell: bash
+        run: |
+          if [[ -d pipelines-actions-customizations ]]; then
+            cp -r pipelines-actions-customizations/. pipelines-actions/
+          fi
 
       - name: Check out repo code
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -566,12 +639,30 @@ jobs:
           api_base_url: ${{ inputs.api_base_url }}
 
       - name: Checkout Pipelines Actions
+        id: checkout_actions_delegated
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           path: pipelines-actions
           repository: ${{ env.PIPELINES_ACTIONS_REPO }}
           ref: ${{ env.PIPELINES_ACTIONS_REF }}
           token: ${{ env.PIPELINES_ACTIONS_REPO == 'gruntwork-io/pipelines-actions' && steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN || steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+
+      - name: Checkout Pipelines Actions Customizations
+        if: inputs.pipelines_actions_customizations_repo != '' && steps.checkout_actions_delegated.conclusion == 'success'
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          path: pipelines-actions-customizations
+          repository: ${{ env.PIPELINES_ACTIONS_CUSTOMIZATIONS_REPO }}
+          ref: ${{ env.PIPELINES_ACTIONS_CUSTOMIZATIONS_REF }}
+          token: ${{ contains(env.PIPELINES_ACTIONS_CUSTOMIZATIONS_REPO, 'gruntwork-io/') && steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN || steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+
+      - name: Apply pipelines-actions customizations
+        if: inputs.pipelines_actions_customizations_repo != '' && steps.checkout_actions_delegated.conclusion == 'success'
+        shell: bash
+        run: |
+          if [[ -d pipelines-actions-customizations ]]; then
+            cp -r pipelines-actions-customizations/. pipelines-actions/
+          fi
 
       - name: Check out repo code
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -678,12 +769,30 @@ jobs:
           api_base_url: ${{ inputs.api_base_url }}
 
       - name: Checkout Pipelines Actions
+        id: checkout_actions_status
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           path: pipelines-actions
           repository: ${{ env.PIPELINES_ACTIONS_REPO }}
           ref: ${{ env.PIPELINES_ACTIONS_REF }}
           token: ${{ env.PIPELINES_ACTIONS_REPO == 'gruntwork-io/pipelines-actions' && steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN || steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+
+      - name: Checkout Pipelines Actions Customizations
+        if: inputs.pipelines_actions_customizations_repo != '' && steps.checkout_actions_status.conclusion == 'success'
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          path: pipelines-actions-customizations
+          repository: ${{ env.PIPELINES_ACTIONS_CUSTOMIZATIONS_REPO }}
+          ref: ${{ env.PIPELINES_ACTIONS_CUSTOMIZATIONS_REF }}
+          token: ${{ contains(env.PIPELINES_ACTIONS_CUSTOMIZATIONS_REPO, 'gruntwork-io/') && steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN || steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+
+      - name: Apply pipelines-actions customizations
+        if: inputs.pipelines_actions_customizations_repo != '' && steps.checkout_actions_status.conclusion == 'success'
+        shell: bash
+        run: |
+          if [[ -d pipelines-actions-customizations ]]; then
+            cp -r pipelines-actions-customizations/. pipelines-actions/
+          fi
 
       - name: Check out repo code
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
