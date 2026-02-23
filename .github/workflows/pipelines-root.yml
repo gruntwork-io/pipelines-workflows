@@ -65,11 +65,6 @@ env:
   # if we leave parallelism unbounded, so we set the max to 10 for a sane default.
   TG_PARALLELISM: 10
 
-  # Use the provider cache to prevent locks from breaking the pipeline. Without this,
-  # planning and applying changes to many units at a time tends to break.
-  # https://terragrunt.gruntwork.io/docs/features/provider-cache-server/
-  TG_PROVIDER_CACHE: 1
-
 jobs:
   pipelines_orchestrate:
     name: Detect Infrastructure Changes
