@@ -54,6 +54,8 @@ on:
         required: false
       PR_CREATE_TOKEN:
         required: false
+      OP_SERVICE_ACCOUNT_TOKEN:
+        required: true
 
 env:
   PIPELINES_CLI_VERSION: ${{ inputs.pipelines_cli_version }}
@@ -61,6 +63,7 @@ env:
   PIPELINES_ACTIONS_REF: ${{ inputs.pipelines_actions_ref }}
   PIPELINES_CREDENTIALS_REPO: ${{ inputs.pipelines_credentials_repo }}
   PIPELINES_CREDENTIALS_REF: ${{ inputs.pipelines_credentials_ref }}
+  OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
 
   # GitHub Actions tends to hit resource exhaustion and kill running jobs
   # if we leave parallelism unbounded, so we set the max to 10 for a sane default.
