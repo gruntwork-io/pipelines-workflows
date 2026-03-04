@@ -19,6 +19,11 @@ on:
         description: "Forcibly reset all locks by deleting the dynamodb table"
         required: false
         type: boolean
+      unlock_all_table_name:
+        description: "Table name to delete when running unlock all"
+        required: false
+        type: string
+        default: "terraform-locks"
 
       # This field can be overriden to customize the runner used for pipelines
       # workflows.
@@ -47,7 +52,7 @@ on:
         description: "Override where we fetch pipelines from, used for internal testing"
       pipelines_cli_version:
         type: string
-        default: "v0.47.0"
+        default: "v0.48.0"
         description: "For Gruntwork internal testing - the version of the pipelines CLI to use"
       pipelines_actions_repo:
         type: string
@@ -258,8 +263,9 @@ jobs:
         working-directory: "./infra-live-repo"
         env:
           GH_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
+          TABLE_NAME: ${{ inputs.unlock_all_table_name }}
         run: |
-          pipelines unlock all --working-directory .
+          pipelines unlock all --working-directory . --table-name "$TABLE_NAME"
 
     outputs:
       reinit_unit_paths: ${{ steps.unlock_tables.outputs.pipelines_units_to_init }}
