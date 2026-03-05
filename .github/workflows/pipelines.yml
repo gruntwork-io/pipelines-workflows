@@ -30,7 +30,7 @@ on:
         description: "Override where we fetch pipelines from, used for internal testing"
       pipelines_cli_version:
         type: string
-        default: "v0.47.0"
+        default: "v0.48.0"
         description: "For Gruntwork internal testing - the version of the pipelines CLI to use"
       pipelines_actions_repo:
         type: string
@@ -122,7 +122,7 @@ jobs:
           token: ${{ env.PIPELINES_ACTIONS_REPO == 'gruntwork-io/pipelines-actions' && steps.pipelines-gruntwork-read-token.outputs.PIPELINES_TOKEN || steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
 
       - name: Report error if token with access to gruntwork repos is invalid
-        if: always() && steps.checkout_actions.conclusion != 'success'
+        if: always() && steps.pipelines-gruntwork-read-token.conclusion == 'success' && steps.checkout_actions.conclusion != 'success'
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_ORG: ${{ github.repository }}
