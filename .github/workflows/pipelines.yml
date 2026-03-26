@@ -149,6 +149,16 @@ jobs:
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ steps.pipelines-customer-org-read-token.outputs.PIPELINES_TOKEN }}
           PR_COMMENT_WRITE_TOKEN: ${{ steps.pipelines-propose-infra-change-token.outputs.PIPELINES_TOKEN }}
 
+      # Debug: log the orchestrate output to see available fields
+      - name: Debug orchestrate output
+        if: always()
+        run: |
+          echo "Orchestrate jobs output:"
+          echo '${{ steps.orchestrate.outputs.jobs }}' | jq '.[0] | keys' 2>/dev/null || echo "Could not parse output"
+          echo "---"
+          echo "First job full structure:"
+          echo '${{ steps.orchestrate.outputs.jobs }}' | jq '.[0]' 2>/dev/null || echo "Could not parse output"
+
     outputs:
       pipelines_jobs: ${{ steps.orchestrate.outputs.jobs }}
 
