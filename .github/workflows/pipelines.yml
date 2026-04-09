@@ -48,6 +48,11 @@ on:
         type: string
         default: "v2.0.0"
         description: "For Gruntwork internal testing - the ref of the pipelines credentials to use"
+      namespace:
+        type: string
+        required: false
+        default: ""
+        description: "Namespace"
 
     secrets:
       PIPELINES_READ_TOKEN:
@@ -70,6 +75,7 @@ env:
   PIPELINES_CREDENTIALS_REPO: ${{ inputs.pipelines_credentials_repo }}
   PIPELINES_CREDENTIALS_REF: ${{ inputs.pipelines_credentials_ref }}
   OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+  NAMESPACE: ${{ inputs.namespace }}
 
   # GitHub Actions tends to hit resource exhaustion and kill running jobs
   # if we leave parallelism unbounded, so we set the max to 10 for a sane default.
