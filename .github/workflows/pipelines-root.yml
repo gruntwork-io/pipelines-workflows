@@ -52,6 +52,10 @@ on:
     secrets:
       PIPELINES_READ_TOKEN:
         required: false
+      PIPELINES_GRUNTWORK_READ_TOKEN:
+        required: false
+      PIPELINES_CUSTOMER_ORG_READ_TOKEN:
+        required: false
       INFRA_ROOT_WRITE_TOKEN:
         required: false
       ORG_REPO_ADMIN_TOKEN:
@@ -101,14 +105,15 @@ jobs:
         id: pipelines-tokens
         uses: ./pipelines-credentials
         env:
-          PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ secrets.PIPELINES_GRUNTWORK_READ_TOKEN || secrets.PIPELINES_READ_TOKEN }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ secrets.PIPELINES_CUSTOMER_ORG_READ_TOKEN || secrets.PIPELINES_READ_TOKEN }}
           INFRA_ROOT_WRITE_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
           ORG_REPO_ADMIN_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
         with:
           token_requests: |
             [
-              {"name": "gruntwork_read", "path": "pipelines-read/gruntwork-io", "fallback_env": "PIPELINES_READ_TOKEN"},
-              {"name": "customer_org_read", "path": "pipelines-read/${{ github.repository_owner }}", "fallback_env": "PIPELINES_READ_TOKEN"},
+              {"name": "gruntwork_read", "path": "pipelines-read/gruntwork-io", "fallback_env": "PIPELINES_GRUNTWORK_READ_TOKEN"},
+              {"name": "customer_org_read", "path": "pipelines-read/${{ github.repository_owner }}", "fallback_env": "PIPELINES_CUSTOMER_ORG_READ_TOKEN"},
               {"name": "propose_infra_change", "path": "propose-infra-change/${{ github.repository_owner }}", "fallback_env": "INFRA_ROOT_WRITE_TOKEN"},
               {"name": "infra_root_write", "path": "infra-root-write/${{ github.repository_owner }}", "fallback_env": "INFRA_ROOT_WRITE_TOKEN"},
               {"name": "org_repo_admin", "path": "org-repo-admin/${{ github.repository_owner }}", "fallback_env": "ORG_REPO_ADMIN_TOKEN"}
@@ -206,13 +211,14 @@ jobs:
         id: pipelines-tokens
         uses: ./pipelines-credentials
         env:
-          PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ secrets.PIPELINES_GRUNTWORK_READ_TOKEN || secrets.PIPELINES_READ_TOKEN }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ secrets.PIPELINES_CUSTOMER_ORG_READ_TOKEN || secrets.PIPELINES_READ_TOKEN }}
           INFRA_ROOT_WRITE_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
         with:
           token_requests: |
             [
-              {"name": "gruntwork_read", "path": "pipelines-read/gruntwork-io", "fallback_env": "PIPELINES_READ_TOKEN"},
-              {"name": "customer_org_read", "path": "pipelines-read/${{ github.repository_owner }}", "fallback_env": "PIPELINES_READ_TOKEN"},
+              {"name": "gruntwork_read", "path": "pipelines-read/gruntwork-io", "fallback_env": "PIPELINES_GRUNTWORK_READ_TOKEN"},
+              {"name": "customer_org_read", "path": "pipelines-read/${{ github.repository_owner }}", "fallback_env": "PIPELINES_CUSTOMER_ORG_READ_TOKEN"},
               {"name": "infra_root_write", "path": "infra-root-write/${{ github.repository_owner }}", "fallback_env": "INFRA_ROOT_WRITE_TOKEN"},
               {"name": "propose_infra_change", "path": "propose-infra-change/${{ github.repository_owner }}", "fallback_env": "INFRA_ROOT_WRITE_TOKEN"}
             ]
@@ -391,13 +397,14 @@ jobs:
         id: pipelines-tokens
         uses: ./pipelines-credentials
         env:
-          PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ secrets.PIPELINES_GRUNTWORK_READ_TOKEN || secrets.PIPELINES_READ_TOKEN }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ secrets.PIPELINES_CUSTOMER_ORG_READ_TOKEN || secrets.PIPELINES_READ_TOKEN }}
           INFRA_ROOT_WRITE_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
         with:
           token_requests: |
             [
-              {"name": "gruntwork_read", "path": "pipelines-read/gruntwork-io", "fallback_env": "PIPELINES_READ_TOKEN"},
-              {"name": "customer_org_read", "path": "pipelines-read/${{ github.repository_owner }}", "fallback_env": "PIPELINES_READ_TOKEN"},
+              {"name": "gruntwork_read", "path": "pipelines-read/gruntwork-io", "fallback_env": "PIPELINES_GRUNTWORK_READ_TOKEN"},
+              {"name": "customer_org_read", "path": "pipelines-read/${{ github.repository_owner }}", "fallback_env": "PIPELINES_CUSTOMER_ORG_READ_TOKEN"},
               {"name": "propose_infra_change", "path": "propose-infra-change/${{ github.repository_owner }}", "fallback_env": "INFRA_ROOT_WRITE_TOKEN"}
             ]
           api_base_url: ${{ inputs.api_base_url }}
@@ -498,13 +505,14 @@ jobs:
         id: pipelines-tokens
         uses: ./pipelines-credentials
         env:
-          PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ secrets.PIPELINES_GRUNTWORK_READ_TOKEN || secrets.PIPELINES_READ_TOKEN }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ secrets.PIPELINES_CUSTOMER_ORG_READ_TOKEN || secrets.PIPELINES_READ_TOKEN }}
           ORG_REPO_ADMIN_TOKEN: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
         with:
           token_requests: |
             [
-              {"name": "gruntwork_read", "path": "pipelines-read/gruntwork-io", "fallback_env": "PIPELINES_READ_TOKEN"},
-              {"name": "customer_org_read", "path": "pipelines-read/${{ github.repository_owner }}", "fallback_env": "PIPELINES_READ_TOKEN"},
+              {"name": "gruntwork_read", "path": "pipelines-read/gruntwork-io", "fallback_env": "PIPELINES_GRUNTWORK_READ_TOKEN"},
+              {"name": "customer_org_read", "path": "pipelines-read/${{ github.repository_owner }}", "fallback_env": "PIPELINES_CUSTOMER_ORG_READ_TOKEN"},
               {"name": "org_repo_admin", "path": "org-repo-admin/${{ github.repository_owner }}", "fallback_env": "ORG_REPO_ADMIN_TOKEN"}
             ]
           api_base_url: ${{ inputs.api_base_url }}
@@ -601,13 +609,14 @@ jobs:
         id: pipelines-tokens
         uses: ./pipelines-credentials
         env:
-          PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ secrets.PIPELINES_GRUNTWORK_READ_TOKEN || secrets.PIPELINES_READ_TOKEN }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ secrets.PIPELINES_CUSTOMER_ORG_READ_TOKEN || secrets.PIPELINES_READ_TOKEN }}
           INFRA_ROOT_WRITE_TOKEN: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
         with:
           token_requests: |
             [
-              {"name": "gruntwork_read", "path": "pipelines-read/gruntwork-io", "fallback_env": "PIPELINES_READ_TOKEN"},
-              {"name": "customer_org_read", "path": "pipelines-read/${{ github.repository_owner }}", "fallback_env": "PIPELINES_READ_TOKEN"},
+              {"name": "gruntwork_read", "path": "pipelines-read/gruntwork-io", "fallback_env": "PIPELINES_GRUNTWORK_READ_TOKEN"},
+              {"name": "customer_org_read", "path": "pipelines-read/${{ github.repository_owner }}", "fallback_env": "PIPELINES_CUSTOMER_ORG_READ_TOKEN"},
               {"name": "propose_infra_change", "path": "propose-infra-change/${{ github.repository_owner }}", "fallback_env": "INFRA_ROOT_WRITE_TOKEN"}
             ]
           api_base_url: ${{ inputs.api_base_url }}
