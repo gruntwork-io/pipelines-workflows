@@ -268,6 +268,8 @@ jobs:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
           INFRA_ROOT_WRITE_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).infra_root_write }}
+          job: ${{ toJson(matrix.jobs) }}
+          account_names: ${{ matrix.jobs.AdditionalData.AccountNames }}
 
       - name: "[ProvisionAccount]: Provision New Account"
         id: provision_new_account
@@ -287,6 +289,8 @@ jobs:
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
           INFRA_ROOT_WRITE_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).infra_root_write }}
           baseline_path: ${{ steps.provision_new_account.outputs.baseline_path }}
+          job: ${{ toJson(matrix.jobs) }}
+          account_names: ${{ matrix.jobs.AdditionalData.AccountNames }}
 
       - name: "[ProvisionAccount]: Create New Account Pull Request Action"
         if: ${{ matrix.jobs.ChangeType == 'AccountsRequested' && contains(matrix.jobs.Action.Command , 'apply')}}
@@ -309,6 +313,8 @@ jobs:
         with:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
+          job: ${{ toJson(matrix.jobs) }}
+          account_names: ${{ join(matrix.jobs.NewAccounts.*.Name, ',') }}
 
       # Run the core accounts baselines(shared, logs, security, etc. to ensure the account is setup correctly)
       - name: "Run core accounts baselines"
@@ -328,6 +334,8 @@ jobs:
         with:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
+          job: ${{ toJson(matrix.jobs) }}
+          account_names: ${{ join(matrix.jobs.NewAccounts.*.Name, ',') }}
 
       - name: "[TerragruntExecute]: Run terragrunt ${{ matrix.jobs.Action.Command }} in ${{ matrix.jobs.WorkingDirectory }}"
         id: terragrunt
@@ -567,6 +575,8 @@ jobs:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
           ORG_REPO_ADMIN_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).org_repo_admin }}
+          job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
+          account_names: ${{ join(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].NewAccounts.*.Name, ',') }}
 
       - name: "Create delegated repo pull request"
         uses: ./pipelines-actions/.github/actions/pipelines-new-pr-action
