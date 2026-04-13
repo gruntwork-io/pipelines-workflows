@@ -136,7 +136,7 @@ jobs:
         with:
           install: true
           cache: true
-          version: 2025.10.0
+          version: 2026.4.11
           working_directory: "./infra-live-repo"
 
       - name: Test Terraform, OpenTofu and Terragrunt
@@ -229,7 +229,7 @@ jobs:
         with:
           install: true
           cache: true
-          version: 2025.10.0
+          version: 2026.4.11
           working_directory: "./infra-live-repo"
 
       - name: Test Terraform, OpenTofu and Terragrunt
@@ -324,7 +324,7 @@ jobs:
         with:
           install: true
           cache: true
-          version: 2025.10.0
+          version: 2026.4.11
           working_directory: "./infra-live-repo"
       - name: Test Terraform, OpenTofu and Terragrunt
         shell: bash
