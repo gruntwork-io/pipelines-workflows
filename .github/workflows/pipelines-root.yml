@@ -38,7 +38,7 @@ on:
         description: "Repository to fetch pipelines actions from (e.g. use your org/repo for self-hosted)"
       pipelines_actions_ref:
         type: string
-        default: "v4.6.0"
+        default: "v4.7.0"
         description: "For Gruntwork internal testing - the ref of the pipelines actions to use"
       pipelines_actions_customizations_repo:
         type: string
@@ -593,9 +593,11 @@ jobs:
 
       # To learn more about customizing Pipelines see our documentation at https://docs.gruntwork.io/pipelines/maintain/extending/
       - name: "Post access control account custom action"
-        uses: ./pipelines-actions/.github/custom-actions/post-access-control-account
+        uses: ./${{ env.PIPELINES_ACTIONS_CUSTOMIZATIONS_PATH }}/.github/custom-actions/post-access-control-account
         with:
           job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
+          account_names: ${{ join(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].NewAccounts.*.Name, ',') }}
+          access_control_repo_dir: ${{ steps.access_control_account.outputs.access_control_repo_dir }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
           ORG_REPO_ADMIN_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).org_repo_admin }}
@@ -605,6 +607,7 @@ jobs:
         uses: ./pipelines-actions/.github/actions/pipelines-access-control-new-pr-action
         with:
           job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
+          access_control_repo_dir: ${{ steps.access_control_account.outputs.access_control_repo_dir }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
           ORG_REPO_ADMIN_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).org_repo_admin }}
