@@ -38,7 +38,7 @@ on:
         description: "Repository to fetch pipelines actions from (e.g. use your org/repo for self-hosted)"
       pipelines_actions_ref:
         type: string
-        default: "v4.6.0"
+        default: "v4.7.0"
         description: "For Gruntwork internal testing - the ref of the pipelines actions to use"
       pipelines_actions_customizations_repo:
         type: string
@@ -582,11 +582,32 @@ jobs:
           version: ${{ env.PIPELINES_CLI_VERSION }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
 
-      - name: "Provision access control account(s) and create PR"
+      - name: "Provision access control account(s)"
         id: access_control_account
         uses: ./pipelines-actions/.github/actions/pipelines-provision-access-control-action
         with:
           job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
+          ORG_REPO_ADMIN_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).org_repo_admin }}
+
+      # To learn more about customizing Pipelines see our documentation at https://docs.gruntwork.io/pipelines/maintain/extending/
+      - name: "Post access control account custom action"
+        uses: ./${{ env.PIPELINES_ACTIONS_CUSTOMIZATIONS_PATH }}/.github/custom-actions/post-access-control-account
+        with:
+          job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
+          account_names: ${{ join(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].NewAccounts.*.Name, ',') }}
+          access_control_repo_dir: ${{ steps.access_control_account.outputs.access_control_repo_dir }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
+          ORG_REPO_ADMIN_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).org_repo_admin }}
+
+      - name: "Create access control account pull request"
+        id: access_control_account_pr
+        uses: ./pipelines-actions/.github/actions/pipelines-access-control-new-pr-action
+        with:
+          job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
+          access_control_repo_dir: ${{ steps.access_control_account.outputs.access_control_repo_dir }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
           ORG_REPO_ADMIN_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).org_repo_admin }}
@@ -597,7 +618,7 @@ jobs:
         with:
           job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
           workflow_job_name: ${{ env.JOB_NAME }}
-          access_control_pull_request_url: ${{ steps.access_control_account.outputs.pull_request_url }}
+          access_control_pull_request_url: ${{ steps.access_control_account_pr.outputs.pull_request_url }}
           new_account_name: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].NewAccounts[0].Name }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
@@ -607,7 +628,7 @@ jobs:
       - name: "Post create delegated repo custom actions"
         uses: ./${{ env.PIPELINES_ACTIONS_CUSTOMIZATIONS_PATH }}/.github/custom-actions/post-create-delegated-repo
         with:
-          access_control_pull_request_url: ${{ steps.access_control_account.outputs.pull_request_url }}
+          access_control_pull_request_url: ${{ steps.access_control_account_pr.outputs.pull_request_url }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
           ORG_REPO_ADMIN_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).org_repo_admin }}
@@ -621,7 +642,7 @@ jobs:
           delegated_repo_path: ${{ steps.provision_delegated_repo.outputs.delegated_repo_path }}
           delegated_step_output_file_path: ${{ steps.provision_delegated_repo.outputs.step_output_file_path }}
           delegated_step_output_file_name: ${{ steps.provision_delegated_repo.outputs.step_output_file_name }}
-          access_control_pr_url: ${{ steps.access_control_account.outputs.pull_request_url }}
+          access_control_pr_url: ${{ steps.access_control_account_pr.outputs.pull_request_url }}
           GH_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).org_repo_admin }}
 
   pipelines_status_check:
