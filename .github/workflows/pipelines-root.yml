@@ -75,7 +75,7 @@ env:
   PIPELINES_ACTIONS_REF: ${{ inputs.pipelines_actions_ref }}
   PIPELINES_ACTIONS_CUSTOMIZATIONS_REPO: ${{ inputs.pipelines_actions_customizations_repo }}
   PIPELINES_ACTIONS_CUSTOMIZATIONS_REF: ${{ inputs.pipelines_actions_customizations_ref }}
-  PIPELINES_ACTIONS_CUSTOMIZATIONS_PATH: ${{ inputs.pipelines_actions_customizations_repo && 'pipelines-actions-customizations' || 'pipelines-actions' }}
+
   PIPELINES_CREDENTIALS_REPO: ${{ inputs.pipelines_credentials_repo }}
   PIPELINES_CREDENTIALS_REF: ${{ inputs.pipelines_credentials_ref }}
   BOILERPLATE_VERSION: v0.5.16
@@ -280,9 +280,13 @@ jobs:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
 
+      - name: Set up custom actions path
+        if: ${{ !inputs.pipelines_actions_customizations_repo }}
+        run: ln -snf pipelines-actions pipelines-actions-customizations
+
       # To learn more about customizing Pipelines see our documentation at https://docs.gruntwork.io/pipelines/maintain/extending/
       - name: "[Baseline]: Pre Provision New Account Custom Action"
-        uses: ./${{ env.PIPELINES_ACTIONS_CUSTOMIZATIONS_PATH }}/.github/custom-actions/pre-provision-new-account
+        uses: ./pipelines-actions-customizations/.github/custom-actions/pre-provision-new-account
         if: ${{ matrix.jobs.ChangeType == 'AccountsRequested' }}
         with:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
@@ -302,7 +306,7 @@ jobs:
           workflow_job_name: ${{ env.JOB_NAME }}
 
       - name: "[ProvisionAccount]: Post Provision New Account Custom Action"
-        uses: ./${{ env.PIPELINES_ACTIONS_CUSTOMIZATIONS_PATH }}/.github/custom-actions/post-provision-new-account
+        uses: ./pipelines-actions-customizations/.github/custom-actions/post-provision-new-account
         if: ${{ matrix.jobs.ChangeType == 'AccountsRequested' }}
         with:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
@@ -328,7 +332,7 @@ jobs:
             --job "$JOB"
 
       - name: "[Baseline]: Pre Baseline Core Account Action"
-        uses: ./${{ env.PIPELINES_ACTIONS_CUSTOMIZATIONS_PATH }}/.github/custom-actions/pre-baseline-core-accounts
+        uses: ./pipelines-actions-customizations/.github/custom-actions/pre-baseline-core-accounts
         if: ${{ matrix.jobs.ChangeType == 'AccountsAdded' }}
         with:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
@@ -349,7 +353,7 @@ jobs:
           workflow_job_name: ${{ env.JOB_NAME }}
 
       - name: "[Baseline]: Post Baseline Core Account Action"
-        uses: ./${{ env.PIPELINES_ACTIONS_CUSTOMIZATIONS_PATH }}/.github/custom-actions/post-baseline-core-accounts
+        uses: ./pipelines-actions-customizations/.github/custom-actions/post-baseline-core-accounts
         if: ${{ matrix.jobs.ChangeType == 'AccountsAdded' }}
         with:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
@@ -480,9 +484,13 @@ jobs:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
 
+      - name: Set up custom actions path
+        if: ${{ !inputs.pipelines_actions_customizations_repo }}
+        run: ln -snf pipelines-actions pipelines-actions-customizations
+
       # To learn more about customizing Pipelines see our documentation at https://docs.gruntwork.io/pipelines/maintain/extending/
       - name: "[Baseline]: Pre Baseline Child Account Action"
-        uses: ./${{ env.PIPELINES_ACTIONS_CUSTOMIZATIONS_PATH }}/.github/custom-actions/pre-baseline-child-account
+        uses: ./pipelines-actions-customizations/.github/custom-actions/pre-baseline-child-account
         with:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
@@ -501,7 +509,7 @@ jobs:
           workflow_job_name: ${{ env.JOB_NAME }}
 
       - name: "[Baseline]: Post Baseline Child Account Action"
-        uses: ./${{ env.PIPELINES_ACTIONS_CUSTOMIZATIONS_PATH }}/.github/custom-actions/post-baseline-child-account
+        uses: ./pipelines-actions-customizations/.github/custom-actions/post-baseline-child-account
         with:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
@@ -591,9 +599,13 @@ jobs:
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
           ORG_REPO_ADMIN_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).org_repo_admin }}
 
+      - name: Set up custom actions path
+        if: ${{ !inputs.pipelines_actions_customizations_repo }}
+        run: ln -snf pipelines-actions pipelines-actions-customizations
+
       # To learn more about customizing Pipelines see our documentation at https://docs.gruntwork.io/pipelines/maintain/extending/
       - name: "Post access control account custom action"
-        uses: ./${{ env.PIPELINES_ACTIONS_CUSTOMIZATIONS_PATH }}/.github/custom-actions/post-access-control-account
+        uses: ./pipelines-actions-customizations/.github/custom-actions/post-access-control-account
         with:
           job: ${{ toJson(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0]) }}
           account_names: ${{ join(fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs)[0].NewAccounts.*.Name, ',') }}
@@ -626,7 +638,7 @@ jobs:
 
       # To learn more about customizing Pipelines see our documentation at https://docs.gruntwork.io/pipelines/maintain/extending/
       - name: "Post create delegated repo custom actions"
-        uses: ./${{ env.PIPELINES_ACTIONS_CUSTOMIZATIONS_PATH }}/.github/custom-actions/post-create-delegated-repo
+        uses: ./pipelines-actions-customizations/.github/custom-actions/post-create-delegated-repo
         with:
           access_control_pull_request_url: ${{ steps.access_control_account_pr.outputs.pull_request_url }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
