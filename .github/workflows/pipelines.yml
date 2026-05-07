@@ -335,13 +335,27 @@ jobs:
           version: ${{ env.PIPELINES_CLI_VERSION }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
 
+      - name: Configure code auth
+        uses: ./pipelines-actions/.github/actions/pipelines-code-auth
+        with:
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
+
+      - name: Pipelines After Hooks
+        id: hooks_after
+        uses: ./pipelines-actions/.github/actions/pipelines-hooks-after
+        with:
+          GH_ARTIFACT_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
+
       - name: Check Status
+        if: always()
         shell: bash
         working-directory: ./infra-live-repo
         env:
           API_BASE_URL: ${{ inputs.api_base_url }}
           GH_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).propose_infra_change }}
           GH_ARTIFACT_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).propose_infra_change }}
+          AFTER_HOOKS_OUTCOME: ${{ steps.hooks_after.outcome }}
         run: |
           pipelines status-update finalize \
             --working-directory . \
@@ -355,7 +369,7 @@ jobs:
 
           printf '%.s─' $(seq 1 "$(tput -T dumb cols)")
           echo " "
-          if [[ "$pipeline_status" == "success" ]]; then
+          if [[ "$AFTER_HOOKS_OUTCOME" != "failure" && "$pipeline_status" == "success" ]]; then
             echo -e "✅ \033[1;32mPipeline Passed\033[0m"
             exit 0
           else
