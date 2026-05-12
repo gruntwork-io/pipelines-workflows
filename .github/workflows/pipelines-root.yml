@@ -177,6 +177,14 @@ jobs:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
           PR_COMMENT_WRITE_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).propose_infra_change }}
+          # Raw customer-set fallback secrets, validated by preflight as warnings
+          # so an expired fallback is surfaced proactively rather than only when the
+          # GitHub App is unavailable.
+          PIPELINES_READ_TOKEN_FALLBACK: ${{ secrets.PIPELINES_READ_TOKEN }}
+          PIPELINES_GRUNTWORK_READ_TOKEN_FALLBACK: ${{ secrets.PIPELINES_GRUNTWORK_READ_TOKEN }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN_FALLBACK: ${{ secrets.PIPELINES_CUSTOMER_ORG_READ_TOKEN }}
+          INFRA_ROOT_WRITE_TOKEN_FALLBACK: ${{ secrets.INFRA_ROOT_WRITE_TOKEN }}
+          ORG_REPO_ADMIN_TOKEN_FALLBACK: ${{ secrets.ORG_REPO_ADMIN_TOKEN }}
 
       - name: Pipelines Orchestrate
         id: orchestrate
