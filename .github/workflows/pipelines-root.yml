@@ -195,7 +195,7 @@ jobs:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
           PR_COMMENT_WRITE_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).infra_root_write }}
-          preflight_output_file: ${{ steps.preflight.outputs.preflight-output-file }}
+          preflight_output_file: ${{ steps.preflight.outputs.preflight_output_file }}
 
     outputs:
       pipelines_jobs: ${{ steps.orchestrate.outputs.jobs }}
