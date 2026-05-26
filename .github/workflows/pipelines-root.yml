@@ -740,6 +740,7 @@ jobs:
         id: hooks_after
         uses: ./pipelines-actions/.github/actions/pipelines-hooks-after
         with:
+          GH_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
           GH_ARTIFACT_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
 
       - name: Check Status
