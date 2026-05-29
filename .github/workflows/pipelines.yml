@@ -30,7 +30,7 @@ on:
         description: "Override where we fetch pipelines from, used for internal testing"
       pipelines_cli_version:
         type: string
-        default: "v0.53.3"
+        default: "v0.54.0"
         description: "For Gruntwork internal testing - the version of the pipelines CLI to use"
       pipelines_actions_repo:
         type: string
@@ -38,7 +38,7 @@ on:
         description: "Repository to fetch pipelines actions from (e.g. use your org/repo for self-hosted)"
       pipelines_actions_ref:
         type: string
-        default: "v4.8.0"
+        default: "v4.10.0"
         description: "For Gruntwork internal testing - the ref of the pipelines actions to use"
       pipelines_credentials_repo:
         type: string
@@ -155,12 +155,20 @@ jobs:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
 
       - name: Preflight Checks
+        id: preflight
         uses: ./pipelines-actions/.github/actions/pipelines-preflight-action
         with:
           PIPELINES_READ_TOKEN: ${{ secrets.PIPELINES_READ_TOKEN }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
           PR_COMMENT_WRITE_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).propose_infra_change }}
+          # Raw customer-set fallback secrets, validated by preflight as warnings
+          # so an expired fallback is surfaced proactively rather than only when the
+          # GitHub App is unavailable.
+          PIPELINES_READ_TOKEN_FALLBACK: ${{ secrets.PIPELINES_READ_TOKEN }}
+          PIPELINES_GRUNTWORK_READ_TOKEN_FALLBACK: ${{ secrets.PIPELINES_GRUNTWORK_READ_TOKEN }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN_FALLBACK: ${{ secrets.PIPELINES_CUSTOMER_ORG_READ_TOKEN }}
+          PR_CREATE_TOKEN_FALLBACK: ${{ secrets.PR_CREATE_TOKEN }}
 
       - name: Pipelines Orchestrate
         id: orchestrate
@@ -170,6 +178,7 @@ jobs:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
           PR_COMMENT_WRITE_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).propose_infra_change }}
+          preflight_output_file: ${{ steps.preflight.outputs.preflight_output_file }}
 
     outputs:
       pipelines_jobs: ${{ steps.orchestrate.outputs.jobs }}
