@@ -86,6 +86,11 @@ jobs:
     env:
       JOB_NAME: "Detect Infrastructure Changes"
     steps:
+      # NOTE: It may help to highlight 1Password IP level rate-limiting issues
+      - name: Get GHA runner public IP
+        continue-on-error: true
+        run: curl -s https://api.ipify.org
+
       - name: Record workflow env vars
         env:
           PIPELINES_BINARY_URL: ${{ inputs.pipelines_binary_url }}
