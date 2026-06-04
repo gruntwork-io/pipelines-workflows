@@ -64,6 +64,9 @@ on:
         required: false
       PR_CREATE_TOKEN:
         required: false
+      OP_SERVICE_ACCOUNT_TOKEN:
+        required: true
+
 env:
   PIPELINES_CLI_VERSION: ${{ inputs.pipelines_cli_version }}
   PIPELINES_ACTIONS_REPO: ${{ inputs.pipelines_actions_repo }}
@@ -72,6 +75,17 @@ env:
   PIPELINES_CREDENTIALS_REF: ${{ inputs.pipelines_credentials_ref }}
   BOILERPLATE_VERSION: v0.5.16
   GRUNTWORK_INSTALLER_VERSION: v0.0.40
+
+  OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+
+  # Terragrunt OpenTelemetry → New Relic OTLP ingest
+  # https://terragrunt.gruntwork.io/docs/troubleshooting/open-telemetry/
+  # OTEL_EXPORTER_OTLP_HEADERS is set per-job after loading the New Relic ingest
+  # key from 1Password (see "Load Terragrunt OTEL credential" steps below).
+  OTEL_SERVICE_NAME: Terragrunt
+  OTEL_EXPORTER_OTLP_ENDPOINT: https://otlp.nr-data.net
+  TG_TELEMETRY_METRIC_EXPORTER: otlpHttp
+  TG_TELEMETRY_TRACE_EXPORTER: otlpHttp
 
 jobs:
   determine_units:
@@ -226,6 +240,20 @@ jobs:
         with:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
+
+      - name: Load Terragrunt OTEL credential
+        id: otel-secrets
+        uses: 1password/load-secrets-action@92467eb28f72e8255933372f1e0707c567ce2259 # v4.0.0
+        with:
+          export-env: false
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          NEW_RELIC_OTEL_API_KEY: 'op://3hg5gdcz3m4epboxfdmltgmo2u/d2gdylswmgmrfoognkxidbd7ja/credential' # op://CI/"Terragrunt OpenTelemetry" New Relic API Key
+
+      - name: Set OTEL_EXPORTER_OTLP_HEADERS
+        env:
+          NEW_RELIC_OTEL_API_KEY: ${{ steps.otel-secrets.outputs.NEW_RELIC_OTEL_API_KEY }}
+        run: echo "OTEL_EXPORTER_OTLP_HEADERS=api-key=${NEW_RELIC_OTEL_API_KEY}" >> "$GITHUB_ENV"
 
       - name: Determine Drift
         id: determine-drift

@@ -72,12 +72,22 @@ env:
   PIPELINES_ACTIONS_REF: ${{ inputs.pipelines_actions_ref }}
   PIPELINES_CREDENTIALS_REPO: ${{ inputs.pipelines_credentials_repo }}
   PIPELINES_CREDENTIALS_REF: ${{ inputs.pipelines_credentials_ref }}
+
   OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
   NAMESPACE: ${{ inputs.namespace }}
 
   # GitHub Actions tends to hit resource exhaustion and kill running jobs
   # if we leave parallelism unbounded, so we set the max to 10 for a sane default.
   TG_PARALLELISM: 10
+
+  # Terragrunt OpenTelemetry → New Relic OTLP ingest
+  # https://terragrunt.gruntwork.io/docs/troubleshooting/open-telemetry/
+  # OTEL_EXPORTER_OTLP_HEADERS is set per-job after loading the New Relic ingest
+  # key from 1Password (see "Load Terragrunt OTEL credential" steps below).
+  OTEL_SERVICE_NAME: Terragrunt
+  OTEL_EXPORTER_OTLP_ENDPOINT: https://otlp.nr-data.net
+  TG_TELEMETRY_METRIC_EXPORTER: otlpHttp
+  TG_TELEMETRY_TRACE_EXPORTER: otlpHttp
 
 jobs:
   pipelines_orchestrate:
@@ -267,6 +277,19 @@ jobs:
         with:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
+
+      - name: Load secrets from 1Password
+        uses: 1password/load-secrets-action@92467eb28f72e8255933372f1e0707c567ce2259 # v4.0.0
+        with:
+          export-env: false
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          NEW_RELIC_OTEL_API_KEY: 'op://3hg5gdcz3m4epboxfdmltgmo2u/d2gdylswmgmrfoognkxidbd7ja/credential' # op://CI/"Terragrunt OpenTelemetry" New Relic API Key
+
+      - name: Set OTEL_EXPORTER_OTLP_HEADERS
+        env:
+          NEW_RELIC_OTEL_API_KEY: ${{ steps.otel-secrets.outputs.NEW_RELIC_OTEL_API_KEY }}
+        run: echo "OTEL_EXPORTER_OTLP_HEADERS=api-key=${NEW_RELIC_OTEL_API_KEY}" >> "$GITHUB_ENV"
 
       - name: "[TerragruntExecute]: Run terragrunt ${{ matrix.jobs.Action.Command }} in ${{ matrix.jobs.WorkingDirectory }}"
         id: terragrunt
