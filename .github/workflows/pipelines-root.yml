@@ -746,6 +746,7 @@ jobs:
         with:
           GH_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
           GH_ARTIFACT_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
+          PIPELINES_PLAN_ENCRYPTION_KEY: ${{ secrets.PIPELINES_PLAN_ENCRYPTION_KEY }}
 
       - name: Check Status
         if: always()
