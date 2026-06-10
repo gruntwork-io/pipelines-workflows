@@ -100,6 +100,13 @@ env:
   # key from 1Password (see "Load Terragrunt OTEL credential" steps below).
   OTEL_SERVICE_NAME: Terragrunt
   OTEL_EXPORTER_OTLP_ENDPOINT: https://otlp.nr-data.net
+  # New Relic OTLP caps payloads at 1MB (413 otherwise). Terragrunt's metric
+  # reader defaults to cumulative temporality, so each periodic export resends
+  # every metric stream of the run and outgrows the cap on large `run --all`
+  # stacks. Delta temporality keeps exports incremental; gzip is NR-recommended.
+  # https://docs.newrelic.com/docs/opentelemetry/best-practices/opentelemetry-otlp/
+  OTEL_EXPORTER_OTLP_COMPRESSION: gzip
+  OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: delta
   TG_TELEMETRY_METRIC_EXPORTER: otlpHttp
   TG_TELEMETRY_TRACE_EXPORTER: otlpHttp
 
