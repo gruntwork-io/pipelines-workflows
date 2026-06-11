@@ -379,10 +379,12 @@ jobs:
           API_BASE_URL: ${{ inputs.api_base_url }}
           GH_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).propose_infra_change }}
           GH_ARTIFACT_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).propose_infra_change }}
+          AFTER_HOOKS_OUTPUT_FILE: ${{ steps.hooks_after.outputs.output_file }}
           AFTER_HOOKS_OUTCOME: ${{ steps.hooks_after.outcome }}
         run: |
           pipelines status-update finalize \
             --working-directory . \
+            --after-hooks-output-file "$AFTER_HOOKS_OUTPUT_FILE" \
             --ci github-actions >/tmp/finalize-output.json
 
           pipelines inventory usage --working-directory . || true
