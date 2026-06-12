@@ -1,0 +1,32 @@
+name: Update Major Version Tag
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  update-tag:
+    # Skip pre-releases
+    if: ${{ !github.event.release.prerelease }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Update major version tag
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          MAJOR=$(echo "$TAG" | grep -oP '^v\d+')
+          if [ -z "$MAJOR" ]; then
+            echo "::error::Could not extract major version from tag '$TAG'"
+            exit 1
+          fi
+          echo "Updating floating tag $MAJOR to point to $TAG"
+          git tag -f "$MAJOR" "$TAG"
+          git push -f origin "$MAJOR"
