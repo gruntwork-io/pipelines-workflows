@@ -48,6 +48,10 @@ on:
         type: string
         default: "v2.0.0"
         description: "For Gruntwork internal testing - the ref of the pipelines credentials to use"
+      pipelines_pr_label_prefix:
+        type: string
+        default: "pipelines/"
+        description: "Prefix for PR status labels (e.g. pipelines/plan-success). Override to namespace under a different prefix."
 
     secrets:
       PIPELINES_READ_TOKEN:
@@ -345,6 +349,7 @@ jobs:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
 
       - name: Check Status
+        id: check_status
         shell: bash
         working-directory: ./infra-live-repo
         env:
@@ -359,6 +364,7 @@ jobs:
           pipelines inventory usage --working-directory . || true
 
           pipeline_status=$(jq -r '.status' </tmp/finalize-output.json)
+          echo "pipeline_status=$pipeline_status" >>"$GITHUB_OUTPUT"
 
           cat /tmp/finalize-output.json
 
@@ -371,3 +377,17 @@ jobs:
             echo -e "❌ \033[1;31mPipeline Failed\033[0m"
             exit 1
           fi
+
+      # Keep in sync with pipelines-root.yml (same step at end of pipelines_status_check).
+      - name: Set PR status label
+        if: always()
+        uses: ./pipelines-actions/.github/actions/pipelines-pr-labels
+        with:
+          PR_COMMENT_WRITE_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).propose_infra_change }}
+          # If pipeline_status is empty (finalize never ran because of an earlier
+          # catastrophic failure), default to failure so the PR gets a label
+          # rather than going unlabeled, which is exactly the case customers
+          # most want to spot at a glance.
+          status: ${{ steps.check_status.outputs.pipeline_status || 'failure' }}
+          event_kind: ${{ (github.event_name == 'pull_request' || github.event_name == 'pull_request_target') && 'plan' || 'apply' }}
+          label_prefix: ${{ inputs.pipelines_pr_label_prefix }}
