@@ -30,7 +30,7 @@ on:
         description: "Override where we fetch pipelines from, used for internal testing"
       pipelines_cli_version:
         type: string
-        default: "v0.54.1"
+        default: "v0.55.0-rc5"
         description: "For Gruntwork internal testing - the version of the pipelines CLI to use"
       pipelines_actions_repo:
         type: string
@@ -38,7 +38,7 @@ on:
         description: "Repository to fetch pipelines actions from (e.g. use your org/repo for self-hosted)"
       pipelines_actions_ref:
         type: string
-        default: "v4.10.1"
+        default: "v4.11.0"
         description: "For Gruntwork internal testing - the ref of the pipelines actions to use"
       pipelines_actions_customizations_repo:
         type: string
@@ -67,6 +67,8 @@ on:
       INFRA_ROOT_WRITE_TOKEN:
         required: false
       ORG_REPO_ADMIN_TOKEN:
+        required: false
+      PIPELINES_PLAN_ENCRYPTION_KEY:
         required: false
 
 env:
@@ -178,6 +180,7 @@ jobs:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
           PR_COMMENT_WRITE_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).propose_infra_change }}
+          PIPELINES_PLAN_ENCRYPTION_KEY: ${{ secrets.PIPELINES_PLAN_ENCRYPTION_KEY }}
           # Raw customer-set fallback secrets, validated by preflight as warnings
           # so an expired fallback is surfaced proactively rather than only when the
           # GitHub App is unavailable.
@@ -388,6 +391,7 @@ jobs:
         uses: ./pipelines-actions/.github/actions/pipelines-comment-job-update
         with:
           PR_COMMENT_WRITE_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).propose_infra_change }}
+          PIPELINES_PLAN_ENCRYPTION_KEY: ${{ secrets.PIPELINES_PLAN_ENCRYPTION_KEY }}
           step_name: ${{ matrix.jobs.ChangeType }}
           step_working_directory: ${{ matrix.jobs.WorkingDirectory }}
           step_terragrunt_command: ${{ matrix.jobs.Action.Command }} ${{ matrix.jobs.Action.Args }}
@@ -730,16 +734,43 @@ jobs:
           version: ${{ env.PIPELINES_CLI_VERSION }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
 
+      - name: Install Mise
+        id: mise-toml
+        uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151 # v4.0.1
+        with:
+          install: true
+          cache: true
+          version: 2026.4.11
+          working_directory: "./infra-live-repo"
+
+      - name: Configure code auth
+        uses: ./pipelines-actions/.github/actions/pipelines-code-auth
+        with:
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
+
+      - name: Pipelines After Hooks
+        id: hooks_after
+        uses: ./pipelines-actions/.github/actions/pipelines-hooks-after
+        with:
+          GH_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
+          GH_ARTIFACT_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
+          PIPELINES_PLAN_ENCRYPTION_KEY: ${{ secrets.PIPELINES_PLAN_ENCRYPTION_KEY }}
+
       - name: Check Status
+        if: always()
         shell: bash
         working-directory: ./infra-live-repo
         env:
           API_BASE_URL: ${{ inputs.api_base_url }}
           GH_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).propose_infra_change }}
           GH_ARTIFACT_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).propose_infra_change }}
+          AFTER_HOOKS_OUTPUT_FILE: ${{ steps.hooks_after.outputs.output_file }}
+          AFTER_HOOKS_OUTCOME: ${{ steps.hooks_after.outcome }}
         run: |
           pipelines status-update finalize \
             --working-directory . \
+            --after-hooks-output-file "$AFTER_HOOKS_OUTPUT_FILE" \
             --ci github-actions >/tmp/finalize-output.json
 
           pipelines inventory usage --working-directory . || true
@@ -750,7 +781,7 @@ jobs:
 
           printf '%.s─' $(seq 1 "$(tput -T dumb cols)")
           echo " "
-          if [[ "$pipeline_status" == "success" ]]; then
+          if [[ "$AFTER_HOOKS_OUTCOME" != "failure" && "$pipeline_status" == "success" ]]; then
             echo -e "✅ \033[1;32mPipeline Passed\033[0m"
             exit 0
           else
