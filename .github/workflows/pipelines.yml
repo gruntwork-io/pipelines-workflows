@@ -270,6 +270,27 @@ jobs:
           ref: ${{ matrix.jobs.Ref }}
           stack_paths: ${{ toJson(matrix.jobs.StackPaths) }}
 
+      - name: Sanitize artifact name fragment
+        id: artifact_name
+        if: ${{ always() && steps.terragrunt.outputs.pipelines_logs_artifact_path != '' }}
+        shell: bash
+        env:
+          WORKING_DIRECTORY: ${{ matrix.jobs.WorkingDirectory }}
+        run: |
+          sanitized="${WORKING_DIRECTORY//\//-}"
+          echo "fragment=$sanitized" >> "$GITHUB_OUTPUT"
+
+      - name: Upload unit logs as artifact
+        id: upload_logs
+        if: ${{ always() && steps.terragrunt.outputs.pipelines_logs_artifact_path != '' }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: pipelines-logs-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.jobs.ChangeType }}-${{ steps.artifact_name.outputs.fragment }}
+          path: ${{ steps.terragrunt.outputs.pipelines_logs_artifact_path }}
+          if-no-files-found: warn
+          retention-days: 30
+          overwrite: true
+
       - name: Update comment
         if: always()
         uses: ./pipelines-actions/.github/actions/pipelines-comment-job-update
@@ -283,6 +304,7 @@ jobs:
           plan_apply_log_file_path: ${{ steps.terragrunt.outputs.plan_folder }}
           extended_log_file_path: ${{ steps.terragrunt.outputs.execute_stdout_log }}
           pipelines_report_file_path: ${{ steps.terragrunt.outputs.pipelines_report_file_path }}
+          logs_artifact_url: ${{ steps.upload_logs.outputs.artifact-url }}
           job_name: ${{ env.JOB_NAME }}
 
     outputs:
