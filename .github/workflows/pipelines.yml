@@ -208,6 +208,11 @@ jobs:
   pipelines_execute:
     env:
       JOB_NAME: ${{ contains(matrix.jobs.Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
+      # Pin the Terragrunt Provider Cache Server store to a deterministic path so
+      # the `Cache Terraform providers` step below caches the same location. The
+      # server itself is enabled via TG_PROVIDER_CACHE in `.gruntwork/repository.hcl`.
+      # https://terragrunt.gruntwork.io/docs/features/provider-cache-server/
+      TG_PROVIDER_CACHE_DIR: ${{ github.workspace }}/.tg-cache/providers
     name: ${{ contains(matrix.jobs.Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
     needs: [pipelines_orchestrate]
     runs-on: ${{ fromJSON(inputs.runner) }}
@@ -298,6 +303,34 @@ jobs:
         env:
           NEW_RELIC_OTEL_API_KEY: ${{ steps.otel-secrets.outputs.NEW_RELIC_OTEL_API_KEY }}
         run: echo "OTEL_EXPORTER_OTLP_HEADERS=api-key=${NEW_RELIC_OTEL_API_KEY}" >> "$GITHUB_ENV"
+
+      # Persist the Terragrunt Provider Cache Server store across runs. Each unit
+      # runs as its own matrix job on a clean runner, so without this every job
+      # re-downloads its providers from the registry. Keyed off the committed
+      # `.terraform.lock.hcl` files; `restore-keys` gives a warm partial hit on a
+      # provider-version bump. https://terragrunt.gruntwork.io/docs/features/provider-cache-server/
+      - name: Cache Terraform providers
+        uses: actions/cache@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
+        with:
+          path: ${{ github.workspace }}/.tg-cache/providers
+          key: tg-providers-${{ hashFiles('infra-live-repo/**/.terraform.lock.hcl') }}
+          restore-keys: |
+            tg-providers-
+
+      # Persist the Terragrunt Content Addressable Store (CAS) across runs to
+      # avoid re-fetching module sources (e.g. livelink/terraform). CAS has no
+      # path override, so cache its default location. Rolling key: a per-commit
+      # key always misses, so `restore-keys` warm-restores the newest store and
+      # the run appends only genuinely-new sources (CAS is content-addressed, so
+      # no precise key is needed). Superseded snapshots age out via GitHub cache
+      # eviction (7-day-untouched + 10 GB LRU). https://terragrunt.gruntwork.io/docs/features/cas/
+      - name: Cache Terragrunt CAS (module sources)
+        uses: actions/cache@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
+        with:
+          path: ~/.cache/terragrunt/cas
+          key: tg-cas-${{ github.sha }}
+          restore-keys: |
+            tg-cas-
 
       - name: "[TerragruntExecute]: Run terragrunt ${{ matrix.jobs.Action.Command }} in ${{ matrix.jobs.WorkingDirectory }}"
         id: terragrunt
