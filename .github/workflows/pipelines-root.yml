@@ -170,6 +170,12 @@ jobs:
           version: ${{ env.PIPELINES_CLI_VERSION }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
 
+      - name: Configure code auth
+        uses: ./pipelines-actions/.github/actions/pipelines-code-auth
+        with:
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
+
       - name: Preflight Checks
         id: preflight
         uses: ./pipelines-actions/.github/actions/pipelines-preflight-action
