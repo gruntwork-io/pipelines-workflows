@@ -30,7 +30,7 @@ on:
         description: "Override where we fetch pipelines from, used for internal testing"
       pipelines_cli_version:
         type: string
-        default: "v0.55.3"
+        default: "v0.55.4"
         description: "For Gruntwork internal testing - the version of the pipelines CLI to use"
       pipelines_actions_repo:
         type: string
@@ -162,6 +162,12 @@ jobs:
         with:
           version: ${{ env.PIPELINES_CLI_VERSION }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
+
+      - name: Configure code auth
+        uses: ./pipelines-actions/.github/actions/pipelines-code-auth
+        with:
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
+          PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
 
       - name: Preflight Checks
         id: preflight
