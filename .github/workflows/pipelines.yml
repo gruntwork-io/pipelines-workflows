@@ -340,6 +340,13 @@ jobs:
         uses: ./pipelines-actions/.github/actions/pipelines-execute
         env:
           CHANGE_TYPE: ${{ matrix.jobs.ChangeType }}
+          # Dynamic OTEL resource attributes that need GitHub Actions context
+          # (run id, worker, VCS ref) which .gruntwork/repository.hcl cannot
+          # interpolate. Set at step scope so `runner.*` resolves. Derived from
+          # github.* so every GWP infra-live repo gets correct per-repo values —
+          # do NOT hardcode repo names here (this workflow is shared).
+          # https://opentelemetry.io/docs/specs/semconv/resource/cicd/
+          OTEL_RESOURCE_ATTRIBUTES: "cicd.pipeline.name=gruntwork-pipelines,cicd.pipeline.run.id=${{ github.run_id }},cicd.pipeline.run.url.full=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }},cicd.worker.id=${{ runner.name }},cicd.worker.name=${{ runner.name }},vcs.repository.url.full=${{ github.server_url }}/${{ github.repository }},vcs.repository.name=${{ github.event.repository.name }},vcs.ref.head.name=${{ github.head_ref || github.ref_name }},vcs.ref.head.revision=${{ github.sha }}"
         with:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
