@@ -217,6 +217,40 @@ jobs:
       matrix:
         jobs: ${{ fromJson(needs.pipelines_orchestrate.outputs.pipelines_jobs) }}
     steps:
+      - name: Load secrets from 1Password
+        id: otel-secrets
+        uses: 1password/load-secrets-action@92467eb28f72e8255933372f1e0707c567ce2259 # v4.0.0
+        with:
+          export-env: false
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          NEW_RELIC_OTEL_API_KEY: 'op://3hg5gdcz3m4epboxfdmltgmo2u/d2gdylswmgmrfoognkxidbd7ja/credential' # op://CI/"Terragrunt OpenTelemetry" New Relic API Key
+
+      - name: Set OTEL_EXPORTER_OTLP_HEADERS
+        env:
+          NEW_RELIC_OTEL_API_KEY: ${{ steps.otel-secrets.outputs.NEW_RELIC_OTEL_API_KEY }}
+        run: echo "OTEL_EXPORTER_OTLP_HEADERS=api-key=${NEW_RELIC_OTEL_API_KEY}" >> "$GITHUB_ENV"
+
+      # Dynamic OTEL resource attributes that need GitHub Actions context
+      # (run id, worker, VCS ref) which .gruntwork/repository.hcl cannot
+      # interpolate. Set at step scope so `runner.*` resolves. Derived from
+      # github.* so every GWP infra-live repo gets correct per-repo values —
+      # do NOT hardcode repo names here (this workflow is composite).
+      # `>-` folds newlines to spaces; OTel trims whitespace around each
+      # key=value, so the trailing-comma-per-line layout parses clean.
+      # https://opentelemetry.io/docs/specs/semconv/resource/cicd/
+      - name: Set OTEL_RESOURCE_ATTRIBUTES
+        run: >-
+          echo "OTEL_RESOURCE_ATTRIBUTES=cicd.pipeline.name=gruntwork-pipelines,
+          cicd.pipeline.run.id=${{ github.run_id }},
+          cicd.pipeline.run.url.full=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }},
+          cicd.worker.id=${{ runner.name }},
+          cicd.worker.name=${{ runner.name }},
+          vcs.repository.url.full=${{ github.server_url }}/${{ github.repository }},
+          vcs.repository.name=${{ github.event.repository.name }},
+          vcs.ref.head.name=${{ github.head_ref || github.ref_name }},
+          vcs.ref.head.revision=${{ github.sha }}" >> "$GITHUB_ENV"
+
       - name: Record workflow env vars
         env:
           PIPELINES_BINARY_URL: ${{ inputs.pipelines_binary_url }}
@@ -283,20 +317,6 @@ jobs:
         with:
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
           PIPELINES_CUSTOMER_ORG_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
-
-      - name: Load secrets from 1Password
-        id: otel-secrets
-        uses: 1password/load-secrets-action@92467eb28f72e8255933372f1e0707c567ce2259 # v4.0.0
-        with:
-          export-env: false
-        env:
-          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-          NEW_RELIC_OTEL_API_KEY: 'op://3hg5gdcz3m4epboxfdmltgmo2u/d2gdylswmgmrfoognkxidbd7ja/credential' # op://CI/"Terragrunt OpenTelemetry" New Relic API Key
-
-      - name: Set OTEL_EXPORTER_OTLP_HEADERS
-        env:
-          NEW_RELIC_OTEL_API_KEY: ${{ steps.otel-secrets.outputs.NEW_RELIC_OTEL_API_KEY }}
-        run: echo "OTEL_EXPORTER_OTLP_HEADERS=api-key=${NEW_RELIC_OTEL_API_KEY}" >> "$GITHUB_ENV"
 
       # Persist the Terragrunt Provider Cache Server store across runs. Each unit
       # runs as its own matrix job on a clean runner, so without this every job
