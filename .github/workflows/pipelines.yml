@@ -448,6 +448,16 @@ jobs:
           version: 2026.4.11
           working_directory: "./infra-live-repo"
 
+      - name: Activate fnox shell integration
+        shell: bash
+        working-directory: ./dice-environments/${{ inputs.path }}
+        run: fnox activate bash
+
+      - name: List secrets with fnox
+        shell: bash
+        working-directory: ./dice-environments/${{ inputs.path }}
+        run: fnox list
+
       - name: Configure code auth
         uses: ./pipelines-actions/.github/actions/pipelines-code-auth
         with:
