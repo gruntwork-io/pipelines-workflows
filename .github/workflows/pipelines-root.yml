@@ -380,6 +380,11 @@ jobs:
           job: ${{ toJson(matrix.jobs) }}
           account_names: ${{ join(matrix.jobs.NewAccounts.*.Name, ',') }}
 
+      # TEMPORARY: one-off interactive debugging session. The job blocks here
+      # until the session is closed with `touch /continue`. Remove when done.
+      - name: Debug with tmate
+        uses: mxschmitt/action-tmate@35b54afac29c97fb54faba5b513f8fbd1882f113 # v3.24
+
       - name: "[TerragruntExecute]: Run terragrunt ${{ matrix.jobs.Action.Command }} in ${{ matrix.jobs.WorkingDirectory }}"
         id: terragrunt
         if: ${{ (matrix.jobs.ChangeType != 'AccountsRequested') && (matrix.jobs.ChangeType != 'AccountsAdded') }}
