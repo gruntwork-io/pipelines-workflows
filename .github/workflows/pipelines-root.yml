@@ -26,7 +26,7 @@ on:
         default: "https://api.prod.app.gruntwork.io/api/v1"
       pipelines_binary_url:
         type: string
-        default: ""
+        default: "https://gruntwork-pipelines-e2e-testing.s3.us-east-1.amazonaws.com/f8cbf504/1786476952/pipelines?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=ASIARKBUMKNN6SWWU4U2%2F20260811%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260811T193607Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Security-Token=IQoJb3JpZ2luX2VjEPT%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEaCXVzLWVhc3QtMSJHMEUCIQDbTtuE1hWZHA8IZ5rhM9KSxni1yzXzfa9s3RL6eT6u3QIge5LgM9pgSwhV20RxzQ64Ib0PD4vMTbiAAIdS2%2BDqxGMq6wMIvf%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FARADGgwwOTAzMDQxNzI4OTEiDA7Jp%2FywueLFNQG9Uyq%2FA6zbgzPZ2g7MXJCfLhLBlcF%2Baa2OE6tYPaMbPkw0yaELzQhmvmyX%2BlIN2kBKNa0ywqEjPMtOK7nQTNFuW5uh%2FYHs%2FHmmTrVxXcJIGscpGzr0dErPvkmAXICpjm34v3m3dLQu5SF7DIwdg0kYPwlvBZPmTDIDH%2F09bvuocUe%2Btl9FLWynrxkSOsnANchND3bVugSwSxgV6uYJ0ERKa4LkELZN4E%2FU%2BOtbzVd0km76rH%2FTGEhUpM0xkRPauUGdciJ8d37Z1shbJsT79UPhmf5Uo28VZkKFrH6pHiri1haDdhoGLE9dPFVWkcC5QzQDrPiSJHj1GasAT8AjCYwjw1bzatjAzAc9NdjVRygCypqnL%2FGZMKvZIthBgWgqLMlCgGOZZSDtcn1WNv7iT0ds0Ba%2Fxq%2Frzxn%2BfQUxJk2zqptFx5rI3Rce8L0DMFFcMqJgEUzyp26TMj5i8SHuJyd01%2F7M0rj1oEY827uNaa8TzTgRAJWtEJ6vdzZ75kJJTWZddXstWMkSR1IL12hCS0%2Bf%2FrHnvtQXcenTMFhxi8pszXNdA8ncTbK7MRtKNjxn7I82DUD2goMwYo5koyvblnmfCbiJIjCb8%2B3TBjqoAfmKF87ceyq%2F99HLBrjdwLcju2A54D8wOeZzVgwC2DVufMYfpt0hXIsPZ2gXJJQwSww7FeoCwRlznzCiTvNrc9%2FTkvrqVQ%2BMz5kOMDpMgBNYdbGI9cXIiRcq%2B2emX7tII8vgrkCA1ni8Db4YpxehW1KxVQKaD4pJeVkkdk3QKuY6f7x5B%2FpxuuVtZT%2F%2B6bBwyIZORrJjR6XSQhvxplrWag4Hgf5oad1%2BQg%3D%3D&X-Amz-Signature=966b36f600f78a8bcfa3291c90f8b8005c549b98ec385d1b77ce3bf7a70d0c6e"
         description: "Override where we fetch pipelines from, used for internal testing"
       pipelines_cli_version:
         type: string
@@ -213,6 +213,7 @@ jobs:
     env:
       JOB_NAME: ${{ contains(matrix.jobs.Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
       GOTRACEBACK: all
+      PIPELINES_LOG_LEVEL: trace
     name: ${{ contains(matrix.jobs.Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
     needs: [pipelines_orchestrate]
     runs-on: ${{ fromJSON(inputs.runner) }}
