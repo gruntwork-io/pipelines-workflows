@@ -307,12 +307,18 @@ jobs:
           version: ${{ env.PIPELINES_CLI_VERSION }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
 
+      - name: Resolve Commit Author
+        id: commit-author
+        uses: ./pipelines-actions/.github/actions/pipelines-commit-author
+        with:
+          GH_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).propose_infra_change }}
+
       - name: "Consolidate Jobs"
         id: consolidate-jobs
         shell: bash
         env:
-          AUTHOR_EMAIL: ${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com
-          AUTHOR_NAME: ${{ github.actor }}
+          AUTHOR_EMAIL: ${{ steps.commit-author.outputs.email }}
+          AUTHOR_NAME: ${{ steps.commit-author.outputs.name }}
           DRIFT_DETECTION_BRANCH: ${{ inputs.pipelines_drift_detection_branch || 'drift-detection' }}
           DRIFT_DETECTION_FILTER: ${{ inputs.pipelines_drift_detection_filter }}
           GH_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).propose_infra_change }}
