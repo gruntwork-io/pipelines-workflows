@@ -304,6 +304,8 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
     needs: [pipelines_orchestrate, pipelines_execute]
     if: always()
+    env:
+      JOB_NAME: "Pipelines Status Check"
     steps:
       - name: Record workflow env vars
         env:
