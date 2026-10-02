@@ -688,6 +688,8 @@ jobs:
         pipelines_setup_delegated_repo,
       ]
     if: always()
+    env:
+      JOB_NAME: "Pipelines Status Check"
     steps:
       - name: Record workflow env vars
         env:
