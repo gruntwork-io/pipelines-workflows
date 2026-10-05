@@ -335,14 +335,21 @@ jobs:
           job: ${{ toJson(matrix.jobs) }}
           account_names: ${{ matrix.jobs.AdditionalData.AccountNames }}
 
+      - name: "[ProvisionAccount]: Resolve Commit Author"
+        id: commit-author
+        if: ${{ matrix.jobs.ChangeType == 'AccountsRequested' && contains(matrix.jobs.Action.Command , 'apply')}}
+        uses: ./pipelines-actions/.github/actions/pipelines-commit-author
+        with:
+          GH_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).propose_infra_change }}
+
       - name: "[ProvisionAccount]: Create New Account Pull Request Action"
         if: ${{ matrix.jobs.ChangeType == 'AccountsRequested' && contains(matrix.jobs.Action.Command , 'apply')}}
         shell: bash
         env:
           GH_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).propose_infra_change }}
           JOB: ${{ toJson(matrix.jobs) }}
-          AUTHOR_NAME: ${{ github.actor }}
-          AUTHOR_EMAIL: ${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com
+          AUTHOR_NAME: ${{ steps.commit-author.outputs.name }}
+          AUTHOR_EMAIL: ${{ steps.commit-author.outputs.email }}
         run: |
           pipelines account-factory propose-baseline-infra-change \
             --working-directory ./infra-live-repo \
