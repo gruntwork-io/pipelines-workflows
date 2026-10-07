@@ -38,7 +38,7 @@ on:
         description: "Repository to fetch pipelines actions from (e.g. use your org/repo for self-hosted)"
       pipelines_actions_ref:
         type: string
-        default: "v4.14.0"
+        default: "v4.15.0"
         description: "For Gruntwork internal testing - the ref of the pipelines actions to use"
       pipelines_actions_customizations_repo:
         type: string
@@ -773,6 +773,16 @@ jobs:
           PIPELINES_PLAN_ENCRYPTION_KEY: ${{ secrets.PIPELINES_PLAN_ENCRYPTION_KEY }}
           PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
 
+      - name: Pipelines Error Hooks
+        id: hooks_error
+        if: always()
+        uses: ./pipelines-actions/.github/actions/pipelines-hooks-error
+        with:
+          GH_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
+          GH_ARTIFACT_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
+          PIPELINES_PLAN_ENCRYPTION_KEY: ${{ secrets.PIPELINES_PLAN_ENCRYPTION_KEY }}
+          PIPELINES_GRUNTWORK_READ_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read }}
+
       - name: Check Status
         if: always()
         shell: bash
@@ -783,10 +793,13 @@ jobs:
           GH_ARTIFACT_TOKEN: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).propose_infra_change }}
           AFTER_HOOKS_OUTPUT_FILE: ${{ steps.hooks_after.outputs.output_file }}
           AFTER_HOOKS_OUTCOME: ${{ steps.hooks_after.outcome }}
+          ERROR_HOOKS_OUTPUT_FILE: ${{ steps.hooks_error.outputs.output_file }}
+          ERROR_HOOKS_OUTCOME: ${{ steps.hooks_error.outcome }}
         run: |
           pipelines status-update finalize \
             --working-directory . \
             --after-hooks-output-file "$AFTER_HOOKS_OUTPUT_FILE" \
+            --error-hooks-output-file "$ERROR_HOOKS_OUTPUT_FILE" \
             --ci github-actions >/tmp/finalize-output.json
 
           pipelines inventory usage --working-directory . || true
@@ -797,7 +810,7 @@ jobs:
 
           printf '%.s─' $(seq 1 "$(tput -T dumb cols)")
           echo " "
-          if [[ "$AFTER_HOOKS_OUTCOME" != "failure" && "$pipeline_status" == "success" ]]; then
+          if [[ "$AFTER_HOOKS_OUTCOME" != "failure" && "$ERROR_HOOKS_OUTCOME" != "failure" && "$pipeline_status" == "success" ]]; then
             echo -e "✅ \033[1;32mPipeline Passed\033[0m"
             exit 0
           else
