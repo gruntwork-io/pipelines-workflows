@@ -208,9 +208,11 @@ jobs:
 
     outputs:
       pipelines_jobs: ${{ steps.orchestrate.outputs.jobs }}
+      change_request_number: ${{ steps.preflight.outputs.change_request_number }}
 
   pipelines_execute:
     env:
+      PIPELINES_CHANGE_REQUEST_NUMBER: ${{ needs.pipelines_orchestrate.outputs.change_request_number }}
       JOB_NAME: ${{ contains(matrix.jobs.Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
     name: ${{ contains(matrix.jobs.Action.Command, 'plan') && 'Plan' || 'Apply' }} - ${{ matrix.jobs.ChangeType }} - ${{ matrix.jobs.WorkingDirectory }}
     needs: [pipelines_orchestrate]
@@ -697,6 +699,7 @@ jobs:
     if: always()
     env:
       JOB_NAME: "Pipelines Status Check"
+      PIPELINES_CHANGE_REQUEST_NUMBER: ${{ needs.pipelines_orchestrate.outputs.change_request_number }}
     steps:
       - name: Record workflow env vars
         env:
