@@ -132,11 +132,11 @@ jobs:
 
       - name: Install Mise
         id: mise-toml
-        uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151 # v4.0.1
+        uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
         with:
           install: true
           cache: true
-          version: 2026.4.11
+          version: 2026.10.18
           working_directory: "./infra-live-repo"
 
       - name: Test Terraform, OpenTofu and Terragrunt
@@ -225,11 +225,11 @@ jobs:
 
       - name: Install Mise
         id: mise-toml
-        uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151 # v4.0.1
+        uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
         with:
           install: true
           cache: true
-          version: 2026.4.11
+          version: 2026.10.18
           working_directory: "./infra-live-repo"
 
       - name: Test Terraform, OpenTofu and Terragrunt
@@ -320,11 +320,11 @@ jobs:
 
       - name: Install Mise
         id: mise-toml
-        uses: jdx/mise-action@1648a7812b9aeae629881980618f079932869151 # v4.0.1
+        uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
         with:
           install: true
           cache: true
-          version: 2026.4.11
+          version: 2026.10.18
           working_directory: "./infra-live-repo"
       - name: Test Terraform, OpenTofu and Terragrunt
         shell: bash
