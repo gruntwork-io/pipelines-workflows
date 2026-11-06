@@ -36,7 +36,7 @@ on:
         description: "Override where we fetch pipelines from, used for internal testing"
       pipelines_cli_version:
         type: string
-        default: "v0.70.0"
+        default: "v0.71.0"
         description: "For Gruntwork internal testing - the version of the pipelines CLI to use"
       pipelines_actions_repo:
         type: string
@@ -44,7 +44,7 @@ on:
         description: "Repository to fetch pipelines actions from (e.g. use your org/repo for self-hosted)"
       pipelines_actions_ref:
         type: string
-        default: "v4.16.1"
+        default: "v4.16.3"
         description: "For Gruntwork internal testing - the ref of the pipelines actions to use"
       pipelines_credentials_repo:
         type: string
@@ -125,12 +125,14 @@ jobs:
 
       - name: Install Mise
         id: mise-toml
-        uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
+        uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
         with:
           install: true
           cache: true
-          version: 2026.10.18
+          version: 2026.11.3
           working_directory: "./infra-live-repo"
+          # Keep shims ahead of tool dirs so per-directory mise.toml versions apply
+          export_path: false
 
       - name: Install Pipelines CLI
         uses: ./pipelines-actions/.github/actions/pipelines-install
@@ -208,12 +210,14 @@ jobs:
 
       - name: Install Mise
         id: mise-toml
-        uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
+        uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
         with:
           install: true
           cache: true
-          version: 2026.10.18
+          version: 2026.11.3
           working_directory: "./infra-live-repo"
+          # Keep shims ahead of tool dirs so per-directory mise.toml versions apply
+          export_path: false
 
       - name: Install Pipelines CLI
         uses: ./pipelines-actions/.github/actions/pipelines-install
