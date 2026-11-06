@@ -38,7 +38,7 @@ on:
         description: "Repository to fetch pipelines actions from (e.g. use your org/repo for self-hosted)"
       pipelines_actions_ref:
         type: string
-        default: "v4.16.1"
+        default: "chore/bump-mise-2026.11.3"
         description: "For Gruntwork internal testing - the ref of the pipelines actions to use"
       pipelines_credentials_repo:
         type: string
@@ -250,12 +250,14 @@ jobs:
 
       - name: Install Mise
         id: mise-toml
-        uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
+        uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
         with:
           install: true
           cache: true
-          version: 2026.10.18
+          version: 2026.11.3
           working_directory: "./infra-live-repo"
+          # Keep shims ahead of tool dirs so per-directory mise.toml versions apply
+          export_path: false
 
       - name: Configure code auth
         uses: ./pipelines-actions/.github/actions/pipelines-code-auth
@@ -360,12 +362,14 @@ jobs:
 
       - name: Install Mise
         id: mise-toml
-        uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
+        uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
         with:
           install: true
           cache: true
-          version: 2026.10.18
+          version: 2026.11.3
           working_directory: "./infra-live-repo"
+          # Keep shims ahead of tool dirs so per-directory mise.toml versions apply
+          export_path: false
 
       - name: Configure code auth
         uses: ./pipelines-actions/.github/actions/pipelines-code-auth
