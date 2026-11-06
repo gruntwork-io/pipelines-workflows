@@ -44,7 +44,7 @@ on:
         description: "Repository to fetch pipelines actions from (e.g. use your org/repo for self-hosted)"
       pipelines_actions_ref:
         type: string
-        default: "chore/bump-mise-2026.11.3"
+        default: "v4.16.3"
         description: "For Gruntwork internal testing - the ref of the pipelines actions to use"
       pipelines_credentials_repo:
         type: string
