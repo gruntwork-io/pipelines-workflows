@@ -16,7 +16,7 @@ on:
         required: false
         type: string
       unlock_all:
-        description: "Forcibly reset all locks by deleting the dynamodb table"
+        description: "Forcibly reset all locks: deletes the DynamoDB lock table (AWS) or each unit's lock object (GCS)"
         required: false
         type: boolean
 
@@ -47,7 +47,7 @@ on:
         description: "Override where we fetch pipelines from, used for internal testing"
       pipelines_cli_version:
         type: string
-        default: "v0.71.0"
+        default: "v0.72.0"
         description: "For Gruntwork internal testing - the version of the pipelines CLI to use"
       pipelines_actions_repo:
         type: string
@@ -272,7 +272,9 @@ jobs:
     name: "Rerun init in ${{ matrix.unit_path }}"
     needs: [unlock_all]
     runs-on: ${{ fromJSON(inputs.runner) }}
-    if: ${{ inputs.unlock_all }}
+    # Runs even when unlock_all failed (a GCS failure still emits the AWS units to re-init), and is
+    # skipped when there's nothing to re-init: GCS returns [], and a matrix built from [] fails.
+    if: ${{ !cancelled() && inputs.unlock_all && needs.unlock_all.outputs.reinit_unit_paths != '[]' && needs.unlock_all.outputs.reinit_unit_paths != '' }}
     strategy:
       fail-fast: false
       matrix:
