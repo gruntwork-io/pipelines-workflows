@@ -100,6 +100,7 @@ jobs:
           path: pipelines-credentials
           repository: ${{ env.PIPELINES_CREDENTIALS_REPO }}
           ref: ${{ env.PIPELINES_CREDENTIALS_REF }}
+          persist-credentials: false
 
       - name: Fetch Pipeline Tokens
         id: pipelines-tokens
@@ -122,6 +123,7 @@ jobs:
           repository: ${{ env.PIPELINES_ACTIONS_REPO }}
           ref: ${{ env.PIPELINES_ACTIONS_REF }}
           token: ${{ env.PIPELINES_ACTIONS_REPO == 'gruntwork-io/pipelines-actions' && fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read || fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
+          persist-credentials: false
 
       - name: Check out repo code
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -129,6 +131,7 @@ jobs:
           path: infra-live-repo
           fetch-depth: 0
           token: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
+          persist-credentials: false
 
       - name: Install Mise
         id: mise-toml
@@ -195,6 +198,7 @@ jobs:
           path: pipelines-credentials
           repository: ${{ env.PIPELINES_CREDENTIALS_REPO }}
           ref: ${{ env.PIPELINES_CREDENTIALS_REF }}
+          persist-credentials: false
 
       - name: Fetch Pipeline Tokens
         id: pipelines-tokens
@@ -217,6 +221,7 @@ jobs:
           repository: ${{ env.PIPELINES_ACTIONS_REPO }}
           ref: ${{ env.PIPELINES_ACTIONS_REF }}
           token: ${{ env.PIPELINES_ACTIONS_REPO == 'gruntwork-io/pipelines-actions' && fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read || fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
+          persist-credentials: false
 
       - name: Check out repo code
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -224,6 +229,7 @@ jobs:
           path: infra-live-repo
           fetch-depth: 0
           token: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
+          persist-credentials: false
 
       - name: Install Mise
         id: mise-toml
@@ -294,6 +300,7 @@ jobs:
           path: pipelines-credentials
           repository: ${{ env.PIPELINES_CREDENTIALS_REPO }}
           ref: ${{ env.PIPELINES_CREDENTIALS_REF }}
+          persist-credentials: false
 
       - name: Fetch Pipeline Tokens
         id: pipelines-tokens
@@ -316,6 +323,7 @@ jobs:
           repository: ${{ env.PIPELINES_ACTIONS_REPO }}
           ref: ${{ env.PIPELINES_ACTIONS_REF }}
           token: ${{ env.PIPELINES_ACTIONS_REPO == 'gruntwork-io/pipelines-actions' && fromJson(steps.pipelines-tokens.outputs.tokens_json).gruntwork_read || fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
+          persist-credentials: false
 
       - name: Check out repo code
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -323,6 +331,7 @@ jobs:
           path: infra-live-repo
           fetch-depth: 0
           token: ${{ fromJson(steps.pipelines-tokens.outputs.tokens_json).customer_org_read }}
+          persist-credentials: false
 
       - name: Install Mise
         id: mise-toml
